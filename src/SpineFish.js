@@ -1059,32 +1059,52 @@ export default class SpineFish {
     ctx.closePath();
   }
 
-  // Volumetric shading: the single biggest perceived-quality win.
-  //   • a darker slab over the TOP half (the back always sits in shadow
-  //     underwater because light comes from above-and-forward)
-  //   • a brighter slab over the BOTTOM half (scattered light bounces up from
-  //     the pond floor onto the belly)
-  //   • a short, travelling specular band along the dorsal ridge — reads as
-  //     "scales catching the light" without drawing individual scales
+  // Volumetric shading — top-down koi model:
+  //   • BOTH flanks darkened equally (the body is a tube; the spine is closest
+  //     to the viewer, the flanks curve away into the water and receive less
+  //     overhead light). Symmetric means heading-independent — a fish swimming
+  //     east and a fish swimming west are lit consistently.
+  //   • a broad, soft dorsal-ridge highlight along the spine re-brightens the
+  //     centreline, producing the dark-edge / bright-middle gradient that
+  //     reads as curvature without any directional sun.
+  //   • a short, travelling specular band on the dorsal ridge itself — reads
+  //     as "scales catching the light" without drawing individual scales.
   drawShading(ctx, surfaceness) {
-    // Back-shade — stronger when near surface (more directional light contrast)
+    // Symmetric flank-shade — both sides darker than the spine. Applied
+    // without cross-contamination by painting each half on its own path
+    // (same alpha both sides means identical darkening).
+    const flankAlpha = 0.16 + 0.12 * surfaceness;
     ctx.save();
-    ctx.globalAlpha = 0.16 + 0.14 * surfaceness;
+    ctx.globalAlpha = flankAlpha;
     ctx.fillStyle = 'rgb(0, 18, 22)';
     this.traceHalfBody(ctx, +1);
     ctx.fill();
-    ctx.restore();
-
-    // Belly highlight — subtle, warmer cream tone
-    ctx.save();
-    ctx.globalAlpha = 0.09 + 0.09 * surfaceness;
-    ctx.fillStyle = 'rgb(255, 246, 226)';
     this.traceHalfBody(ctx, -1);
     ctx.fill();
     ctx.restore();
 
-    // Travelling specular shimmer — a short highlight that slides along the
-    // spine. Only visible near the surface; deep fish don't catch the rays.
+    // Dorsal ridge highlight — a wide, soft cream stroke along the spine
+    // that counteracts the flank-shading along the centreline. Width scales
+    // with fish size so a chagoi gets a proportionally broader back; alpha
+    // is modest so the effect is "softly lit band" not "bright line".
+    const ridgeAlpha = 0.22 + 0.24 * surfaceness;
+    ctx.save();
+    ctx.globalAlpha = ridgeAlpha;
+    ctx.strokeStyle = 'rgb(255, 246, 226)';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(2.4, this.head.radius * 6);
+    ctx.beginPath();
+    ctx.moveTo(...this.head.getPoint(0, 0));
+    for (let i = 0; i < this.parts.length; i++) {
+      ctx.lineTo(...this.parts[i].getPoint(0, 0));
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Travelling specular shimmer — a short bright highlight that slides
+    // along the spine (NOT a flank — that was the previous bug). Only
+    // visible near the surface; deep fish don't catch the rays.
     const shimmerAlpha = 0.55 * surfaceness * surfaceness;
     if (shimmerAlpha > 0.04) {
       // Position along the fish, 0..1. Ping-pongs slowly via sin so it doesn't
@@ -1092,7 +1112,7 @@ export default class SpineFish {
       const pos = 0.5 + 0.45 * Math.sin(this.shimmerPhase);
       const n = this.parts.length;
       const centre = Math.max(1, Math.min(n - 2, Math.floor(pos * n)));
-      const span = 3; // parts either side
+      const span = 3;
       ctx.save();
       ctx.globalAlpha = shimmerAlpha;
       ctx.strokeStyle = 'rgba(255, 248, 220, 0.95)';
@@ -1102,8 +1122,7 @@ export default class SpineFish {
       ctx.beginPath();
       for (let i = centre - span; i <= centre + span; i++) {
         if (i < 0 || i >= n) continue;
-        const [px, py] = this.parts[i].getPoint(this.parts[i].radius * 4.5, Math.PI / 2);
-        // Taper the width by fading alpha at the ends of the span
+        const [px, py] = this.parts[i].getPoint(0, 0);
         if (i === centre - span) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
