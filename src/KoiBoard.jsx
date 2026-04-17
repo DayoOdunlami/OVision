@@ -10,19 +10,19 @@ import SpineFish, { buildPondMix } from './SpineFish.js';
 //   3. Optional accents: water droplets beaded on the pad, and a pink lotus
 //      blossom growing from it for punctuation
 // Shared pad-motion function. The lily rides on the water's surface tension:
-//   • a gentle vertical bob (primary wave)
-//   • a smaller, faster secondary wave (wind ripples)
-//   • a slow horizontal drift (current nudging it)
+//   • a gentle vertical bob (primary wave, ~5s cycle)
+//   • a smaller, faster secondary wave (wind ripples, ~2s cycle)
+//   • a slow horizontal drift (current nudging it, ~8s cycle)
 //   • a subtle rotational sway
-// Calibrated to be clearly visible at a glance but still read as a calm pond.
-// If anything it should look like the lily is lazily breathing on the water.
+// IMPORTANT: `t` here is the frame counter (st.current.tick), not milliseconds.
+// Coefficients are frame-based so e.g. 0.02 * 60fps ≈ 1.2 rad/s → ~5s period.
 function padMotion(t, phase) {
-  const bob = Math.sin(t * 0.00075 + phase) * 4.5
-            + Math.sin(t * 0.0021 + phase * 1.7) * 1.4;
-  const drift = Math.sin(t * 0.00045 + phase * 0.8) * 5.5
-              + Math.cos(t * 0.0013 + phase) * 1.6;
-  const sway = Math.sin(t * 0.0006 + phase) * 0.08
-             + Math.sin(t * 0.00145 + phase * 2.1) * 0.035;
+  const bob = Math.sin(t * 0.020 + phase) * 4.5
+            + Math.sin(t * 0.048 + phase * 1.7) * 1.4;
+  const drift = Math.sin(t * 0.013 + phase * 0.8) * 5.5
+              + Math.cos(t * 0.032 + phase) * 1.6;
+  const sway = Math.sin(t * 0.016 + phase) * 0.08
+             + Math.sin(t * 0.036 + phase * 2.1) * 0.035;
   return { bob, drift, sway };
 }
 
@@ -483,37 +483,108 @@ class FoodPellet {
   isDead() { return this.eaten || this.age >= this.maxAge; }
 }
 
-// ── Overlay styling ──────────────────────────────────────────────────────────
-// Each family member has:
-//   focus — the one-line headline shown on their card (read at 3m)
-//   why   — the deeper reason (shown when expanded)
-//   how   — list of tactics / practices (shown when expanded, add/remove)
+// ── Board content model ──────────────────────────────────────────────────────
+// Identity-first framing (Clear + Brown + Oettingen + Gottman). Three reading
+// distances: 3m identity banner · arm's-length per-person season cards ·
+// tap-to-reveal practices + honest obstacle.
+//
+// Board-level:
+//   identity   — the family declaration ("we are X"). Rarely changes. 3m read.
+//   values     — exactly 3 lived values, surfaced as quiet all-caps tags.
+//   anchor     — scripture/motto anchor, one line under the banner.
+//   ritual     — the one sacred recurring thing the family protects.
+//   season     — { label, tension }: seasonal label + honest obstacle hidden
+//                behind a long-press on the banner (fades after 8 seconds).
+//
+// Per-person:
+//   season     — one honest sentence about where they are right now (arm's length)
+//   why        — why this matters (hero card, collapsible)
+//   practices  — 2-4 concrete things they actually do (hero card, collapsible)
+//   obstacle   — the honest tension hidden behind tap-to-reveal (nullable —
+//                Ezra has none because he doesn't need one yet)
+//   locked     — when true, editing the card requires a deliberate override.
+//                Dayo's card is locked because it was written deliberately and
+//                shouldn't be nudged casually; the others are drafts awaiting
+//                input from Claire and the kids.
 const DEFAULT = {
-  why: 'The Odunlamis build each other up',
-  how: [
-    'We choose faith over fear',
-    'We show up fully present',
-    'We speak life over each other',
-  ],
+  identity: "We build each other up. We leave every room better than we found it.",
+  values: ["Faithfulness", "Gratitude", "Presence"],
+  anchor: {
+    ref: "Joshua 24:15",
+    text: "As for me and my house, we will serve the Lord.",
+  },
+  ritual: "Sunday table — uninterrupted, unrushed, everyone.",
+  season: {
+    label: "Spring 2026",
+    tension: "Output comes naturally. The filling has to be protected, not hoped for.",
+  },
   family: [
-    { name: 'Dayo',     focus: 'Lead with courage',    role: 'parent',
-      why: 'Because my family deserves a leader who is steady under pressure',
-      how: ['Read 15 min each morning', 'Weekly solo reset walk', 'Ship something meaningful every week'] },
-    { name: 'Claire',   focus: 'Rest & flourish',      role: 'parent',
-      why: 'Because a rested heart is the well the whole house drinks from',
-      how: ['Protect Sabbath afternoons', 'Creative project time on Fridays', 'Slow morning tea ritual'] },
-    { name: 'Isabella', focus: 'Grow in confidence',   role: 'child',
-      why: 'So I can try new things without being afraid to be beginner',
-      how: ['One brave thing per week', 'Ask questions in class', 'Finish what I start'] },
-    { name: 'Florence', focus: 'Shine with joy',       role: 'child',
-      why: 'Because joy is contagious and I want to pass it on',
-      how: ['Laugh on purpose', 'Dance when music plays', 'Tell someone what I love about them'] },
-    { name: 'Keziah',   focus: 'Explore with wonder',  role: 'child',
-      why: 'Because the world is full of things waiting to be noticed',
-      how: ['Ask one curious question a day', 'Draw what I see', 'Read outside when the sun is out'] },
-    { name: 'Ezra',     focus: 'Love out loud',        role: 'child',
-      why: 'Because love shrinks when we keep it in',
-      how: ['Hugs before school', 'Thank-you notes', 'Share my favourite things'] },
+    {
+      name: "Dayo", role: "parent", locked: true,
+      season: "Filling up — more of God, present in body and mind, building things that matter.",
+      why: "Because my family deserves a leader who is full, not running on empty.",
+      practices: [
+        "Ephesians 1:18 — pray for each person in the rotation",
+        "Train for HYROX with intention — Zone 2 and the sled",
+        "Build things that matter; make sure the right people understand what I'm making",
+      ],
+      obstacle: "Output comes naturally. The filling has to be protected, not hoped for.",
+    },
+    {
+      name: "Claire", role: "parent", locked: false, draft: true,
+      season: "Finding her feet — resting, rediscovering what's hers, flourishing slowly.",
+      why: "Because a flourishing Claire is the best thing that can happen to this family.",
+      practices: [
+        "One thing per week that is only for her",
+        "Build her own parenting language — not Dayo's system, hers",
+        "Let rest be rest, not recovery for the next task",
+      ],
+      obstacle: "She has less runway than she looks like she has. The logistics consume it before she notices.",
+    },
+    {
+      name: "Bella", role: "child", locked: false, draft: true,
+      season: "Growing in courage — SATs, faith questions, becoming herself.",
+      why: "Because this is the season where what she believes about herself starts to stick.",
+      practices: [
+        "Marvel marathons and The Chosen — keep watching together",
+        "Let her ask the hard faith questions without rushing to answers",
+        "Celebrate what she's already good at, not just what she's working on",
+      ],
+      obstacle: "It's easy to parent the presenting problem rather than the person underneath it.",
+    },
+    {
+      name: "Florence", role: "child", locked: false, draft: true,
+      season: "Teaching and being taught — full of ideas, learning when to lead and when to follow.",
+      why: "Because she has a gift for seeing things and explaining them. The job is to develop it without rushing it.",
+      practices: [
+        "Morning conversations — keep them going, they're doing something real",
+        "Let her teach: the younger ones, the cooking, whatever she understands",
+        "Help her learn that waiting is not the same as losing",
+      ],
+      obstacle: "Her certainty is a gift and a trap. She needs to be heard before she'll hear.",
+    },
+    {
+      name: "Keziah", role: "child", locked: false, draft: true,
+      season: "Steady and growing — one book, one milestone, one quiet moment at a time.",
+      why: "Because steadiness is a virtue that doesn't announce itself. She needs to know it's being seen.",
+      practices: [
+        "Read together — don't let the season get too busy for this",
+        "Notice and name the small milestones",
+        "Give her space to be the middle child without that meaning invisible",
+      ],
+      obstacle: "The quiet ones get less airtime than the loud ones. That's the bias to watch.",
+    },
+    {
+      name: "Ezra", role: "child", locked: false, draft: true,
+      season: "Present, playful, and discovering who he is.",
+      why: "Because he's the youngest and the most likely to grow up fast without anyone noticing. Slow this one down.",
+      practices: [
+        "Floor time — actual play, no agenda",
+        "He doesn't need a system yet. He needs a dad who shows up",
+        "Name what you see in him, often",
+      ],
+      obstacle: null,
+    },
   ],
 };
 
@@ -640,32 +711,36 @@ export default function KoiBoard() {
   });
   const raf = useRef(null);
   const [board, setBoard] = useState(() => {
-    // Migrate persisted boards from an earlier schema that lacked per-person
-    // `why` and `how`. We keep any saved focus/name and top up missing fields.
+    // Schema v2: identity-first framing. We bump the storage key because v1
+    // had incompatible per-person fields (focus/how vs season/practices), so
+    // attempting a merge would produce bad data. Anyone upgrading simply gets
+    // the new defaults and can re-edit; the cost is small and the clarity is
+    // worth more than preserving placeholder copy.
     try {
-      const raw = localStorage.getItem('vb.board.v1');
+      const raw = localStorage.getItem('vb.board.v2');
       if (raw) {
         const saved = JSON.parse(raw);
-        const merged = {
-          why: saved.why ?? DEFAULT.why,
-          how: saved.how ?? DEFAULT.how,
+        return {
+          ...DEFAULT,
+          ...saved,
+          anchor: { ...DEFAULT.anchor, ...(saved.anchor || {}) },
+          season: { ...DEFAULT.season, ...(saved.season || {}) },
+          values: Array.isArray(saved.values) ? saved.values : DEFAULT.values,
           family: DEFAULT.family.map(def => {
             const match = (saved.family || []).find(f => f.name === def.name) || {};
             return {
               ...def,
               ...match,
-              why: match.why ?? def.why,
-              how: Array.isArray(match.how) ? match.how : def.how,
+              practices: Array.isArray(match.practices) ? match.practices : def.practices,
             };
           }),
         };
-        return merged;
       }
     } catch {}
     return DEFAULT;
   });
   useEffect(() => {
-    try { localStorage.setItem('vb.board.v1', JSON.stringify(board)); } catch {}
+    try { localStorage.setItem('vb.board.v2', JSON.stringify(board)); } catch {}
   }, [board]);
   const [edit, setEdit] = useState(null);
   const [val, setVal] = useState('');
@@ -674,17 +749,27 @@ export default function KoiBoard() {
   // backdrop and renders that person's focus + why + how.
   const [expanded, setExpanded] = useState(null);
   // Per-person which accordion sections are open inside the hero.
-  // Keyed by family index, shape: { why: bool, how: bool }.
-  const [heroOpen, setHeroOpen] = useState({ why: false, how: true });
+  // Shape: { why: bool, practices: bool, obstacle: bool }. Obstacle stays
+  // closed by default — honest tension should be chosen, not stumbled into.
+  const [heroOpen, setHeroOpen] = useState({ why: false, practices: true, obstacle: false });
+  // Family-tension reveal (Oettingen obstacle): long-press the identity banner
+  // and the hidden tension sentence fades in for 8 seconds. Ambient reminder
+  // of the honest obstacle, not a passive piece of wall art.
+  const [tensionShown, setTensionShown] = useState(false);
+  const tensionTimer = useRef(null);
+  const bannerPressRef = useRef(null);
+  // Unlock modal for the locked card (Dayo). When true, the edit dialog
+  // should be shown even though the card is locked.
+  const [unlockPrompt, setUnlockPrompt] = useState(null); // { editKey, editVal } | null
   // ── Family card positions: percentage-of-viewport so they resize nicely ──
+  // Parents sit in the upper corners pushed ~22% down so they don't fight the
+  // new identity banner block at the top. Children form a bottom row.
   const FAMILY_DEFAULTS = () => {
-    // Parents top corners, children evenly across bottom.
-    // These are the defaults if localStorage has nothing saved.
     const out = {};
     const kids = DEFAULT.family.filter(m => m.role === 'child');
     const parents = DEFAULT.family.filter(m => m.role === 'parent');
     parents.forEach((p, i) => {
-      out[p.name] = { xPct: i === 0 ? 4 : 96, yPct: 10, anchor: i === 0 ? 'tl' : 'tr' };
+      out[p.name] = { xPct: i === 0 ? 4 : 96, yPct: 24, anchor: i === 0 ? 'tl' : 'tr' };
     });
     const pad = 4;
     const gap = (100 - pad * 2) / kids.length;
@@ -694,14 +779,16 @@ export default function KoiBoard() {
     return out;
   };
   const [positions, setPositions] = useState(() => {
+    // v2 — bumped because we renamed Isabella → Bella (kept as a draft stub
+    // by the family); old positions keyed by "Isabella" would be orphaned.
     try {
-      const raw = localStorage.getItem('vb.familyPositions.v1');
+      const raw = localStorage.getItem('vb.familyPositions.v2');
       if (raw) return { ...FAMILY_DEFAULTS(), ...JSON.parse(raw) };
     } catch {}
     return FAMILY_DEFAULTS();
   });
   useEffect(() => {
-    try { localStorage.setItem('vb.familyPositions.v1', JSON.stringify(positions)); } catch {}
+    try { localStorage.setItem('vb.familyPositions.v2', JSON.stringify(positions)); } catch {}
   }, [positions]);
   const [dragging, setDragging] = useState(null); // { name, offsetX, offsetY, moved, startX, startY }
 
@@ -1041,60 +1128,82 @@ export default function KoiBoard() {
     st.current.pressMoved = false;
   }, []);
 
+  // Dispatch a save based on the edit key prefix. Board-level keys update
+  // flat fields; family-level keys (f…-pi[-hi]) update per-person fields.
   const save = () => {
-    if (edit === 'why') setBoard(b => ({ ...b, why: val }));
-    else if (edit?.startsWith('h-')) {
-      const i = +edit.slice(2);
+    if (edit === 'identity')         setBoard(b => ({ ...b, identity: val }));
+    else if (edit === 'ritual')      setBoard(b => ({ ...b, ritual: val }));
+    else if (edit === 'season-label')setBoard(b => ({ ...b, season: { ...b.season, label: val } }));
+    else if (edit === 'tension')     setBoard(b => ({ ...b, season: { ...b.season, tension: val } }));
+    else if (edit === 'anchor') {
+      // Anchor editor takes "text\n— ref" as convention; split gracefully.
+      const m = val.match(/^([\s\S]*?)\s*(?:[—-])\s*([^\n—-]+)\s*$/m);
+      const text = m ? m[1].trim() : val.trim();
+      const ref  = m ? m[2].trim() : '';
+      setBoard(b => ({ ...b, anchor: { text, ref } }));
+    }
+    else if (edit?.startsWith('value-')) {
+      const i = +edit.slice(6);
       setBoard(b => {
-        const h = [...b.how]; h[i] = val;
-        return { ...b, how: h };
+        const values = [...b.values]; values[i] = val;
+        return { ...b, values };
       });
-    } else if (edit?.startsWith('p-')) {
-      const i = +edit.slice(2);
-      setBoard(b => {
-        const f = [...b.family]; f[i] = { ...f[i], focus: val };
-        return { ...b, family: f };
-      });
-    } else if (edit?.startsWith('fwhy-')) {
+    }
+    else if (edit?.startsWith('fseason-')) {
+      const i = +edit.slice(8);
+      setBoard(b => { const f = [...b.family]; f[i] = { ...f[i], season: val }; return { ...b, family: f }; });
+    }
+    else if (edit?.startsWith('fwhy-')) {
       const i = +edit.slice(5);
-      setBoard(b => {
-        const f = [...b.family]; f[i] = { ...f[i], why: val };
-        return { ...b, family: f };
-      });
-    } else if (edit?.startsWith('fhow-')) {
-      const [, pi, hi] = edit.split('-').map(Number);
+      setBoard(b => { const f = [...b.family]; f[i] = { ...f[i], why: val }; return { ...b, family: f }; });
+    }
+    else if (edit?.startsWith('fprac-')) {
+      const [, pi, hi] = edit.split('-').map((p, idx) => idx === 0 ? p : Number(p));
       setBoard(b => {
         const f = [...b.family];
-        const how = [...(f[pi].how || [])];
-        how[hi] = val;
-        f[pi] = { ...f[pi], how };
+        const practices = [...(f[pi].practices || [])];
+        practices[hi] = val;
+        f[pi] = { ...f[pi], practices };
         return { ...b, family: f };
       });
+    }
+    else if (edit?.startsWith('fobs-')) {
+      const i = +edit.slice(5);
+      setBoard(b => { const f = [...b.family]; f[i] = { ...f[i], obstacle: val }; return { ...b, family: f }; });
     }
     setEdit(null);
   };
 
   const open = (key, cur) => { setEdit(key); setVal(cur); };
 
+  // Lock guard: if a person is `locked`, opening their edit dialog first
+  // shows an unlock confirmation. Used for Dayo's deliberately-written card
+  // so the family doesn't nudge it by accident when walking past.
+  const tryEdit = (member, key, cur) => {
+    if (member?.locked) setUnlockPrompt({ key, val: cur });
+    else open(key, cur);
+  };
+
   const addTactic = (pi) => {
     setBoard(b => {
       const f = [...b.family];
-      const how = [...(f[pi].how || []), ''];
-      f[pi] = { ...f[pi], how };
+      const practices = [...(f[pi].practices || []), ''];
+      f[pi] = { ...f[pi], practices };
       return { ...b, family: f };
     });
-    // Open the new tactic for editing immediately
+    // Open the new practice for editing immediately (its index is the
+    // pre-update length, captured from the `board` closure).
     setTimeout(() => {
-      const hi = (board.family[pi].how || []).length;
-      open(`fhow-${pi}-${hi}`, '');
+      const hi = (board.family[pi].practices || []).length;
+      open(`fprac-${pi}-${hi}`, '');
     }, 0);
   };
 
   const removeTactic = (pi, hi) => {
     setBoard(b => {
       const f = [...b.family];
-      const how = (f[pi].how || []).filter((_, i) => i !== hi);
-      f[pi] = { ...f[pi], how };
+      const practices = (f[pi].practices || []).filter((_, i) => i !== hi);
+      f[pi] = { ...f[pi], practices };
       return { ...b, family: f };
     });
   };
@@ -1137,50 +1246,154 @@ export default function KoiBoard() {
       />
 
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <div
-          style={panel({
-            top: '50%', left: '50%',
-            transform: 'translate(-50%,-50%)',
-            width: 200, height: 200,
-            borderRadius: '50%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: 22,
-          })}
-          onClick={() => open('why', board.why)}
-        >
-          <div style={LABEL}>Why</div>
-          <div style={{ fontSize: 13, fontStyle: 'italic', lineHeight: 1.55 }}>
-            {board.why}
-          </div>
-          <div style={{ fontSize: 8, color: 'rgba(190,245,230,0.28)', marginTop: 10, letterSpacing: '0.15em' }}>
-            tap to edit
-          </div>
+        {/* ── Season label (top-right, understated) ── */}
+        <div style={{
+          position: 'absolute',
+          top: 22, right: 26,
+          fontSize: 10,
+          letterSpacing: '0.32em',
+          color: 'rgba(190,245,230,0.55)',
+          textTransform: 'uppercase',
+          pointerEvents: 'all',
+          cursor: 'pointer',
+        }} onClick={() => open('season-label', board.season.label)}>
+          {board.season.label}
         </div>
 
-        {board.how.map((item, i) => {
-          // All three across the top — the bottom is now the children's row.
-          const pos = [
-            { top: '18%', left: '11%' },
-            { top: '6%', left: '50%', transform: 'translateX(-50%)' },
-            { top: '18%', right: '11%' },
-          ][i];
-          return (
-            <div
-              key={i}
-              style={panel({ ...pos, padding: '14px 18px', maxWidth: 170 })}
-              onClick={() => open(`h-${i}`, item)}
-            >
-              <div style={LABEL}>How</div>
-              <div style={{ fontSize: 12.5, lineHeight: 1.55, fontStyle: 'italic' }}>
-                {item}
-              </div>
-            </div>
-          );
-        })}
+        {/* ── Identity banner block ── */}
+        {/* 3m-read centrepiece: typographic, no chrome, no edit affordance on
+            the surface. Long-press reveals the honest family tension for 8s.
+            Double-tap opens the edit dialog for the identity sentence itself. */}
+        <div style={{
+          position: 'absolute',
+          top: '8%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'min(820px, 70%)',
+          textAlign: 'center',
+          pointerEvents: 'all',
+          userSelect: 'none',
+          cursor: 'pointer',
+          touchAction: 'none',
+        }}
+        onPointerDown={(e) => {
+          bannerPressRef.current = {
+            t: Date.now(),
+            id: setTimeout(() => {
+              setTensionShown(true);
+              if (tensionTimer.current) clearTimeout(tensionTimer.current);
+              tensionTimer.current = setTimeout(() => setTensionShown(false), 8000);
+            }, 520),
+          };
+        }}
+        onPointerUp={(e) => {
+          const press = bannerPressRef.current;
+          if (!press) return;
+          const held = Date.now() - press.t;
+          clearTimeout(press.id);
+          bannerPressRef.current = null;
+          if (held < 520) {
+            // Short tap → edit the identity sentence.
+            open('identity', board.identity);
+          }
+        }}
+        onPointerLeave={() => {
+          if (bannerPressRef.current) {
+            clearTimeout(bannerPressRef.current.id);
+            bannerPressRef.current = null;
+          }
+        }}
+        >
+          <div style={{
+            fontSize: 'clamp(22px, 2.6vw, 36px)',
+            lineHeight: 1.28,
+            fontStyle: 'italic',
+            color: '#f4fcf7',
+            letterSpacing: '0.005em',
+            textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+          }}>
+            {board.identity}
+          </div>
+
+          {/* Values — three quiet tags */}
+          <div style={{
+            marginTop: 16,
+            display: 'flex',
+            gap: 22,
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}>
+            {board.values.map((v, i) => (
+              <span
+                key={i}
+                onClick={(e) => { e.stopPropagation(); open(`value-${i}`, v); }}
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.36em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(190,245,230,0.78)',
+                  cursor: 'pointer',
+                }}
+              >
+                {v}
+                {i < board.values.length - 1 && (
+                  <span style={{ marginLeft: 22, color: 'rgba(190,245,230,0.28)' }}>·</span>
+                )}
+              </span>
+            ))}
+          </div>
+
+          {/* Scripture anchor — quiet, single line */}
+          <div style={{
+            marginTop: 18,
+            fontSize: 13,
+            fontStyle: 'italic',
+            color: 'rgba(223,245,239,0.68)',
+            lineHeight: 1.45,
+            cursor: 'pointer',
+          }}
+          onClick={(e) => { e.stopPropagation(); open('anchor', `${board.anchor.text}\n— ${board.anchor.ref}`); }}>
+            “{board.anchor.text}”
+            <span style={{ color: 'rgba(190,245,230,0.42)', marginLeft: 8 }}>
+              — {board.anchor.ref}
+            </span>
+          </div>
+
+          {/* Ritual — the one protected recurring thing */}
+          <div style={{
+            marginTop: 10,
+            fontSize: 12,
+            color: 'rgba(190,245,230,0.5)',
+            letterSpacing: '0.08em',
+            cursor: 'pointer',
+          }}
+          onClick={(e) => { e.stopPropagation(); open('ritual', board.ritual); }}>
+            {board.ritual}
+          </div>
+
+          {/* Honest tension — fades in on long-press, out after 8s. The
+              typographic silence when it's hidden is the point: the tension
+              should be chosen, not stumbled into. Single-tap-while-visible
+              opens the edit dialog for it. */}
+          <div style={{
+            marginTop: 18,
+            minHeight: 48,
+            fontSize: 12,
+            fontStyle: 'italic',
+            color: 'rgba(255, 210, 190, 0.82)',
+            opacity: tensionShown ? 1 : 0,
+            transition: 'opacity 560ms ease',
+            letterSpacing: '0.02em',
+            lineHeight: 1.55,
+            padding: '0 16px',
+            pointerEvents: tensionShown ? 'all' : 'none',
+          }}
+          onClick={(e) => { if (tensionShown) { e.stopPropagation(); open('tension', board.season.tension); } }}
+          >
+            {tensionShown && board.season.tension}
+          </div>
+        </div>
 
         {board.family.map((m) => {
           const idx = board.family.indexOf(m);
@@ -1268,13 +1481,32 @@ export default function KoiBoard() {
               onPointerCancel={() => setDragging(null)}
             >
               <div style={{
-                fontSize: isParent ? 13 : 12,
-                fontWeight: 'bold',
-                color: 'rgba(190,245,230,0.92)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
                 marginBottom: isParent ? 4 : 3,
-                letterSpacing: '0.05em',
               }}>
-                {m.name}
+                <div style={{
+                  fontSize: isParent ? 13 : 12,
+                  fontWeight: 'bold',
+                  color: 'rgba(190,245,230,0.92)',
+                  letterSpacing: '0.05em',
+                }}>
+                  {m.name}
+                </div>
+                {/* Status hints: padlock = locked (deliberate, don't nudge),
+                    open circle = draft (awaiting input from the person). */}
+                {m.locked && (
+                  <span title="Locked — written deliberately" style={{
+                    fontSize: 9, color: 'rgba(190,245,230,0.55)',
+                  }}>🔒</span>
+                )}
+                {m.draft && !m.locked && (
+                  <span title="Draft — needs input from them" style={{
+                    fontSize: 9, color: 'rgba(255, 210, 190, 0.6)',
+                    letterSpacing: '0.14em', textTransform: 'uppercase',
+                  }}>draft</span>
+                )}
               </div>
               <div style={{
                 fontSize: isParent ? 12 : 11,
@@ -1282,7 +1514,7 @@ export default function KoiBoard() {
                 color: 'rgba(223,245,239,0.72)',
                 lineHeight: 1.4,
               }}>
-                {m.focus}
+                {m.season}
               </div>
             </div>
           );
@@ -1300,7 +1532,7 @@ export default function KoiBoard() {
           gap: 12,
           alignItems: 'center',
         }}>
-          <span>tap card for vision · drag to move · hold pond to feed</span>
+          <span>tap card for vision · drag to move · hold banner for the honest bit · hold pond to feed</span>
           <button
             onClick={() => setPositions(FAMILY_DEFAULTS())}
             style={{
@@ -1361,7 +1593,7 @@ export default function KoiBoard() {
                 animation: 'heropop 280ms cubic-bezier(0.2, 0.9, 0.25, 1)',
               }}
             >
-              {/* Header: role eyebrow + name + close */}
+              {/* Header: role eyebrow + name + lock/draft badge + close */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
                 <div>
                   <div style={{
@@ -1372,6 +1604,8 @@ export default function KoiBoard() {
                     marginBottom: 6,
                   }}>
                     {m.role === 'parent' ? 'Parent' : 'Child'} · Vision
+                    {m.locked && <span style={{ marginLeft: 10 }}>· Locked</span>}
+                    {m.draft && !m.locked && <span style={{ marginLeft: 10, color: 'rgba(255, 210, 190, 0.7)' }}>· Draft</span>}
                   </div>
                   <div style={{
                     fontSize: 34,
@@ -1400,7 +1634,7 @@ export default function KoiBoard() {
                 </button>
               </div>
 
-              {/* Focus — always visible, editable via pencil */}
+              {/* Season — always visible, editable via pencil (with lock guard) */}
               <div style={{ marginTop: 22, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{
@@ -1410,7 +1644,7 @@ export default function KoiBoard() {
                     color: 'rgba(190,245,230,0.44)',
                     marginBottom: 8,
                   }}>
-                    Focus
+                    Season
                   </div>
                   <div style={{
                     fontSize: 24,
@@ -1418,19 +1652,19 @@ export default function KoiBoard() {
                     lineHeight: 1.35,
                     color: '#eaf9f3',
                   }}>
-                    {m.focus}
+                    {m.season || <span style={{ opacity: 0.4 }}>Add a one-sentence season for this person…</span>}
                   </div>
                 </div>
                 <button
-                  onClick={() => open(`p-${pi}`, m.focus)}
-                  title="Edit focus"
+                  onClick={() => tryEdit(m, `fseason-${pi}`, m.season || '')}
+                  title="Edit season"
                   style={heroIcon}
                 >
                   ✎
                 </button>
               </div>
 
-              {/* Collapsible sections: Why + How */}
+              {/* Collapsible sections: Why + Practices + Obstacle */}
               <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <HeroSection
                   label="Why"
@@ -1445,10 +1679,10 @@ export default function KoiBoard() {
                       lineHeight: 1.55,
                       color: 'rgba(235,250,244,0.86)',
                     }}>
-                      {m.why || <span style={{ opacity: 0.4 }}>Add the reason this vision matters…</span>}
+                      {m.why || <span style={{ opacity: 0.4 }}>Add the reason this matters…</span>}
                     </div>
                     <button
-                      onClick={() => open(`fwhy-${pi}`, m.why || '')}
+                      onClick={() => tryEdit(m, `fwhy-${pi}`, m.why || '')}
                       title="Edit why"
                       style={heroIcon}
                     >✎</button>
@@ -1456,17 +1690,17 @@ export default function KoiBoard() {
                 </HeroSection>
 
                 <HeroSection
-                  label={`How · ${(m.how || []).length} ${((m.how || []).length === 1) ? 'practice' : 'practices'}`}
-                  open={heroOpen.how}
-                  onToggle={() => setHeroOpen(s => ({ ...s, how: !s.how }))}
+                  label={`Practices · ${(m.practices || []).length}`}
+                  open={heroOpen.practices}
+                  onToggle={() => setHeroOpen(s => ({ ...s, practices: !s.practices }))}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {(m.how || []).length === 0 && (
+                    {(m.practices || []).length === 0 && (
                       <div style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(223,245,239,0.4)' }}>
                         No practices yet.
                       </div>
                     )}
-                    {(m.how || []).map((h, hi) => (
+                    {(m.practices || []).map((h, hi) => (
                       <div key={hi} style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1489,28 +1723,55 @@ export default function KoiBoard() {
                         }}>
                           {h || <span style={{ opacity: 0.4 }}>Empty — tap edit to fill in</span>}
                         </div>
-                        <button onClick={() => open(`fhow-${pi}-${hi}`, h)} title="Edit practice" style={heroIconSm}>✎</button>
-                        <button onClick={() => removeTactic(pi, hi)} title="Remove practice" style={heroIconSm}>×</button>
+                        <button onClick={() => tryEdit(m, `fprac-${pi}-${hi}`, h)} title="Edit practice" style={heroIconSm}>✎</button>
+                        <button onClick={() => !m.locked && removeTactic(pi, hi)} disabled={m.locked} title={m.locked ? 'Locked' : 'Remove'} style={{ ...heroIconSm, opacity: m.locked ? 0.35 : 1, cursor: m.locked ? 'not-allowed' : 'pointer' }}>×</button>
                       </div>
                     ))}
                     <button
-                      onClick={() => addTactic(pi)}
+                      onClick={() => !m.locked && addTactic(pi)}
+                      disabled={m.locked}
                       style={{
                         marginTop: 4,
                         padding: '10px 14px',
                         borderRadius: 12,
                         border: '1px dashed rgba(255,255,255,0.22)',
                         background: 'transparent',
-                        color: 'rgba(190,245,230,0.7)',
+                        color: m.locked ? 'rgba(190,245,230,0.3)' : 'rgba(190,245,230,0.7)',
                         fontSize: 13,
                         fontFamily: 'inherit',
                         letterSpacing: '0.08em',
-                        cursor: 'pointer',
+                        cursor: m.locked ? 'not-allowed' : 'pointer',
                         textAlign: 'left',
                       }}
                     >
                       + add practice
                     </button>
+                  </div>
+                </HeroSection>
+
+                {/* Obstacle — collapsed by default (tap-to-reveal). Warm-tinted
+                    so it visually signals "this is the hard truth, not the
+                    happy part". Ezra's card intentionally has no obstacle. */}
+                <HeroSection
+                  label="Honest obstacle"
+                  open={heroOpen.obstacle}
+                  onToggle={() => setHeroOpen(s => ({ ...s, obstacle: !s.obstacle }))}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      flex: 1,
+                      fontSize: 15,
+                      fontStyle: 'italic',
+                      lineHeight: 1.55,
+                      color: 'rgba(255, 210, 190, 0.88)',
+                    }}>
+                      {m.obstacle || <span style={{ opacity: 0.45 }}>Add the honest tension underneath this season…</span>}
+                    </div>
+                    <button
+                      onClick={() => tryEdit(m, `fobs-${pi}`, m.obstacle || '')}
+                      title="Edit obstacle"
+                      style={heroIcon}
+                    >✎</button>
                   </div>
                 </HeroSection>
               </div>
@@ -1564,12 +1825,19 @@ export default function KoiBoard() {
               marginBottom: 14,
             }}>
               Edit {(() => {
-                if (edit === 'why') return 'Family Why';
-                if (edit.startsWith('h-')) return `Family How ${+edit.slice(2) + 1}`;
-                if (edit.startsWith('p-')) return `${board.family[+edit.slice(2)]?.name} · Focus`;
-                if (edit.startsWith('fwhy-')) return `${board.family[+edit.slice(5)]?.name} · Why`;
-                if (edit.startsWith('fhow-')) {
-                  const [, pi, hi] = edit.split('-').map(Number);
+                if (edit === 'identity') return 'Family Identity';
+                if (edit === 'anchor') return 'Scripture Anchor';
+                if (edit === 'ritual') return 'Family Ritual';
+                if (edit === 'season-label') return 'Season Label';
+                if (edit === 'tension') return 'Family Tension';
+                if (edit?.startsWith('value-')) return `Value ${+edit.slice(6) + 1}`;
+                if (edit?.startsWith('fseason-')) return `${board.family[+edit.slice(8)]?.name} · Season`;
+                if (edit?.startsWith('fwhy-')) return `${board.family[+edit.slice(5)]?.name} · Why`;
+                if (edit?.startsWith('fobs-')) return `${board.family[+edit.slice(5)]?.name} · Honest obstacle`;
+                if (edit?.startsWith('fprac-')) {
+                  const parts = edit.split('-');
+                  const pi = Number(parts[1]);
+                  const hi = Number(parts[2]);
                   return `${board.family[pi]?.name} · Practice ${hi + 1}`;
                 }
                 return '';
@@ -1633,6 +1901,91 @@ export default function KoiBoard() {
                 }}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock confirmation — gates edits on a locked card. Small friction
+          on purpose: this is what stops someone absent-mindedly rewriting
+          the deliberate card while looking up a shopping list. */}
+      {unlockPrompt && (
+        <div
+          style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+          onClick={() => setUnlockPrompt(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'rgba(14, 40, 36, 0.98)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255, 210, 190, 0.32)',
+              borderRadius: 22,
+              padding: 28,
+              minWidth: 340,
+              maxWidth: 420,
+              color: '#dff5ef',
+              fontFamily: "'Palatino Linotype', Palatino, Georgia, serif",
+            }}
+          >
+            <div style={{
+              fontSize: 9,
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              color: 'rgba(255, 210, 190, 0.7)',
+              marginBottom: 10,
+            }}>
+              Locked card
+            </div>
+            <div style={{ fontSize: 15, lineHeight: 1.55, fontStyle: 'italic', color: 'rgba(235,250,244,0.9)' }}>
+              This card was written deliberately. Editing it changes the
+              reference — are you sure?
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+              <button
+                onClick={() => {
+                  const k = unlockPrompt.key; const v = unlockPrompt.val;
+                  setUnlockPrompt(null);
+                  open(k, v);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px 0',
+                  borderRadius: 11,
+                  border: 'none',
+                  background: 'rgba(220, 130, 100, 0.4)',
+                  color: '#fff2ea',
+                  fontSize: 13,
+                  fontFamily: 'inherit',
+                  letterSpacing: '0.08em',
+                  cursor: 'pointer',
+                }}
+              >
+                Edit anyway
+              </button>
+              <button
+                onClick={() => setUnlockPrompt(null)}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: 11,
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  background: 'transparent',
+                  color: 'rgba(223,245,239,0.6)',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Keep locked
               </button>
             </div>
           </div>
