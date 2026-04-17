@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import SpineFish from './SpineFish.js';
+import SpineFish, { buildPondMix } from './SpineFish.js';
 
 // ── Lily pads ────────────────────────────────────────────────────────────────
 // The pad is drawn in three layers to feel genuinely alive:
@@ -483,6 +483,10 @@ class FoodPellet {
 }
 
 // ── Overlay styling ──────────────────────────────────────────────────────────
+// Each family member has:
+//   focus — the one-line headline shown on their card (read at 3m)
+//   why   — the deeper reason (shown when expanded)
+//   how   — list of tactics / practices (shown when expanded, add/remove)
 const DEFAULT = {
   why: 'The Odunlamis build each other up',
   how: [
@@ -491,12 +495,24 @@ const DEFAULT = {
     'We speak life over each other',
   ],
   family: [
-    { name: 'Dayo',     focus: 'Lead with courage',       role: 'parent' },
-    { name: 'Claire',   focus: 'Rest & flourish',         role: 'parent' },
-    { name: 'Isabella', focus: 'Grow in confidence',      role: 'child'  },
-    { name: 'Florence', focus: 'Shine with joy',          role: 'child'  },
-    { name: 'Keziah',   focus: 'Explore with wonder',     role: 'child'  },
-    { name: 'Ezra',     focus: 'Love out loud',           role: 'child'  },
+    { name: 'Dayo',     focus: 'Lead with courage',    role: 'parent',
+      why: 'Because my family deserves a leader who is steady under pressure',
+      how: ['Read 15 min each morning', 'Weekly solo reset walk', 'Ship something meaningful every week'] },
+    { name: 'Claire',   focus: 'Rest & flourish',      role: 'parent',
+      why: 'Because a rested heart is the well the whole house drinks from',
+      how: ['Protect Sabbath afternoons', 'Creative project time on Fridays', 'Slow morning tea ritual'] },
+    { name: 'Isabella', focus: 'Grow in confidence',   role: 'child',
+      why: 'So I can try new things without being afraid to be beginner',
+      how: ['One brave thing per week', 'Ask questions in class', 'Finish what I start'] },
+    { name: 'Florence', focus: 'Shine with joy',       role: 'child',
+      why: 'Because joy is contagious and I want to pass it on',
+      how: ['Laugh on purpose', 'Dance when music plays', 'Tell someone what I love about them'] },
+    { name: 'Keziah',   focus: 'Explore with wonder',  role: 'child',
+      why: 'Because the world is full of things waiting to be noticed',
+      how: ['Ask one curious question a day', 'Draw what I see', 'Read outside when the sun is out'] },
+    { name: 'Ezra',     focus: 'Love out loud',        role: 'child',
+      why: 'Because love shrinks when we keep it in',
+      how: ['Hugs before school', 'Thank-you notes', 'Share my favourite things'] },
   ],
 };
 
@@ -522,6 +538,86 @@ const LABEL = {
   marginBottom: 6,
 };
 
+// Small icon-button used inside the hero panel (pencil, close, remove).
+const heroIcon = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.18)',
+  color: 'rgba(223,245,239,0.7)',
+  width: 32, height: 32,
+  borderRadius: 16,
+  fontSize: 13,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  flexShrink: 0,
+};
+const heroIconSm = { ...heroIcon, width: 26, height: 26, fontSize: 12, borderRadius: 13 };
+
+// Collapsible section inside the hero panel.
+function HeroSection({ label, open, onToggle, children }) {
+  return (
+    <div style={{
+      border: '1px solid rgba(255,255,255,0.12)',
+      borderRadius: 16,
+      overflow: 'hidden',
+      background: 'rgba(255,255,255,0.03)',
+    }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 18px',
+          background: 'transparent',
+          border: 'none',
+          color: 'rgba(223,245,239,0.82)',
+          fontFamily: 'inherit',
+          fontSize: 11,
+          letterSpacing: '0.24em',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+        }}
+      >
+        <span>{label}</span>
+        <span style={{
+          transition: 'transform 240ms ease',
+          transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
+          fontSize: 14,
+          color: 'rgba(190,245,230,0.55)',
+        }}>›</span>
+      </button>
+      {open && (
+        <div style={{
+          padding: '0 18px 18px',
+          animation: 'slidein 220ms ease',
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Inject hero animations once (keyframes live in document head rather than
+// a separate stylesheet to keep this component self-contained).
+if (typeof document !== 'undefined' && !document.getElementById('vb-hero-css')) {
+  const s = document.createElement('style');
+  s.id = 'vb-hero-css';
+  s.textContent = `
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes heropop {
+      from { opacity: 0; transform: scale(0.92) translateY(12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes slidein {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export default function KoiBoard() {
   const cvs = useRef(null);
@@ -542,9 +638,43 @@ export default function KoiBoard() {
     pressTimer: null,
   });
   const raf = useRef(null);
-  const [board, setBoard] = useState(DEFAULT);
+  const [board, setBoard] = useState(() => {
+    // Migrate persisted boards from an earlier schema that lacked per-person
+    // `why` and `how`. We keep any saved focus/name and top up missing fields.
+    try {
+      const raw = localStorage.getItem('vb.board.v1');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        const merged = {
+          why: saved.why ?? DEFAULT.why,
+          how: saved.how ?? DEFAULT.how,
+          family: DEFAULT.family.map(def => {
+            const match = (saved.family || []).find(f => f.name === def.name) || {};
+            return {
+              ...def,
+              ...match,
+              why: match.why ?? def.why,
+              how: Array.isArray(match.how) ? match.how : def.how,
+            };
+          }),
+        };
+        return merged;
+      }
+    } catch {}
+    return DEFAULT;
+  });
+  useEffect(() => {
+    try { localStorage.setItem('vb.board.v1', JSON.stringify(board)); } catch {}
+  }, [board]);
   const [edit, setEdit] = useState(null);
   const [val, setVal] = useState('');
+  // Index of the family member currently shown as an expanded hero card, or
+  // null when no one is expanded. The hero sits over the pond with a dimmed
+  // backdrop and renders that person's focus + why + how.
+  const [expanded, setExpanded] = useState(null);
+  // Per-person which accordion sections are open inside the hero.
+  // Keyed by family index, shape: { why: bool, how: bool }.
+  const [heroOpen, setHeroOpen] = useState({ why: false, how: true });
   // ── Family card positions: percentage-of-viewport so they resize nicely ──
   const FAMILY_DEFAULTS = () => {
     // Parents top corners, children evenly across bottom.
@@ -586,10 +716,13 @@ export default function KoiBoard() {
       canvas.width = Math.floor(w * DPR);
       canvas.height = Math.floor(h * DPR);
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      // Fish count scales gently with screen area; minimum 7, max 11
+      // Fish count scales gently with screen area; minimum 7, max 11.
+      // buildPondMix guarantees variety — chagoi patriarch, showa, sanke,
+      // asagi etc. rather than a random clump of the same colour.
       const area = w * h;
       const count = Math.max(7, Math.min(11, Math.round(area / 220000)));
-      st.current.fish = Array.from({ length: count }, () => new SpineFish(w, h));
+      const mix = buildPondMix(count);
+      st.current.fish = mix.map(v => new SpineFish(w, h, v));
     };
     resize();
     window.addEventListener('resize', resize);
@@ -921,11 +1054,57 @@ export default function KoiBoard() {
         const f = [...b.family]; f[i] = { ...f[i], focus: val };
         return { ...b, family: f };
       });
+    } else if (edit?.startsWith('fwhy-')) {
+      const i = +edit.slice(5);
+      setBoard(b => {
+        const f = [...b.family]; f[i] = { ...f[i], why: val };
+        return { ...b, family: f };
+      });
+    } else if (edit?.startsWith('fhow-')) {
+      const [, pi, hi] = edit.split('-').map(Number);
+      setBoard(b => {
+        const f = [...b.family];
+        const how = [...(f[pi].how || [])];
+        how[hi] = val;
+        f[pi] = { ...f[pi], how };
+        return { ...b, family: f };
+      });
     }
     setEdit(null);
   };
 
   const open = (key, cur) => { setEdit(key); setVal(cur); };
+
+  const addTactic = (pi) => {
+    setBoard(b => {
+      const f = [...b.family];
+      const how = [...(f[pi].how || []), ''];
+      f[pi] = { ...f[pi], how };
+      return { ...b, family: f };
+    });
+    // Open the new tactic for editing immediately
+    setTimeout(() => {
+      const hi = (board.family[pi].how || []).length;
+      open(`fhow-${pi}-${hi}`, '');
+    }, 0);
+  };
+
+  const removeTactic = (pi, hi) => {
+    setBoard(b => {
+      const f = [...b.family];
+      const how = (f[pi].how || []).filter((_, i) => i !== hi);
+      f[pi] = { ...f[pi], how };
+      return { ...b, family: f };
+    });
+  };
+
+  // Close hero on Escape for keyboard users.
+  useEffect(() => {
+    if (expanded === null) return;
+    const onKey = (e) => { if (e.key === 'Escape') setExpanded(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [expanded]);
 
   return (
     <div
@@ -1079,7 +1258,10 @@ export default function KoiBoard() {
                 const wasClick = dragging && !dragging.moved;
                 setDragging(null);
                 if (wasClick) {
-                  open(`p-${idx}`, m.focus);
+                  // Tap a card → open the expanded hero panel (why + how).
+                  // Focus can still be edited from the pencil inside the hero.
+                  setHeroOpen({ why: false, how: true });
+                  setExpanded(idx);
                 }
               }}
               onPointerCancel={() => setDragging(null)}
@@ -1117,7 +1299,7 @@ export default function KoiBoard() {
           gap: 12,
           alignItems: 'center',
         }}>
-          <span>tap panels to edit · drag family · hold to feed</span>
+          <span>tap card for vision · drag to move · hold pond to feed</span>
           <button
             onClick={() => setPositions(FAMILY_DEFAULTS())}
             style={{
@@ -1138,6 +1320,214 @@ export default function KoiBoard() {
           </button>
         </div>
       </div>
+
+      {expanded !== null && board.family[expanded] && (() => {
+        const m = board.family[expanded];
+        const pi = expanded;
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'rgba(3, 22, 20, 0.62)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 80,
+              animation: 'fadein 240ms ease',
+              padding: 24,
+            }}
+            onClick={() => setExpanded(null)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 'min(760px, 92vw)',
+                maxHeight: '88vh',
+                overflowY: 'auto',
+                background: 'rgba(10, 52, 46, 0.58)',
+                backdropFilter: 'blur(28px)',
+                WebkitBackdropFilter: 'blur(28px)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 28,
+                padding: '36px 44px 40px',
+                color: '#dff5ef',
+                boxShadow: '0 32px 96px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1)',
+                fontFamily: "'Palatino Linotype', Palatino, Georgia, serif",
+                animation: 'heropop 280ms cubic-bezier(0.2, 0.9, 0.25, 1)',
+              }}
+            >
+              {/* Header: role eyebrow + name + close */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
+                <div>
+                  <div style={{
+                    fontSize: 10,
+                    letterSpacing: '0.28em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(190,245,230,0.48)',
+                    marginBottom: 6,
+                  }}>
+                    {m.role === 'parent' ? 'Parent' : 'Child'} · Vision
+                  </div>
+                  <div style={{
+                    fontSize: 34,
+                    letterSpacing: '0.02em',
+                    lineHeight: 1.05,
+                    color: '#f2fbf7',
+                  }}>
+                    {m.name}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setExpanded(null)}
+                  aria-label="Close"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.22)',
+                    color: 'rgba(223,245,239,0.7)',
+                    width: 38, height: 38,
+                    borderRadius: 19,
+                    fontSize: 16,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Focus — always visible, editable via pencil */}
+              <div style={{ marginTop: 22, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: 10,
+                    letterSpacing: '0.24em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(190,245,230,0.44)',
+                    marginBottom: 8,
+                  }}>
+                    Focus
+                  </div>
+                  <div style={{
+                    fontSize: 24,
+                    fontStyle: 'italic',
+                    lineHeight: 1.35,
+                    color: '#eaf9f3',
+                  }}>
+                    {m.focus}
+                  </div>
+                </div>
+                <button
+                  onClick={() => open(`p-${pi}`, m.focus)}
+                  title="Edit focus"
+                  style={heroIcon}
+                >
+                  ✎
+                </button>
+              </div>
+
+              {/* Collapsible sections: Why + How */}
+              <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <HeroSection
+                  label="Why"
+                  open={heroOpen.why}
+                  onToggle={() => setHeroOpen(s => ({ ...s, why: !s.why }))}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      flex: 1,
+                      fontSize: 16,
+                      fontStyle: 'italic',
+                      lineHeight: 1.55,
+                      color: 'rgba(235,250,244,0.86)',
+                    }}>
+                      {m.why || <span style={{ opacity: 0.4 }}>Add the reason this vision matters…</span>}
+                    </div>
+                    <button
+                      onClick={() => open(`fwhy-${pi}`, m.why || '')}
+                      title="Edit why"
+                      style={heroIcon}
+                    >✎</button>
+                  </div>
+                </HeroSection>
+
+                <HeroSection
+                  label={`How · ${(m.how || []).length} ${((m.how || []).length === 1) ? 'practice' : 'practices'}`}
+                  open={heroOpen.how}
+                  onToggle={() => setHeroOpen(s => ({ ...s, how: !s.how }))}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {(m.how || []).length === 0 && (
+                      <div style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(223,245,239,0.4)' }}>
+                        No practices yet.
+                      </div>
+                    )}
+                    {(m.how || []).map((h, hi) => (
+                      <div key={hi} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                      }}>
+                        <div style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: 'rgba(190,245,230,0.55)',
+                          flexShrink: 0,
+                        }} />
+                        <div style={{
+                          flex: 1,
+                          fontSize: 15,
+                          lineHeight: 1.45,
+                          color: 'rgba(235,250,244,0.88)',
+                        }}>
+                          {h || <span style={{ opacity: 0.4 }}>Empty — tap edit to fill in</span>}
+                        </div>
+                        <button onClick={() => open(`fhow-${pi}-${hi}`, h)} title="Edit practice" style={heroIconSm}>✎</button>
+                        <button onClick={() => removeTactic(pi, hi)} title="Remove practice" style={heroIconSm}>×</button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addTactic(pi)}
+                      style={{
+                        marginTop: 4,
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        border: '1px dashed rgba(255,255,255,0.22)',
+                        background: 'transparent',
+                        color: 'rgba(190,245,230,0.7)',
+                        fontSize: 13,
+                        fontFamily: 'inherit',
+                        letterSpacing: '0.08em',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      + add practice
+                    </button>
+                  </div>
+                </HeroSection>
+              </div>
+
+              <div style={{
+                marginTop: 26,
+                fontSize: 10,
+                letterSpacing: '0.16em',
+                color: 'rgba(255,255,255,0.3)',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+              }}>
+                tap outside or press esc to close
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {edit && (
         <div
@@ -1172,11 +1562,17 @@ export default function KoiBoard() {
               color: 'rgba(190,245,230,0.45)',
               marginBottom: 14,
             }}>
-              Edit {edit === 'why'
-                ? 'Why'
-                : edit.startsWith('h-')
-                ? `How ${+edit.slice(2) + 1}`
-                : board.family[+edit.slice(2)]?.name}
+              Edit {(() => {
+                if (edit === 'why') return 'Family Why';
+                if (edit.startsWith('h-')) return `Family How ${+edit.slice(2) + 1}`;
+                if (edit.startsWith('p-')) return `${board.family[+edit.slice(2)]?.name} · Focus`;
+                if (edit.startsWith('fwhy-')) return `${board.family[+edit.slice(5)]?.name} · Why`;
+                if (edit.startsWith('fhow-')) {
+                  const [, pi, hi] = edit.split('-').map(Number);
+                  return `${board.family[pi]?.name} · Practice ${hi + 1}`;
+                }
+                return '';
+              })()}
             </div>
             <textarea
               value={val}
