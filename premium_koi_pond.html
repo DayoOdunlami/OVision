@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Koi Pond</title>
+  <style>
+    :root{
+      --bg1:#9de8dc;
+      --bg2:#41c8b8;
+      --bg3:#14897d;
+      --bg4:#0a5e59;
+      --glass:rgba(255,255,255,.14);
+      --glass2:rgba(255,255,255,.08);
+      --text:#f5fffd;
+      --muted:rgba(245,255,253,.72);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;background:#0b1f1c}
+    body{overflow:hidden}
+    .app{
+      position:relative;
+      width:100vw;height:100vh;
+      background:
+        radial-gradient(circle at 50% 36%, rgba(205,255,247,.42), transparent 20%),
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,.16), transparent 14%),
+        radial-gradient(circle at 82% 20%, rgba(255,255,255,.10), transparent 12%),
+        linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 24%, var(--bg3) 58%, var(--bg4) 100%);
+    }
+    canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+    .hud{
+      position:absolute;left:24px;top:24px;z-index:10;max-width:min(560px,calc(100vw - 48px));
+      color:var(--text);padding:18px 20px;border-radius:28px;
+      background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.09));
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 24px 60px rgba(0,0,0,.16);
+    }
+    .eyebrow{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:rgba(255,255,255,.66);margin-bottom:8px}
+    h1{margin:0;font-size:clamp(24px,4vw,42px);line-height:1.04;font-weight:650}
+    .sub{margin-top:10px;color:var(--muted);font-size:14px;line-height:1.45}
+    .badgebar{
+      position:absolute;right:24px;top:24px;z-index:10;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;
+      max-width:min(520px,calc(100vw - 48px));
+    }
+    .badge,.footer{
+      color:var(--text);padding:12px 14px;border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow:0 20px 40px rgba(0,0,0,.12);
+      font-size:13px;
+    }
+    .footer{position:absolute;left:24px;bottom:24px;z-index:10;color:rgba(255,255,255,.9)}
+    .footer strong{font-weight:650}
+    .legend{
+      position:absolute;right:24px;bottom:24px;z-index:10;width:min(360px,calc(100vw - 48px));
+      color:var(--text);padding:16px 16px 14px;border-radius:24px;
+      background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border:1px solid rgba(255,255,255,.17);
+      box-shadow:0 24px 60px rgba(0,0,0,.14);
+    }
+    .legend h2{margin:0 0 10px;font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+    .legend p{margin:0;color:rgba(255,255,255,.86);font-size:14px;line-height:1.5}
+    .legend ul{margin:10px 0 0;padding-left:18px;color:rgba(255,255,255,.8);font-size:13px;line-height:1.55}
+    @media (max-width: 800px){
+      .hud,.badgebar,.legend,.footer{left:14px;right:14px;width:auto;max-width:none}
+      .badgebar{top:auto;bottom:14px;justify-content:flex-start;display:none}
+      .legend{bottom:14px}
+      .footer{display:none}
+      .hud{top:14px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <canvas id="pond"></canvas>
+    <div class="hud">
+      <div class="eyebrow">Interactive fish pond</div>
+      <h1>Premium Koi Pond</h1>
+      <div class="sub">An original, standalone HTML pond inspired by the idea of a top-down digital fish pond. Click the water to drop food. The fish notice, gather, drift, and ripple around the lilies.</div>
+    </div>
+    <div class="badgebar">
+      <div class="badge">Click to feed</div>
+      <div class="badge">Top-down premium style</div>
+      <div class="badge">Single-file HTML</div>
+    </div>
+    <div class="footer"><strong>Tip:</strong> drop a few pellets close together to create a feeding cluster.</div>
+    <div class="legend">
+      <h2>What’s included</h2>
+      <p>Soft water glow, floating lilies, drifting koi, click ripples, and food attraction behavior.</p>
+      <ul>
+        <li>Original file you can open directly in a browser</li>
+        <li>No build step needed</li>
+        <li>Easy to extend into a fuller vision board later</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('pond');
+    const ctx = canvas.getContext('2d');
+
+    let W = 0, H = 0, DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const pointer = { x: -9999, y: -9999, active: false };
+    const foods = [];
+    const ripples = [];
+    const sparkles = [];
+    const lilies = [];
+    const fish = [];
+
+    const palettes = [
+      { body1:'#fff8ef', body2:'#f08f5d', fin:'#fff1e4', patch:'#ef6c4d' },
+      { body1:'#faf8f3', body2:'#ece7da', fin:'#fffdfa', patch:'#ef8d43' },
+      { body1:'#fff7d9', body2:'#f1c453', fin:'#fff3c8', patch:'#d58a21' },
+      { body1:'#ffd6bf', body2:'#ef7d57', fin:'#fff0e8', patch:'#f3b163' },
+    ];
+
+    function resize() {
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      seedScene();
+    }
+
+    function rand(a,b){ return a + Math.random() * (b-a); }
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a,b,t){ return a + (b-a) * t; }
+    function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+
+    class Ripple {
+      constructor(x,y){
+        this.x=x; this.y=y; this.r=4; this.alpha=.55; this.speed=1.6 + Math.random()*.6;
+      }
+      update(){ this.r += this.speed; this.alpha -= .009; }
+      draw(){
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(255,255,255,${this.alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      get dead(){ return this.alpha <= 0; }
+    }
+
+    class Food {
+      constructor(x,y){
+        this.x=x; this.y=y; this.r = rand(2.5,4.2); this.life = 900 + Math.random()*300;
+      }
+      update(){ this.life--; }
+      draw(){
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(58,45,26,.78)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(this.x-.7, this.y-.7, this.r*.45, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,.22)';
+        ctx.fill();
+      }
+      get dead(){ return this.life <= 0; }
+    }
+
+    class Lily {
+      constructor(x,y,r,rot){
+        this.x=x; this.y=y; this.r=r; this.rot=rot; this.phase=rand(0, Math.PI*2);
+      }
+      draw(t){
+        const bob = Math.sin(t*0.001 + this.phase) * 1.2;
+        const rot = this.rot + Math.sin(t*0.0006 + this.phase) * 0.05;
+        ctx.save();
+        ctx.translate(this.x, this.y + bob);
+        ctx.rotate(rot);
+
+        const grad = ctx.createRadialGradient(-this.r*0.25, -this.r*0.28, this.r*0.1, 0,0,this.r);
+        grad.addColorStop(0, '#c8f28b');
+        grad.addColorStop(1, '#70b94b');
+
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0,0,this.r,0.35,Math.PI*2-0.35);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.lineTo(this.r*.72,-this.r*.38);
+        ctx.moveTo(0,0);
+        ctx.lineTo(this.r*.74,this.r*.18);
+        ctx.moveTo(0,0);
+        ctx.lineTo(-this.r*.28,-this.r*.72);
+        ctx.moveTo(0,0);
+        ctx.lineTo(-this.r*.76,this.r*.16);
+        ctx.strokeStyle = 'rgba(74,130,47,.28)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(-this.r*.22,-this.r*.28,this.r*.44,this.r*.20,-0.45,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,.16)';
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    class Fish {
+      constructor(x,y,size,palette){
+        this.x=x; this.y=y;
+        this.vx = rand(-1,1); this.vy = rand(-1,1);
+        this.angle = rand(0, Math.PI*2);
+        this.baseSpeed = rand(.45,.95);
+        this.size = size;
+        this.palette = palette;
+        this.tailPhase = rand(0, Math.PI*2);
+        this.targetWander = rand(0, Math.PI*2);
+      }
+      update(){
+        this.tailPhase += 0.12;
+        this.targetWander += rand(-0.04,0.04);
+
+        let ax = Math.cos(this.targetWander) * 0.02;
+        let ay = Math.sin(this.targetWander) * 0.02;
+
+        const nearestFood = foods.reduce((best, f) => {
+          const d = dist(this.x,this.y,f.x,f.y);
+          if (!best || d < best.d) return { f, d };
+          return best;
+        }, null);
+
+        if (nearestFood && nearestFood.d < 260) {
+          const dx = nearestFood.f.x - this.x;
+          const dy = nearestFood.f.y - this.y;
+          const d = Math.max(1, nearestFood.d);
+          const pull = clamp((260 - d)/260, 0, 1) * 0.12;
+          ax += dx/d * pull;
+          ay += dy/d * pull;
+
+          if (d < this.size * 0.5 + 7) {
+            nearestFood.f.life = 0;
+            ripples.push(new Ripple(nearestFood.f.x, nearestFood.f.y));
+            this.size = Math.min(this.size + 0.25, 96);
+          }
+        }
+
+        // soft avoidance near lilies
+        for (const l of lilies){
+          const d = dist(this.x,this.y,l.x,l.y);
+          const minD = l.r + this.size*0.24;
+          if (d < minD + 24){
+            const dx = this.x - l.x;
+            const dy = this.y - l.y;
+            const n = Math.max(1,d);
+            const push = clamp((minD + 24 - d)/(minD+24), 0, 1) * 0.14;
+            ax += dx/n * push;
+            ay += dy/n * push;
+          }
+        }
+
+        // edges
+        const margin = 70;
+        if (this.x < margin) ax += (margin - this.x)/margin * 0.08;
+        if (this.x > W-margin) ax -= (this.x - (W-margin))/margin * 0.08;
+        if (this.y < margin) ay += (margin - this.y)/margin * 0.08;
+        if (this.y > H-margin) ay -= (this.y - (H-margin))/margin * 0.08;
+
+        this.vx += ax;
+        this.vy += ay;
+        const sp = Math.hypot(this.vx,this.vy) || 1;
+        const maxSp = this.baseSpeed * (nearestFood && nearestFood.d < 220 ? 2.6 : 1.2);
+        const minSp = 0.28;
+        if (sp > maxSp) { this.vx = this.vx / sp * maxSp; this.vy = this.vy / sp * maxSp; }
+        if (sp < minSp) { this.vx = this.vx / sp * minSp; this.vy = this.vy / sp * minSp; }
+
+        const targetAngle = Math.atan2(this.vy,this.vx);
+        let da = targetAngle - this.angle;
+        while (da > Math.PI) da -= Math.PI*2;
+        while (da < -Math.PI) da += Math.PI*2;
+        this.angle += da * 0.08;
+
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+      draw(){
+        const L = this.size;
+        const tailSwing = Math.sin(this.tailPhase) * 0.34;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // shadow
+        ctx.save();
+        ctx.translate(4,8);
+        ctx.fillStyle = 'rgba(0,0,0,.10)';
+        ctx.beginPath();
+        ctx.ellipse(0,0,L*0.44,L*0.15,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+
+        // tail
+        ctx.save();
+        ctx.translate(-L*0.40,0);
+        ctx.rotate(tailSwing);
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.bezierCurveTo(-L*0.24,-L*0.18,-L*0.42,-L*0.24,-L*0.36,0);
+        ctx.bezierCurveTo(-L*0.42,L*0.24,-L*0.24,L*0.18,0,0);
+        ctx.fillStyle = this.palette.fin;
+        ctx.globalAlpha = 0.9;
+        ctx.fill();
+        ctx.restore();
+
+        // fins
+        for (const s of [-1,1]){
+          ctx.save();
+          ctx.translate(L*0.02,0);
+          ctx.rotate(s*(0.7 + Math.sin(this.tailPhase*0.6)*0.15));
+          ctx.beginPath();
+          ctx.ellipse(0,s*L*0.10,L*0.20,L*0.06,0,0,Math.PI*2);
+          ctx.fillStyle = this.palette.fin;
+          ctx.globalAlpha = 0.72;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // body
+        const grad = ctx.createLinearGradient(-L*0.4,0,L*0.45,0);
+        grad.addColorStop(0, this.palette.body1);
+        grad.addColorStop(1, this.palette.body2);
+
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.ellipse(0,0,L*0.44,L*0.16,0,0,Math.PI*2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // patch
+        ctx.beginPath();
+        ctx.ellipse(-L*0.02,-L*0.03,L*0.16,L*0.08,0.2,0,Math.PI*2);
+        ctx.fillStyle = this.palette.patch;
+        ctx.globalAlpha = 0.86;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(L*0.16,L*0.04,L*0.11,L*0.06,-0.2,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,.18)';
+        ctx.globalAlpha = 0.45;
+        ctx.fill();
+
+        // dorsal fin
+        ctx.beginPath();
+        ctx.moveTo(L*0.18,-L*0.14);
+        ctx.bezierCurveTo(L*0.02,-L*0.28,-L*0.10,-L*0.26,-L*0.18,-L*0.14);
+        ctx.fillStyle = this.palette.fin;
+        ctx.globalAlpha = 0.82;
+        ctx.fill();
+
+        // gloss
+        const shine = ctx.createRadialGradient(-L*0.08,-L*0.06,0,0,0,L*0.44);
+        shine.addColorStop(0,'rgba(255,255,255,.42)');
+        shine.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.beginPath();
+        ctx.ellipse(0,0,L*0.44,L*0.16,0,0,Math.PI*2);
+        ctx.fillStyle = shine;
+        ctx.globalAlpha = 1;
+        ctx.fill();
+
+        // eye
+        ctx.beginPath();
+        ctx.arc(L*0.33,-L*0.02,3.1,0,Math.PI*2);
+        ctx.fillStyle = '#1b150f';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(L*0.32,-L*0.03,1,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,.84)';
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    function seedScene(){
+      lilies.length = 0;
+      fish.length = 0;
+      sparkles.length = 0;
+
+      const lilySpecs = [
+        [0.11,0.32,42,0.4],[0.85,0.18,36,1.2],[0.80,0.54,44,-0.7],
+        [0.23,0.82,40,2.0],[0.56,0.16,32,-1.1],[0.62,0.78,30,0.8]
+      ];
+      for (const [rx,ry,r,rot] of lilySpecs){
+        lilies.push(new Lily(rx*W, ry*H, r, rot));
+      }
+
+      const count = Math.max(6, Math.min(10, Math.round(W / 220)));
+      for (let i=0;i<count;i++){
+        fish.push(new Fish(rand(90,W-90), rand(90,H-90), rand(56,78), palettes[i%palettes.length]));
+      }
+
+      for (let i=0;i<44;i++){
+        sparkles.push({
+          x: Math.random()*W,
+          y: Math.random()*H,
+          phase: Math.random()*Math.PI*2,
+          size: rand(1.2,2.8)
+        });
+      }
+    }
+
+    function addFood(x,y){
+      for (let i=0;i<3;i++) foods.push(new Food(x + rand(-8,8), y + rand(-8,8)));
+      ripples.push(new Ripple(x,y));
+    }
+
+    function drawWater(t){
+      // ambient glows
+      for (let i=0;i<14;i++){
+        const x = (Math.sin(i*1.73 + t*0.00055)*0.5 + 0.5) * W;
+        const y = (Math.cos(i*2.11 + t*0.00043)*0.5 + 0.5) * H;
+        const r = 36 + Math.sin(i + t*0.0014) * 18;
+        const a = (Math.sin(i*0.71 + t*0.0012)*0.5 + 0.5) * 0.07;
+        const g = ctx.createRadialGradient(x,y,0,x,y,r);
+        g.addColorStop(0, `rgba(220,255,248,${a})`);
+        g.addColorStop(1, 'rgba(220,255,248,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      for (const s of sparkles){
+        const a = (Math.sin(t*0.002 + s.phase)*0.5 + 0.5)*0.55;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(s.x - s.size/2, s.y - s.size/2, s.size, s.size);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function animate(t){
+      ctx.clearRect(0,0,W,H);
+      drawWater(t);
+
+      for (const f of fish) { f.update(); f.draw(); }
+
+      for (const lily of lilies) lily.draw(t);
+
+      for (let i=ripples.length-1;i>=0;i--){
+        ripples[i].update();
+        ripples[i].draw();
+        if (ripples[i].dead) ripples.splice(i,1);
+      }
+
+      for (let i=foods.length-1;i>=0;i--){
+        foods[i].update();
+        foods[i].draw();
+        if (foods[i].dead) foods.splice(i,1);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function getPos(e){
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    canvas.addEventListener('pointermove', (e) => {
+      const p = getPos(e);
+      pointer.x = p.x; pointer.y = p.y; pointer.active = true;
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+      const p = getPos(e);
+      addFood(p.x, p.y);
+    });
+
+    window.addEventListener('resize', resize);
+    resize();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
