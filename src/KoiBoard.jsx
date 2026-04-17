@@ -12,16 +12,17 @@ import SpineFish, { buildPondMix } from './SpineFish.js';
 // Shared pad-motion function. The lily rides on the water's surface tension:
 //   • a gentle vertical bob (primary wave)
 //   • a smaller, faster secondary wave (wind ripples)
-//   • a tiny horizontal drift (current nudging it)
-//   • a very subtle rotational sway
-// Everything stays sub-pixel at large scales so it reads as "alive water", not animation.
+//   • a slow horizontal drift (current nudging it)
+//   • a subtle rotational sway
+// Calibrated to be clearly visible at a glance but still read as a calm pond.
+// If anything it should look like the lily is lazily breathing on the water.
 function padMotion(t, phase) {
-  const bob = Math.sin(t * 0.0008 + phase) * 1.6
-            + Math.sin(t * 0.0021 + phase * 1.7) * 0.6;
-  const drift = Math.sin(t * 0.00045 + phase * 0.8) * 2.2
-              + Math.cos(t * 0.0013 + phase) * 0.7;
-  const sway = Math.sin(t * 0.0006 + phase) * 0.035
-             + Math.sin(t * 0.00145 + phase * 2.1) * 0.018;
+  const bob = Math.sin(t * 0.00075 + phase) * 4.5
+            + Math.sin(t * 0.0021 + phase * 1.7) * 1.4;
+  const drift = Math.sin(t * 0.00045 + phase * 0.8) * 5.5
+              + Math.cos(t * 0.0013 + phase) * 1.6;
+  const sway = Math.sin(t * 0.0006 + phase) * 0.08
+             + Math.sin(t * 0.00145 + phase * 2.1) * 0.035;
   return { bob, drift, sway };
 }
 

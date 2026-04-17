@@ -598,6 +598,10 @@ export default class SpineFish {
     // pond has a rolling rhythm rather than clumpy events.
     this.surfaceBreakCooldown = 1400 + Math.random() * 2400;
 
+    // Shimmer phase drives the travelling specular highlight along the back.
+    // Each fish starts at a random offset so the pond never "pulses" in sync.
+    this.shimmerPhase = Math.random() * Math.PI * 2;
+
     // Feeding: set by update() when food is available and close enough.
     this.feedTarget = null;
     this.fedCooldown = 0; // after eating, fish rests and sinks for a while
@@ -820,6 +824,11 @@ export default class SpineFish {
       }, 1200 + Math.random() * 800);
     }
 
+    // Shimmer phase: advances slightly faster when the fish is moving —
+    // stationary fish barely shimmer; cruising fish catch the light on the
+    // scales as they bend. 0.004 baseline + up to 0.012 on energy.
+    this.shimmerPhase += 0.004 + 0.012 * this.energy;
+
     this.updateTargetDir();
     this.newvelx = 0;
     this.newvely = 0;
@@ -913,12 +922,16 @@ export default class SpineFish {
     this.traceHead(ctx);
     ctx.fill();
 
-    // 5) Dorsal stripe
+    // 5) Volumetric shading — darker back, lighter belly, travelling shimmer.
+    //    This is what turns a flat silhouette into a body with curvature.
+    this.drawShading(ctx, surfaceness);
+
+    // 6) Dorsal stripe
     ctx.fillStyle = `rgb(${v.dorsal[0]},${v.dorsal[1]},${v.dorsal[2]})`;
     this.traceDorsal(ctx);
     ctx.fill();
 
-    // 6) Spots
+    // 7) Spots
     if (v.spots && v.spots.length) this.drawSpots(ctx, v);
 
     // 7) Depth tint — murky water blended over the opaque body for deep fish.
@@ -1026,6 +1039,79 @@ export default class SpineFish {
     }
     ctx.closePath();
   }
+  // Traces a half-body slab along the spine, used for back-shading and
+  // belly-highlighting. `sign` = +1 draws from the spine out to the top edge;
+  // -1 draws from the spine out to the bottom edge.
+  traceHalfBody(ctx, sign) {
+    const s = Math.sign(sign) || 1;
+    ctx.beginPath();
+    // Start at head, outer edge
+    ctx.moveTo(...this.head.getPoint(this.head.radius * 8, (Math.PI / 2) * s));
+    for (let i = 0; i < this.parts.length - 1; i++) {
+      ctx.lineTo(...this.parts[i].getPoint(this.parts[i].radius * 8, (Math.PI / 2) * s));
+    }
+    ctx.lineTo(...this.parts[this.parts.length - 1].getPoint(0, 0));
+    // Back along the centreline (spine) — radius 0
+    for (let i = this.parts.length - 2; i > -1; i--) {
+      ctx.lineTo(...this.parts[i].getPoint(0, 0));
+    }
+    ctx.lineTo(...this.head.getPoint(0, 0));
+    ctx.closePath();
+  }
+
+  // Volumetric shading: the single biggest perceived-quality win.
+  //   • a darker slab over the TOP half (the back always sits in shadow
+  //     underwater because light comes from above-and-forward)
+  //   • a brighter slab over the BOTTOM half (scattered light bounces up from
+  //     the pond floor onto the belly)
+  //   • a short, travelling specular band along the dorsal ridge — reads as
+  //     "scales catching the light" without drawing individual scales
+  drawShading(ctx, surfaceness) {
+    // Back-shade — stronger when near surface (more directional light contrast)
+    ctx.save();
+    ctx.globalAlpha = 0.16 + 0.14 * surfaceness;
+    ctx.fillStyle = 'rgb(0, 18, 22)';
+    this.traceHalfBody(ctx, +1);
+    ctx.fill();
+    ctx.restore();
+
+    // Belly highlight — subtle, warmer cream tone
+    ctx.save();
+    ctx.globalAlpha = 0.09 + 0.09 * surfaceness;
+    ctx.fillStyle = 'rgb(255, 246, 226)';
+    this.traceHalfBody(ctx, -1);
+    ctx.fill();
+    ctx.restore();
+
+    // Travelling specular shimmer — a short highlight that slides along the
+    // spine. Only visible near the surface; deep fish don't catch the rays.
+    const shimmerAlpha = 0.55 * surfaceness * surfaceness;
+    if (shimmerAlpha > 0.04) {
+      // Position along the fish, 0..1. Ping-pongs slowly via sin so it doesn't
+      // just loop — it feels like the light's rolling with the body's bend.
+      const pos = 0.5 + 0.45 * Math.sin(this.shimmerPhase);
+      const n = this.parts.length;
+      const centre = Math.max(1, Math.min(n - 2, Math.floor(pos * n)));
+      const span = 3; // parts either side
+      ctx.save();
+      ctx.globalAlpha = shimmerAlpha;
+      ctx.strokeStyle = 'rgba(255, 248, 220, 0.95)';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      for (let i = centre - span; i <= centre + span; i++) {
+        if (i < 0 || i >= n) continue;
+        const [px, py] = this.parts[i].getPoint(this.parts[i].radius * 4.5, Math.PI / 2);
+        // Taper the width by fading alpha at the ends of the span
+        if (i === centre - span) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   drawSpots(ctx, v) {
     ctx.save();
     for (const spot of v.spots) {
