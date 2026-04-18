@@ -14,19 +14,26 @@
 
 // ── Shading mode (admin-toggleable) ────────────────────────────────────────────
 // Global so one toggle flips all fish at once. Mutated by the admin control
-// in KoiBoard; read per-frame in drawShading. Three modes on a cycle:
-//   'symmetric'   — both flanks equally dark + bright spine ridge (default;
-//                   anatomically correct top-down koi, heading-independent)
-//   'directional' — world-space fixed sun at LIGHT_ANGLE; the flank facing
-//                   away from the sun is shaded, the opposite flank is lit.
-//                   Heading-dependent (rotates with the fish) so two fish
-//                   swimming opposite directions get opposite flank shading
+// in KoiBoard; read per-frame in drawShading.
+//
+//   'auto'        — DEFAULT. Slow sinusoidal breathe between symmetric and
+//                   directional over a 120-second cycle: full symmetric at
+//                   t=0, equal blend at t=30s, full directional at t=60s,
+//                   equal blend at t=90s, back to symmetric at t=120s.
+//                   Gives the pond a living "cloud passing over" feel
+//                   without ever flicking hard between states
+//   'symmetric'   — both flanks equally dark + bright spine ridge
+//                   (heading-independent, anatomically correct top-down koi)
+//   'directional' — world-space fixed sun at LIGHT_ANGLE; flank shading scales
+//                   with how much each flank faces the light. Heading-dependent
 //   'legacy'      — original per-side hardcoded (port dark / starboard cream);
-//                   kept for A/B comparison
-export const ShadingMode = { current: 'symmetric' };
+//                   kept for A/B comparison — reproduces the pre-fix artifact
+export const ShadingMode = { current: 'auto' };
 // Sun direction in world space for 'directional' mode. π/4 = incoming rays
 // pointing lower-right, i.e. sun is in the upper-left of the pond.
 const LIGHT_ANGLE = Math.PI / 4;
+// Auto-mode cycle period. 120s so each mode "peaks" once per minute.
+const AUTO_PERIOD_MS = 120000;
 
 // ── Koi varieties ──────────────────────────────────────────────────────────────
 // Each variety: body RGB, dorsal RGB (for the top stripe), and optional
@@ -1096,7 +1103,73 @@ export default class SpineFish {
     ctx.closePath();
   }
 
-  // Volumetric shading with three swappable models (ShadingMode.current):
+  // ── Per-mode shading helpers ─────────────────────────────────────────────
+  // Each takes a `weight` in [0,1] that scales every alpha it writes. This
+  // lets `auto` mode render multiple models simultaneously and add them
+  // together without any one model being rendered at full intensity when
+  // another is also active.
+
+  _shadeSymmetric(ctx, surfaceness, weight) {
+    if (weight <= 0.001) return;
+    // Both flanks darkened equally
+    const flankAlpha = (0.16 + 0.12 * surfaceness) * weight;
+    ctx.save();
+    ctx.globalAlpha = flankAlpha;
+    ctx.fillStyle = 'rgb(0, 18, 22)';
+    this.traceHalfBody(ctx, +1);
+    ctx.fill();
+    this.traceHalfBody(ctx, -1);
+    ctx.fill();
+    ctx.restore();
+    // Dorsal ridge highlight — filled centre strip (tapers with body,
+    // cannot bleed outside the silhouette)
+    const ridgeAlpha = (0.24 + 0.22 * surfaceness) * weight;
+    ctx.save();
+    ctx.globalAlpha = ridgeAlpha;
+    ctx.fillStyle = 'rgb(255, 246, 226)';
+    this.traceSpineStrip(ctx, 0.22);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  _shadeDirectional(ctx, surfaceness, weight) {
+    if (weight <= 0.001) return;
+    const theta = this.head.radian;
+    const cosPlus  = Math.cos((theta + Math.PI / 2) - LIGHT_ANGLE);
+    const cosMinus = Math.cos((theta - Math.PI / 2) - LIGHT_ANGLE);
+    const shadeBase = (0.22 + 0.18 * surfaceness) * weight;
+    const litBase   = (0.14 + 0.14 * surfaceness) * weight;
+    const aPlusShade  = Math.max(0, cosPlus)  * shadeBase;
+    const aMinusShade = Math.max(0, cosMinus) * shadeBase;
+    const aPlusLit    = Math.max(0, -cosPlus)  * litBase;
+    const aMinusLit   = Math.max(0, -cosMinus) * litBase;
+    ctx.save();
+    ctx.fillStyle = 'rgb(0, 18, 22)';
+    if (aPlusShade > 0.01)  { ctx.globalAlpha = aPlusShade;  this.traceHalfBody(ctx, +1); ctx.fill(); }
+    if (aMinusShade > 0.01) { ctx.globalAlpha = aMinusShade; this.traceHalfBody(ctx, -1); ctx.fill(); }
+    ctx.fillStyle = 'rgb(255, 246, 226)';
+    if (aPlusLit > 0.01)  { ctx.globalAlpha = aPlusLit;  this.traceHalfBody(ctx, +1); ctx.fill(); }
+    if (aMinusLit > 0.01) { ctx.globalAlpha = aMinusLit; this.traceHalfBody(ctx, -1); ctx.fill(); }
+    ctx.restore();
+  }
+
+  _shadeLegacy(ctx, surfaceness, weight) {
+    if (weight <= 0.001) return;
+    ctx.save();
+    ctx.globalAlpha = (0.16 + 0.14 * surfaceness) * weight;
+    ctx.fillStyle = 'rgb(0, 18, 22)';
+    this.traceHalfBody(ctx, +1);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = (0.09 + 0.09 * surfaceness) * weight;
+    ctx.fillStyle = 'rgb(255, 246, 226)';
+    this.traceHalfBody(ctx, -1);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Volumetric shading with swappable models (ShadingMode.current):
   //
   //   symmetric   — both flanks darkened equally; a filled spine strip
   //                 re-brightens the centreline. Heading-independent.
@@ -1122,72 +1195,22 @@ export default class SpineFish {
     const mode = ShadingMode.current;
 
     if (mode === 'legacy') {
-      // Original per-local-side shading (what Option B replaced). Kept
-      // intact for direct A/B comparison — reproduces the pre-fix artifact
-      // where shadows flip flanks when a fish turns 180°.
-      ctx.save();
-      ctx.globalAlpha = 0.16 + 0.14 * surfaceness;
-      ctx.fillStyle = 'rgb(0, 18, 22)';
-      this.traceHalfBody(ctx, +1);
-      ctx.fill();
-      ctx.restore();
-      ctx.save();
-      ctx.globalAlpha = 0.09 + 0.09 * surfaceness;
-      ctx.fillStyle = 'rgb(255, 246, 226)';
-      this.traceHalfBody(ctx, -1);
-      ctx.fill();
-      ctx.restore();
+      this._shadeLegacy(ctx, surfaceness, 1);
     } else if (mode === 'directional') {
-      // Fish heading in world space
-      const theta = this.head.radian;
-      // Outward world-normal of each local flank
-      const nPlus  = (theta + Math.PI / 2);
-      const nMinus = (theta - Math.PI / 2);
-      // Incoming light vector (unit). A flank is SHADED when its outward
-      // normal points in the same direction as the incoming rays; LIT when
-      // it points back at the sun. shadeStrength = max(0, cos(angle)).
-      const cosPlus  = Math.cos(nPlus  - LIGHT_ANGLE);
-      const cosMinus = Math.cos(nMinus - LIGHT_ANGLE);
-      // Base alphas scale with how much each flank faces the rays.
-      const shadeBase = 0.22 + 0.18 * surfaceness;
-      const litBase   = 0.14 + 0.14 * surfaceness;
-      const aPlusShade  = Math.max(0, cosPlus)  * shadeBase;
-      const aMinusShade = Math.max(0, cosMinus) * shadeBase;
-      const aPlusLit    = Math.max(0, -cosPlus)  * litBase;
-      const aMinusLit   = Math.max(0, -cosMinus) * litBase;
-      // Apply dark / cream slabs per-flank, each proportional to its
-      // world-space alignment with the sun.
-      ctx.save();
-      ctx.fillStyle = 'rgb(0, 18, 22)';
-      if (aPlusShade > 0.01)  { ctx.globalAlpha = aPlusShade;  this.traceHalfBody(ctx, +1); ctx.fill(); }
-      if (aMinusShade > 0.01) { ctx.globalAlpha = aMinusShade; this.traceHalfBody(ctx, -1); ctx.fill(); }
-      ctx.fillStyle = 'rgb(255, 246, 226)';
-      if (aPlusLit > 0.01)  { ctx.globalAlpha = aPlusLit;  this.traceHalfBody(ctx, +1); ctx.fill(); }
-      if (aMinusLit > 0.01) { ctx.globalAlpha = aMinusLit; this.traceHalfBody(ctx, -1); ctx.fill(); }
-      ctx.restore();
+      this._shadeDirectional(ctx, surfaceness, 1);
+    } else if (mode === 'symmetric') {
+      this._shadeSymmetric(ctx, surfaceness, 1);
     } else {
-      // symmetric (default)
-      const flankAlpha = 0.16 + 0.12 * surfaceness;
-      ctx.save();
-      ctx.globalAlpha = flankAlpha;
-      ctx.fillStyle = 'rgb(0, 18, 22)';
-      this.traceHalfBody(ctx, +1);
-      ctx.fill();
-      this.traceHalfBody(ctx, -1);
-      ctx.fill();
-      ctx.restore();
-
-      // Dorsal ridge highlight — FILLED strip (not stroke) so it tapers
-      // with the body and can never bleed outside the silhouette. The
-      // previous stroke-with-round-caps version was blobbing past the
-      // tail base; a filled strip follows body geometry precisely.
-      const ridgeAlpha = 0.24 + 0.22 * surfaceness;
-      ctx.save();
-      ctx.globalAlpha = ridgeAlpha;
-      ctx.fillStyle = 'rgb(255, 246, 226)';
-      this.traceSpineStrip(ctx, 0.22);
-      ctx.fill();
-      ctx.restore();
+      // 'auto' — slow sinusoidal breathe between symmetric and directional.
+      // blend=0 at t=0 (full symmetric), 0.5 at t=30s (equal mix), 1 at
+      // t=60s (full directional), back to 0 at t=120s. Because the curve is
+      // a cosine, rate of change is zero at the peaks and maximum halfway
+      // between — the pond spends most of its time looking stable and only
+      // slides between extremes gently, like cloud shadow moving across it.
+      const phase = ((Date.now() % AUTO_PERIOD_MS) / AUTO_PERIOD_MS) * 2 * Math.PI;
+      const blend = 0.5 - 0.5 * Math.cos(phase);
+      this._shadeSymmetric(ctx, surfaceness, 1 - blend);
+      this._shadeDirectional(ctx, surfaceness, blend);
     }
 
     // Travelling specular shimmer — sits on the spine in all modes.

@@ -761,16 +761,23 @@ export default function KoiBoard() {
   // Unlock modal for the locked card (Dayo). When true, the edit dialog
   // should be shown even though the card is locked.
   const [unlockPrompt, setUnlockPrompt] = useState(null); // { editKey, editVal } | null
-  // Shading-mode admin toggle. Cycles symmetric → directional → legacy and
-  // flashes a brief toast so you know what just happened. Persisted so the
+  // Shading-mode admin toggle. Cycles auto → symmetric → directional → legacy
+  // and flashes a brief toast so you know what just happened. Persisted so the
   // fridge remembers whatever looked best last session.
-  const SHADING_MODES = ['symmetric', 'directional', 'legacy'];
+  //   auto        — (DEFAULT) slowly breathes between symmetric and directional
+  //                 on a 2-minute cycle; the pond is never "stuck" in one
+  //                 lighting model. Closest thing to a live sky overhead
+  //   symmetric   — heading-independent; both flanks dark, bright spine
+  //   directional — world-space fixed sun (upper-left); coherent shadow
+  //                 direction across the pond
+  //   legacy      — original per-side (kept for A/B comparison)
+  const SHADING_MODES = ['auto', 'symmetric', 'directional', 'legacy'];
   const [shadingMode, setShadingMode] = useState(() => {
     try {
       const saved = localStorage.getItem('vb.shadingMode');
       if (saved && SHADING_MODES.includes(saved)) return saved;
     } catch {}
-    return 'symmetric';
+    return 'auto';
   });
   const [shadingToast, setShadingToast] = useState(false);
   const shadingToastTimer = useRef(null);
