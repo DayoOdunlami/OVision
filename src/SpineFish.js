@@ -12,6 +12,22 @@
 //   - Pond-floor projected shadow, warm dorsal rim light, translucent
 //     fins/tail with visible rays for a Shinkai-pond feel.
 
+// ── Shading mode (admin-toggleable) ────────────────────────────────────────────
+// Global so one toggle flips all fish at once. Mutated by the admin control
+// in KoiBoard; read per-frame in drawShading. Three modes on a cycle:
+//   'symmetric'   — both flanks equally dark + bright spine ridge (default;
+//                   anatomically correct top-down koi, heading-independent)
+//   'directional' — world-space fixed sun at LIGHT_ANGLE; the flank facing
+//                   away from the sun is shaded, the opposite flank is lit.
+//                   Heading-dependent (rotates with the fish) so two fish
+//                   swimming opposite directions get opposite flank shading
+//   'legacy'      — original per-side hardcoded (port dark / starboard cream);
+//                   kept for A/B comparison
+export const ShadingMode = { current: 'symmetric' };
+// Sun direction in world space for 'directional' mode. π/4 = incoming rays
+// pointing lower-right, i.e. sun is in the upper-left of the pond.
+const LIGHT_ANGLE = Math.PI / 4;
+
 // ── Koi varieties ──────────────────────────────────────────────────────────────
 // Each variety: body RGB, dorsal RGB (for the top stripe), and optional
 // `spots`: array of { at: 0..1 along parts[], side: -1|1, size: 0.6..1.4, hue: RGB }
@@ -1039,6 +1055,27 @@ export default class SpineFish {
     }
     ctx.closePath();
   }
+  // Traces a narrow centre-strip along the spine with the same natural body
+  // taper as the full body outline. `widthFactor` is fraction of full body
+  // half-width (1.0 = full body; 0.25 = quarter-width strip each side).
+  // Used for the dorsal ridge highlight so it tapers with the body and
+  // can never bleed outside the silhouette — the artifact the round-cap
+  // stroke produced beyond the tail is impossible with a filled strip.
+  traceSpineStrip(ctx, widthFactor) {
+    const w = widthFactor;
+    ctx.beginPath();
+    ctx.moveTo(...this.head.getPoint(this.head.radius * 8 * w, Math.PI / 2));
+    for (let i = 0; i < this.parts.length - 1; i++) {
+      ctx.lineTo(...this.parts[i].getPoint(this.parts[i].radius * 8 * w, Math.PI / 2));
+    }
+    ctx.lineTo(...this.parts[this.parts.length - 1].getPoint(0, 0));
+    for (let i = this.parts.length - 2; i > -1; i--) {
+      ctx.lineTo(...this.parts[i].getPoint(this.parts[i].radius * 8 * w, -Math.PI / 2));
+    }
+    ctx.lineTo(...this.head.getPoint(this.head.radius * 8 * w, -Math.PI / 2));
+    ctx.closePath();
+  }
+
   // Traces a half-body slab along the spine, used for back-shading and
   // belly-highlighting. `sign` = +1 draws from the spine out to the top edge;
   // -1 draws from the spine out to the bottom edge.
@@ -1059,56 +1096,103 @@ export default class SpineFish {
     ctx.closePath();
   }
 
-  // Volumetric shading — top-down koi model:
-  //   • BOTH flanks darkened equally (the body is a tube; the spine is closest
-  //     to the viewer, the flanks curve away into the water and receive less
-  //     overhead light). Symmetric means heading-independent — a fish swimming
-  //     east and a fish swimming west are lit consistently.
-  //   • a broad, soft dorsal-ridge highlight along the spine re-brightens the
-  //     centreline, producing the dark-edge / bright-middle gradient that
-  //     reads as curvature without any directional sun.
-  //   • a short, travelling specular band on the dorsal ridge itself — reads
-  //     as "scales catching the light" without drawing individual scales.
+  // Volumetric shading with three swappable models (ShadingMode.current):
+  //
+  //   symmetric   — both flanks darkened equally; a filled spine strip
+  //                 re-brightens the centreline. Heading-independent.
+  //                 Anatomically correct for top-down koi: body is a tube,
+  //                 the spine sits closest to the viewer (brightest), flanks
+  //                 curve away (darker). Works with the existing overhead
+  //                 caustics and god rays already in the scene.
+  //
+  //   directional — world-space fixed sun at LIGHT_ANGLE (π/4, upper-left).
+  //                 The flank whose outward normal faces the sun is lit; the
+  //                 opposite flank is shaded. Shading intensity = dot product
+  //                 of flank normal with incoming light, clamped to [0,1].
+  //                 Heading-dependent: a fish swimming east vs west shows
+  //                 shadow on opposite local flanks, which means consistent
+  //                 world-space shadow direction — the "realistic" option.
+  //
+  //   legacy      — original per-side hardcoded (sign=+1 always dark, sign=-1
+  //                 always cream). Kept for A/B comparison via admin toggle.
+  //
+  // Specular shimmer: always on the spine regardless of mode. Deep fish
+  // don't catch rays.
   drawShading(ctx, surfaceness) {
-    // Symmetric flank-shade — both sides darker than the spine. Applied
-    // without cross-contamination by painting each half on its own path
-    // (same alpha both sides means identical darkening).
-    const flankAlpha = 0.16 + 0.12 * surfaceness;
-    ctx.save();
-    ctx.globalAlpha = flankAlpha;
-    ctx.fillStyle = 'rgb(0, 18, 22)';
-    this.traceHalfBody(ctx, +1);
-    ctx.fill();
-    this.traceHalfBody(ctx, -1);
-    ctx.fill();
-    ctx.restore();
+    const mode = ShadingMode.current;
 
-    // Dorsal ridge highlight — a wide, soft cream stroke along the spine
-    // that counteracts the flank-shading along the centreline. Width scales
-    // with fish size so a chagoi gets a proportionally broader back; alpha
-    // is modest so the effect is "softly lit band" not "bright line".
-    const ridgeAlpha = 0.22 + 0.24 * surfaceness;
-    ctx.save();
-    ctx.globalAlpha = ridgeAlpha;
-    ctx.strokeStyle = 'rgb(255, 246, 226)';
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(2.4, this.head.radius * 6);
-    ctx.beginPath();
-    ctx.moveTo(...this.head.getPoint(0, 0));
-    for (let i = 0; i < this.parts.length; i++) {
-      ctx.lineTo(...this.parts[i].getPoint(0, 0));
+    if (mode === 'legacy') {
+      // Original per-local-side shading (what Option B replaced). Kept
+      // intact for direct A/B comparison — reproduces the pre-fix artifact
+      // where shadows flip flanks when a fish turns 180°.
+      ctx.save();
+      ctx.globalAlpha = 0.16 + 0.14 * surfaceness;
+      ctx.fillStyle = 'rgb(0, 18, 22)';
+      this.traceHalfBody(ctx, +1);
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = 0.09 + 0.09 * surfaceness;
+      ctx.fillStyle = 'rgb(255, 246, 226)';
+      this.traceHalfBody(ctx, -1);
+      ctx.fill();
+      ctx.restore();
+    } else if (mode === 'directional') {
+      // Fish heading in world space
+      const theta = this.head.radian;
+      // Outward world-normal of each local flank
+      const nPlus  = (theta + Math.PI / 2);
+      const nMinus = (theta - Math.PI / 2);
+      // Incoming light vector (unit). A flank is SHADED when its outward
+      // normal points in the same direction as the incoming rays; LIT when
+      // it points back at the sun. shadeStrength = max(0, cos(angle)).
+      const cosPlus  = Math.cos(nPlus  - LIGHT_ANGLE);
+      const cosMinus = Math.cos(nMinus - LIGHT_ANGLE);
+      // Base alphas scale with how much each flank faces the rays.
+      const shadeBase = 0.22 + 0.18 * surfaceness;
+      const litBase   = 0.14 + 0.14 * surfaceness;
+      const aPlusShade  = Math.max(0, cosPlus)  * shadeBase;
+      const aMinusShade = Math.max(0, cosMinus) * shadeBase;
+      const aPlusLit    = Math.max(0, -cosPlus)  * litBase;
+      const aMinusLit   = Math.max(0, -cosMinus) * litBase;
+      // Apply dark / cream slabs per-flank, each proportional to its
+      // world-space alignment with the sun.
+      ctx.save();
+      ctx.fillStyle = 'rgb(0, 18, 22)';
+      if (aPlusShade > 0.01)  { ctx.globalAlpha = aPlusShade;  this.traceHalfBody(ctx, +1); ctx.fill(); }
+      if (aMinusShade > 0.01) { ctx.globalAlpha = aMinusShade; this.traceHalfBody(ctx, -1); ctx.fill(); }
+      ctx.fillStyle = 'rgb(255, 246, 226)';
+      if (aPlusLit > 0.01)  { ctx.globalAlpha = aPlusLit;  this.traceHalfBody(ctx, +1); ctx.fill(); }
+      if (aMinusLit > 0.01) { ctx.globalAlpha = aMinusLit; this.traceHalfBody(ctx, -1); ctx.fill(); }
+      ctx.restore();
+    } else {
+      // symmetric (default)
+      const flankAlpha = 0.16 + 0.12 * surfaceness;
+      ctx.save();
+      ctx.globalAlpha = flankAlpha;
+      ctx.fillStyle = 'rgb(0, 18, 22)';
+      this.traceHalfBody(ctx, +1);
+      ctx.fill();
+      this.traceHalfBody(ctx, -1);
+      ctx.fill();
+      ctx.restore();
+
+      // Dorsal ridge highlight — FILLED strip (not stroke) so it tapers
+      // with the body and can never bleed outside the silhouette. The
+      // previous stroke-with-round-caps version was blobbing past the
+      // tail base; a filled strip follows body geometry precisely.
+      const ridgeAlpha = 0.24 + 0.22 * surfaceness;
+      ctx.save();
+      ctx.globalAlpha = ridgeAlpha;
+      ctx.fillStyle = 'rgb(255, 246, 226)';
+      this.traceSpineStrip(ctx, 0.22);
+      ctx.fill();
+      ctx.restore();
     }
-    ctx.stroke();
-    ctx.restore();
 
-    // Travelling specular shimmer — a short bright highlight that slides
-    // along the spine (NOT a flank — that was the previous bug). Only
-    // visible near the surface; deep fish don't catch the rays.
+    // Travelling specular shimmer — sits on the spine in all modes.
     const shimmerAlpha = 0.55 * surfaceness * surfaceness;
     if (shimmerAlpha > 0.04) {
-      // Position along the fish, 0..1. Ping-pongs slowly via sin so it doesn't
-      // just loop — it feels like the light's rolling with the body's bend.
       const pos = 0.5 + 0.45 * Math.sin(this.shimmerPhase);
       const n = this.parts.length;
       const centre = Math.max(1, Math.min(n - 2, Math.floor(pos * n)));

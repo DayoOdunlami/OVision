@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import SpineFish, { buildPondMix } from './SpineFish.js';
+import SpineFish, { buildPondMix, ShadingMode } from './SpineFish.js';
 
 // ── Lily pads ────────────────────────────────────────────────────────────────
 // The pad is drawn in three layers to feel genuinely alive:
@@ -761,6 +761,31 @@ export default function KoiBoard() {
   // Unlock modal for the locked card (Dayo). When true, the edit dialog
   // should be shown even though the card is locked.
   const [unlockPrompt, setUnlockPrompt] = useState(null); // { editKey, editVal } | null
+  // Shading-mode admin toggle. Cycles symmetric → directional → legacy and
+  // flashes a brief toast so you know what just happened. Persisted so the
+  // fridge remembers whatever looked best last session.
+  const SHADING_MODES = ['symmetric', 'directional', 'legacy'];
+  const [shadingMode, setShadingMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vb.shadingMode');
+      if (saved && SHADING_MODES.includes(saved)) return saved;
+    } catch {}
+    return 'symmetric';
+  });
+  const [shadingToast, setShadingToast] = useState(false);
+  const shadingToastTimer = useRef(null);
+  useEffect(() => {
+    ShadingMode.current = shadingMode;
+    try { localStorage.setItem('vb.shadingMode', shadingMode); } catch {}
+  }, [shadingMode]);
+  const cycleShading = () => {
+    const i = SHADING_MODES.indexOf(shadingMode);
+    const next = SHADING_MODES[(i + 1) % SHADING_MODES.length];
+    setShadingMode(next);
+    setShadingToast(true);
+    if (shadingToastTimer.current) clearTimeout(shadingToastTimer.current);
+    shadingToastTimer.current = setTimeout(() => setShadingToast(false), 1800);
+  };
   // ── Family card positions: percentage-of-viewport so they resize nicely ──
   // Parents sit in the upper corners pushed ~22% down so they don't fight the
   // new identity banner block at the top. Children form a bottom row.
@@ -1551,6 +1576,57 @@ export default function KoiBoard() {
           >
             reset layout
           </button>
+          {/* Discreet shading-mode toggle. A single dot, barely visible,
+              sitting flush next to the reset button. Clicking it cycles
+              the fish shading model (symmetric / directional / legacy)
+              and flashes a brief toast so you know what you just switched to. */}
+          <button
+            onClick={cycleShading}
+            title={`Shading: ${shadingMode} — click to cycle`}
+            aria-label="Cycle fish shading mode"
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.14)',
+              color: 'rgba(255,255,255,0.28)',
+              width: 18, height: 18,
+              borderRadius: 9,
+              padding: 0,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 9,
+              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ·
+          </button>
+        </div>
+
+        {/* Shading-mode toast — brief centred chip that fades in/out when the
+            dot is clicked. Lets you A/B the three modes without needing to
+            memorise the cycle order. */}
+        <div style={{
+          position: 'absolute',
+          bottom: 48,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          padding: '8px 18px',
+          borderRadius: 14,
+          background: 'rgba(10, 40, 36, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          color: 'rgba(235,250,244,0.88)',
+          fontSize: 11,
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          opacity: shadingToast ? 1 : 0,
+          transition: 'opacity 320ms ease',
+          pointerEvents: 'none',
+        }}>
+          Shading · {shadingMode}
         </div>
       </div>
 
