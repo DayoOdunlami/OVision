@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
-import SpineFish, { buildPondMix, ShadingMode } from '../SpineFish.js';
+import SpineFish, {
+  buildPondMix,
+  buildPondMixFromCounts,
+  ShadingMode,
+} from '../SpineFish.js';
 import {
   CLEAR_POND,
   paintWater,
@@ -47,6 +51,11 @@ export default function PondCanvas({
   // When true, skip lily pads — the Pond view places its own pads in
   // the Commitments row and doesn't want duplicates.
   skipPads = false,
+  // Optional per-variety count override, e.g. { chagoi: 1, ogon: 1,
+  // shiro: 1 }. When present, the pond is populated *exactly* from
+  // these counts (ignoring fishMin/fishMax). When null/undefined the
+  // density-based auto mix (buildPondMix) is used as before.
+  mix = null,
 }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({
@@ -65,6 +74,9 @@ export default function PondCanvas({
     // layout, and koi move slowly enough that stale-by-200ms is fine.
     marrowTargets: [],
     marrowRefreshAt: 0,
+    // Same caching pattern for Full attractors (fish swell near the
+    // word "Full"). Shares the refresh cadence with marrow.
+    fullTargets: [],
     // Persistent offscreen canvas used as a "fish layer" so we can
     // apply the marrow tint as a source-atop mask and have it affect
     // only fish pixels, not the water behind them.
@@ -95,10 +107,25 @@ export default function PondCanvas({
 
       const w = rect.width;
       const h = rect.height;
-      const area = w * h;
-      const count = Math.max(fishMin, Math.min(fishMax, Math.round(area / 260000)));
-      const mix = buildPondMix(count);
-      stateRef.current.fish = mix.map((v) => new SpineFish(w, h, v));
+      // If the caller pinned explicit counts (admin panel), honour
+      // them exactly. Otherwise fall back to the viewport-scaled auto
+      // mix. `mix` is a closed-over prop so changes trigger a React
+      // re-render which remounts this effect.
+      const hasCountOverride =
+        mix &&
+        typeof mix === 'object' &&
+        Object.values(mix).reduce((a, b) => a + (b | 0), 0) > 0;
+      const varieties = hasCountOverride
+        ? buildPondMixFromCounts(mix)
+        : (() => {
+            const area = w * h;
+            const count = Math.max(
+              fishMin,
+              Math.min(fishMax, Math.round(area / 260000)),
+            );
+            return buildPondMix(count);
+          })();
+      stateRef.current.fish = varieties.map((v) => new SpineFish(w, h, v));
 
       // Fish-layer offscreen — same logical CSS size, same DPR transform.
       // Lazily created, resized whenever the viewport changes.
@@ -135,22 +162,41 @@ export default function PondCanvas({
       paintGodRays(ctx, W, H, ts, palette);
       paintCaustics(ctx, W, H, ts, palette);
 
-      // ── Marrow attractor targets ──────────────────────────────
+      // ── Attractor targets (Marrow tint + Full swell) ──────────
       // Cache element centres (viewport coords = canvas coords since
       // the canvas is position:fixed inset:0). Refresh slowly — koi
       // don't move fast enough to need per-frame DOM rect reads.
       if (t - s.marrowRefreshAt > 12) {
         s.marrowRefreshAt = t;
-        const nodes = document.querySelectorAll('[data-marrow-attractor]');
+
         s.marrowTargets = [];
-        nodes.forEach((n) => {
+        document.querySelectorAll('[data-marrow-attractor]').forEach((n) => {
           const r = n.getBoundingClientRect();
-          if (r.bottom < -400 || r.top > H + 400) return; // cull offscreen
+          if (r.bottom < -400 || r.top > H + 400) return;
           s.marrowTargets.push({
             cx: r.left + r.width / 2,
             cy: r.top + r.height / 2,
-            // Generous — user wants the tint to be obvious, not subtle.
             radius: Math.max(320, Math.min(560, r.width * 1.05)),
+          });
+        });
+
+        // Full attractors — scale koi up near the centre, down far
+        // away. maxScale is how fat a fish gets at the bullseye;
+        // minScale is how lean it is outside the radius (a mild
+        // shrink so the contrast reads in both directions). Radius
+        // is generous so the swell reads as you swim into the word
+        // rather than popping at the letter edge.
+        s.fullTargets = [];
+        document.querySelectorAll('[data-full-attractor]').forEach((n) => {
+          const r = n.getBoundingClientRect();
+          if (r.bottom < -600 || r.top > H + 600) return;
+          s.fullTargets.push({
+            cx: r.left + r.width / 2,
+            cy: r.top + r.height / 2,
+            radius: Math.max(360, Math.min(680, r.width * 1.15)),
+            maxScale: 1.85,  // centre: ~85% larger
+            minScale: 0.78,  // far:   ~22% smaller
+            influenceRadius: Math.max(720, Math.min(1200, r.width * 2.2)),
           });
         });
       }
@@ -170,31 +216,89 @@ export default function PondCanvas({
       // fish pushes particles, not just the snout. Each point also
       // carries its local radius so repel strength scales with body
       // thickness (a fat midsection pushes harder than a thin tail).
+      // Per-fish proximity scale driven by Full attractors. Walks
+      // each full target and takes the *highest* scale the fish
+      // qualifies for (no additive compounding, so overlapping Full
+      // words don't explode the koi). Outside every target the
+      // resolved scale stays at 1.0, meaning "ambient normal size".
+      const resolveFullScale = (fish) => {
+        if (!s.fullTargets.length) return 1;
+        let best = 1;
+        // Use the head as the fish's "centre". It's the most stable
+        // point and it's what the user's eye tracks.
+        const hx = fish.head.x;
+        const hy = fish.head.y;
+        for (const ft of s.fullTargets) {
+          const d = Math.hypot(hx - ft.cx, hy - ft.cy);
+          let scale;
+          if (d >= ft.influenceRadius) {
+            scale = ft.minScale;
+          } else if (d <= ft.radius * 0.25) {
+            scale = ft.maxScale;
+          } else if (d <= ft.radius) {
+            // Inside the swell zone — ease from maxScale at the core
+            // to 1.0 at the radius edge (smoothstep, not linear, so
+            // the swell feels more like magnetism than a ramp).
+            const u = (d - ft.radius * 0.25) / (ft.radius * 0.75);
+            const k = 1 - u * u * (3 - 2 * u);
+            scale = 1 + (ft.maxScale - 1) * k;
+          } else {
+            // Between radius and influenceRadius — ease from 1.0
+            // down to minScale. Same smoothstep for symmetry.
+            const u = (d - ft.radius) / (ft.influenceRadius - ft.radius);
+            const k = u * u * (3 - 2 * u);
+            scale = 1 - (1 - ft.minScale) * k;
+          }
+          if (scale > best) best = scale;
+        }
+        return best;
+      };
+
       const ambient = [];
       for (const f of s.fish) {
         f.update(W, H, s.cur, { food: [], onBreak: () => {} });
-        f.draw(offCtx);
 
-        // Mouth + head — snout first.
-        ambient.push({ x: f.mouth.x, y: f.mouth.y, r: f.mouth.radius || 6 });
-        ambient.push({ x: f.head.x, y: f.head.y, r: f.head.radius || 10 });
+        const scale = resolveFullScale(f);
+        if (scale !== 1) {
+          offCtx.save();
+          offCtx.translate(f.head.x, f.head.y);
+          offCtx.scale(scale, scale);
+          offCtx.translate(-f.head.x, -f.head.y);
+          f.draw(offCtx);
+          offCtx.restore();
+        } else {
+          f.draw(offCtx);
+        }
 
-        // Spine parts — every 2nd part to keep the array small while
-        // still covering the whole length.
+        // Publish spine points with their *apparent* radius — i.e.
+        // the actual pixel size on screen, scaled by the Full swell.
+        // FlourishZone uses this to size particle repulsion, so a
+        // chagoi fattened by the Full word also disperses particles
+        // in a wider arc.
+        const push = (px, py, pr) => {
+          ambient.push({
+            x: f.head.x + (px - f.head.x) * scale,
+            y: f.head.y + (py - f.head.y) * scale,
+            r: (pr || 6) * scale,
+          });
+        };
+
+        push(f.mouth.x, f.mouth.y, f.mouth.radius || 6);
+        push(f.head.x, f.head.y, f.head.radius || 10);
+
         if (f.parts && f.parts.length) {
           for (let i = 0; i < f.parts.length; i += 2) {
             const p = f.parts[i];
-            if (p) ambient.push({ x: p.x, y: p.y, r: p.radius || 8 });
+            if (p) push(p.x, p.y, p.radius || 8);
           }
         }
 
-        // Tail — sample the midline so the fin arc also disperses.
         const midRow = f.tail?.pieces?.[2];
         if (midRow && midRow.length) {
           const mid = midRow[Math.floor(midRow.length / 2)];
-          if (mid) ambient.push({ x: mid.x, y: mid.y, r: 6 });
+          if (mid) push(mid.x, mid.y, 6);
           const tip = midRow[midRow.length - 1];
-          if (tip) ambient.push({ x: tip.x, y: tip.y, r: 4 });
+          if (tip) push(tip.x, tip.y, 4);
         }
       }
       window.__ambientFish = ambient;
@@ -313,7 +417,12 @@ export default function PondCanvas({
       window.removeEventListener('pointerleave', onLeave);
       window.removeEventListener('click', onTap);
     };
-  }, [palette, interactive, fishMin, fishMax, skipPads]);
+    // `mix` is intentionally included so that changing the admin
+    // panel's per-variety counts tears down and rebuilds the pond
+    // with the new fish. React useEffect compares object identity,
+    // so PosterPond must only pass a fresh object when the counts
+    // actually change (which it does — counts live in state).
+  }, [palette, interactive, fishMin, fishMax, skipPads, mix]);
 
   return (
     <canvas

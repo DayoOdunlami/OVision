@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PondCanvas from '../pond/PondCanvas.jsx';
 import FlourishZone from '../pond/zones/FlourishZone.jsx';
 import FullZone from '../pond/zones/FullZone.jsx';
 import CommitmentsZone from '../pond/zones/CommitmentsZone.jsx';
 import MarrowZone from '../pond/zones/MarrowZone.jsx';
+import { POND_VARIETIES } from '../SpineFish.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PosterPond — STAGE 3 rebuild.
@@ -48,6 +49,14 @@ const FLOURISH_VARIANTS = [
 const FLOURISH_KEY = 'vb.pond.flourish.variant';
 const DEFAULT_FLOURISH = 'bubble';
 
+// Fish mix admin panel. `null` means "auto" — the pond picks a
+// viewport-scaled variety rotation. An object maps variety name to
+// integer count, e.g. { chagoi: 1, ogon: 1, shiro: 1 }.
+const MIX_KEY = 'vb.pond.mix.counts';
+// Small CSS-colour helper used to draw a swatch next to each variety
+// row so it's clear which fish is which at a glance.
+const rgbCss = (rgb) => `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+
 // Split "I know the words. I want them in my marrow." →
 //   preText:   "I know the words."
 //   statement: "I want them in my"
@@ -72,17 +81,52 @@ export default function PosterPond({ board }) {
 
   const [flourishVariant, setFlourishVariant] = useState(DEFAULT_FLOURISH);
 
+  // null = auto (viewport-scaled), object = explicit per-variety counts.
+  const [mixCounts, setMixCounts] = useState(null);
+  const [mixPanelOpen, setMixPanelOpen] = useState(false);
+
   useEffect(() => {
     const saved = window.localStorage?.getItem(FLOURISH_KEY);
     if (saved && FLOURISH_VARIANTS.some((v) => v.id === saved)) {
       setFlourishVariant(saved);
     }
+    try {
+      const raw = window.localStorage?.getItem(MIX_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') setMixCounts(parsed);
+      }
+    } catch {}
   }, []);
 
   const setVariant = (id) => {
     setFlourishVariant(id);
     try { window.localStorage?.setItem(FLOURISH_KEY, id); } catch {}
   };
+
+  // Bump/clamp a single variety's count. Clicking a bump when the
+  // mix is currently null seeds from zero so the override takes
+  // effect immediately.
+  const bumpVariety = (name, delta) => {
+    setMixCounts((prev) => {
+      const base = prev || {};
+      const next = { ...base, [name]: Math.max(0, Math.min(6, (base[name] | 0) + delta)) };
+      try { window.localStorage?.setItem(MIX_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const resetMixAuto = () => {
+    setMixCounts(null);
+    try { window.localStorage?.removeItem(MIX_KEY); } catch {}
+  };
+
+  // Total so the panel can show "3 koi" and so PondCanvas only
+  // treats non-empty objects as overrides.
+  const mixTotal = useMemo(
+    () => (mixCounts ? Object.values(mixCounts).reduce((a, b) => a + (b | 0), 0) : 0),
+    [mixCounts],
+  );
 
   const cadenceFromValues = (values) =>
     Array.isArray(values) ? values.join(' · ') : undefined;
@@ -100,8 +144,15 @@ export default function PosterPond({ board }) {
       }}
     >
       {/* Fixed ambient pond canvas — water, a few quiet koi, pads off
-          because the Commitments zone has its own pads. */}
-      <PondCanvas fishMin={3} fishMax={5} skipPads />
+          because the Commitments zone has its own pads. When the
+          admin panel has pinned per-variety counts, `mix` overrides
+          the density-scaled auto mix. */}
+      <PondCanvas
+        fishMin={3}
+        fishMax={5}
+        skipPads
+        mix={mixTotal > 0 ? mixCounts : null}
+      />
 
       {/* Content layer. position:relative + zIndex:1 so all zones sit
           above the fixed canvas. Keep plenty of vertical rhythm. */}
@@ -160,6 +211,158 @@ export default function PosterPond({ board }) {
 
         {/* Footer breath */}
         <footer style={{ height: '14vh' }} />
+      </div>
+
+      {/* Fish mix panel — click the small badge to expand a per-variety
+          picker. Counts persist to localStorage. Empty = auto. */}
+      <div
+        className="no-print"
+        style={{
+          position: 'fixed',
+          bottom: 14,
+          left: 14,
+          zIndex: 10,
+          fontFamily: 'Manrope, sans-serif',
+          fontSize: 10,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}
+      >
+        <button
+          onClick={() => setMixPanelOpen((v) => !v)}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(10, 32, 38, 0.55)',
+            backdropFilter: 'blur(6px)',
+            color: 'rgba(255,255,255,0.85)',
+            fontSize: 10,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+          title="Fish mix"
+        >
+          Fish · {mixTotal > 0 ? `${mixTotal} pinned` : 'auto'}
+        </button>
+
+        {mixPanelOpen && (
+          <div
+            style={{
+              marginTop: 6,
+              padding: '10px 12px',
+              background: 'rgba(10, 32, 38, 0.78)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 10,
+              color: 'rgba(255,255,255,0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              minWidth: 200,
+              maxHeight: '60vh',
+              overflowY: 'auto',
+            }}
+          >
+            {POND_VARIETIES.map((v) => {
+              const count = mixCounts?.[v.name] | 0;
+              return (
+                <div
+                  key={v.name}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '3px 2px',
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      display: 'inline-block',
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      background: rgbCss(v.body),
+                      border: `1.5px solid ${rgbCss(v.dorsal)}`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ flex: 1, letterSpacing: '0.08em', textTransform: 'none' }}>
+                    {v.label}
+                  </span>
+                  <button
+                    onClick={() => bumpVariety(v.name, -1)}
+                    disabled={count <= 0}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: count > 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+                      color: count > 0 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
+                      cursor: count > 0 ? 'pointer' : 'default',
+                      fontSize: 14,
+                      lineHeight: 1,
+                    }}
+                    aria-label={`Remove one ${v.label}`}
+                  >
+                    −
+                  </button>
+                  <span
+                    style={{
+                      minWidth: 18,
+                      textAlign: 'center',
+                      fontVariantNumeric: 'tabular-nums',
+                      color: count > 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    {count}
+                  </span>
+                  <button
+                    onClick={() => bumpVariety(v.name, +1)}
+                    disabled={count >= 6}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: count < 6 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+                      color: count < 6 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
+                      cursor: count < 6 ? 'pointer' : 'default',
+                      fontSize: 14,
+                      lineHeight: 1,
+                    }}
+                    aria-label={`Add one ${v.label}`}
+                  >
+                    +
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={resetMixAuto}
+              style={{
+                marginTop: 4,
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.14)',
+                background: 'transparent',
+                color: 'rgba(255,255,255,0.7)',
+                cursor: 'pointer',
+                fontSize: 10,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+              }}
+            >
+              Auto (viewport)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Flourish variant switch — tiny floating control, only on Pond */}

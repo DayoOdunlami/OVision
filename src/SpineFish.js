@@ -163,6 +163,16 @@ const VARIETIES = [
   },
 ];
 
+// Ordered list of every koi variety defined above — used by admin
+// panels that let the user pick per-variety counts. Exported as a
+// light copy so callers can't mutate the internal VARIETIES array.
+export const POND_VARIETIES = VARIETIES.map((v) => ({
+  name: v.name,
+  label: v.name === 'hiUtsuri' ? 'Hi-Utsuri' : v.name[0].toUpperCase() + v.name.slice(1),
+  body: v.body,
+  dorsal: v.dorsal,
+}));
+
 // Deterministic mix: ensures a varied pond rather than a monoculture.
 // Guarantees one patriarch chagoi; fills remaining slots by rotating a
 // curated order so you always see at least 5-6 distinct varieties.
@@ -177,6 +187,21 @@ export function buildPondMix(n) {
   for (let i = out.length - 1; i > 1; i--) {
     const j = 1 + Math.floor(Math.random() * i);
     [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Explicit-count builder: takes an object like
+//   { chagoi: 1, ogon: 2, shiro: 1, kohaku: 1 }
+// and returns a flat variety array. Unknown names are ignored. Used
+// when the user wants to pin exact counts (admin panel override).
+export function buildPondMixFromCounts(counts) {
+  const byName = Object.fromEntries(VARIETIES.map(v => [v.name, v]));
+  const out = [];
+  for (const [name, n] of Object.entries(counts || {})) {
+    const v = byName[name];
+    if (!v) continue;
+    for (let i = 0; i < Math.max(0, n | 0); i++) out.push(v);
   }
   return out;
 }
