@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PondCanvas from '../pond/PondCanvas.jsx';
 import FlourishZone from '../pond/zones/FlourishZone.jsx';
 import FullZone from '../pond/zones/FullZone.jsx';
@@ -83,7 +83,6 @@ export default function PosterPond({ board }) {
 
   // null = auto (viewport-scaled), object = explicit per-variety counts.
   const [mixCounts, setMixCounts] = useState(null);
-  const [mixPanelOpen, setMixPanelOpen] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage?.getItem(FLOURISH_KEY);
@@ -213,204 +212,324 @@ export default function PosterPond({ board }) {
         <footer style={{ height: '14vh' }} />
       </div>
 
-      {/* Fish mix panel — click the small badge to expand a per-variety
-          picker. Counts persist to localStorage. Empty = auto. */}
-      <div
-        className="no-print"
+      {/* Pond settings — single discrete menu replacing the old
+          bottom-left + bottom-right floating toggles. Collapsed is a
+          small gear chip; expanded shows Flourish variant and the
+          fish mix panel, cleanly grouped. */}
+      <PondSettingsMenu
+        flourishVariant={flourishVariant}
+        setVariant={setVariant}
+        mixCounts={mixCounts}
+        mixTotal={mixTotal}
+        bumpVariety={bumpVariety}
+        resetMixAuto={resetMixAuto}
+      />
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────
+// PondSettingsMenu — one collapsed button in the bottom-right; when
+// opened, a single card stacks the two settings that used to live in
+// opposite corners. A small outside-click/Escape handler closes it so
+// it never competes with the content for attention.
+function PondSettingsMenu({
+  flourishVariant,
+  setVariant,
+  mixCounts,
+  mixTotal,
+  bumpVariety,
+  resetMixAuto,
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const activeFlourish = FLOURISH_VARIANTS.find((v) => v.id === flourishVariant);
+
+  return (
+    <div
+      ref={rootRef}
+      className="no-print"
+      style={{
+        position: 'fixed',
+        right: 14,
+        bottom: 14,
+        zIndex: 10,
+        fontFamily: 'Manrope, sans-serif',
+      }}
+    >
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        title="Pond settings"
         style={{
-          position: 'fixed',
-          bottom: 14,
-          left: 14,
-          zIndex: 10,
-          fontFamily: 'Manrope, sans-serif',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '7px 14px 7px 10px',
+          borderRadius: 999,
+          border: '1px solid rgba(255,255,255,0.14)',
+          background: 'rgba(10, 32, 38, 0.7)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          color: '#F1E6D2',
+          cursor: 'pointer',
           fontSize: 10,
-          letterSpacing: '0.12em',
+          letterSpacing: '0.14em',
           textTransform: 'uppercase',
+          fontWeight: 600,
+          boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
         }}
       >
-        <button
-          onClick={() => setMixPanelOpen((v) => !v)}
+        <GearIcon />
+        <span>Pond</span>
+        <span style={{ opacity: 0.55 }}>·</span>
+        <span style={{ opacity: 0.85 }}>{activeFlourish?.label || 'Bubbles'}</span>
+        <span style={{ opacity: 0.55 }}>·</span>
+        <span style={{ opacity: 0.85 }}>
+          {mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Pond settings"
           style={{
-            padding: '6px 12px',
-            borderRadius: 999,
+            position: 'absolute',
+            right: 0,
+            bottom: 'calc(100% + 8px)',
+            minWidth: 240,
+            padding: 14,
+            background: 'rgba(10, 32, 38, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(10, 32, 38, 0.55)',
-            backdropFilter: 'blur(6px)',
-            color: 'rgba(255,255,255,0.85)',
-            fontSize: 10,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            cursor: 'pointer',
+            borderRadius: 14,
+            boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+            color: 'rgba(255,255,255,0.9)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            maxHeight: '70vh',
+            overflowY: 'auto',
           }}
-          title="Fish mix"
         >
-          Fish · {mixTotal > 0 ? `${mixTotal} pinned` : 'auto'}
-        </button>
-
-        {mixPanelOpen && (
-          <div
-            style={{
-              marginTop: 6,
-              padding: '10px 12px',
-              background: 'rgba(10, 32, 38, 0.78)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 10,
-              color: 'rgba(255,255,255,0.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 200,
-              maxHeight: '60vh',
-              overflowY: 'auto',
-            }}
-          >
-            {POND_VARIETIES.map((v) => {
-              const count = mixCounts?.[v.name] | 0;
-              return (
-                <div
-                  key={v.name}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '3px 2px',
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      display: 'inline-block',
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      background: rgbCss(v.body),
-                      border: `1.5px solid ${rgbCss(v.dorsal)}`,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ flex: 1, letterSpacing: '0.08em', textTransform: 'none' }}>
-                    {v.label}
-                  </span>
-                  <button
-                    onClick={() => bumpVariety(v.name, -1)}
-                    disabled={count <= 0}
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      border: 'none',
-                      background: count > 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
-                      color: count > 0 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
-                      cursor: count > 0 ? 'pointer' : 'default',
-                      fontSize: 14,
-                      lineHeight: 1,
-                    }}
-                    aria-label={`Remove one ${v.label}`}
-                  >
-                    −
-                  </button>
-                  <span
-                    style={{
-                      minWidth: 18,
-                      textAlign: 'center',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: count > 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
-                    }}
-                  >
-                    {count}
-                  </span>
-                  <button
-                    onClick={() => bumpVariety(v.name, +1)}
-                    disabled={count >= 6}
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      border: 'none',
-                      background: count < 6 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
-                      color: count < 6 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
-                      cursor: count < 6 ? 'pointer' : 'default',
-                      fontSize: 14,
-                      lineHeight: 1,
-                    }}
-                    aria-label={`Add one ${v.label}`}
-                  >
-                    +
-                  </button>
-                </div>
-              );
-            })}
-
-            <button
-              onClick={resetMixAuto}
+          {/* Section: Flourish treatment */}
+          <div>
+            <SectionLabel>Flourish ring</SectionLabel>
+            <div
               style={{
-                marginTop: 4,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.14)',
-                background: 'transparent',
-                color: 'rgba(255,255,255,0.7)',
-                cursor: 'pointer',
-                fontSize: 10,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                fontWeight: 600,
+                display: 'flex',
+                gap: 4,
+                padding: 3,
+                background: 'rgba(255,255,255,0.06)',
+                borderRadius: 999,
+                marginTop: 6,
               }}
             >
-              Auto (viewport)
-            </button>
+              {FLOURISH_VARIANTS.map((v) => {
+                const selected = flourishVariant === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => setVariant(v.id)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      borderRadius: 999,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: selected ? 'rgba(255,255,255,0.92)' : 'transparent',
+                      color: selected ? '#0a2026' : 'rgba(255,255,255,0.82)',
+                      fontSize: 10,
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      fontWeight: 600,
+                      transition: 'background 0.15s ease, color 0.15s ease',
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Flourish variant switch — tiny floating control, only on Pond */}
-      <div
-        className="no-print"
-        style={{
-          position: 'fixed',
-          bottom: 14,
-          right: 14,
-          zIndex: 10,
-          display: 'flex',
-          gap: 4,
-          padding: 4,
-          background: 'rgba(10, 32, 38, 0.55)',
-          backdropFilter: 'blur(6px)',
-          borderRadius: 999,
-          border: '1px solid rgba(255,255,255,0.12)',
-          fontFamily: 'Manrope, sans-serif',
-          fontSize: 10,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-        }}
-        title="Flourish zone treatment"
-      >
-        <span style={{ alignSelf: 'center', padding: '0 8px', color: 'rgba(255,255,255,0.55)' }}>
-          Flourish
-        </span>
-        {FLOURISH_VARIANTS.map((v) => (
-          <button
-            key={v.id}
-            onClick={() => setVariant(v.id)}
-            style={{
-              padding: '5px 10px',
-              borderRadius: 999,
-              border: 'none',
-              cursor: 'pointer',
-              background: flourishVariant === v.id ? 'rgba(255,255,255,0.92)' : 'transparent',
-              color: flourishVariant === v.id ? '#0a2026' : 'rgba(255,255,255,0.82)',
-              fontSize: 10,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-            }}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
+          {/* Section: Fish mix */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <SectionLabel style={{ margin: 0 }}>Koi mix</SectionLabel>
+              <span
+                style={{
+                  fontSize: 9,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.5)',
+                }}
+              >
+                {mixTotal > 0 ? `${mixTotal} pinned` : 'Auto'}
+              </span>
+              {mixTotal > 0 && (
+                <button
+                  onClick={resetMixAuto}
+                  style={{
+                    marginLeft: 'auto',
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(255,255,255,0.16)',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.72)',
+                    cursor: 'pointer',
+                    fontSize: 9,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    fontWeight: 600,
+                  }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr auto auto auto',
+                columnGap: 6,
+                rowGap: 2,
+                alignItems: 'center',
+              }}
+            >
+              {POND_VARIETIES.map((v) => {
+                const count = mixCounts?.[v.name] | 0;
+                return (
+                  <MixRow
+                    key={v.name}
+                    variety={v}
+                    count={count}
+                    onMinus={() => bumpVariety(v.name, -1)}
+                    onPlus={() => bumpVariety(v.name, +1)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function MixRow({ variety, count, onMinus, onPlus }) {
+  const minusDisabled = count <= 0;
+  const plusDisabled = count >= 6;
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        style={{
+          display: 'inline-block',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          background: rgbCss(variety.body),
+          border: `1.5px solid ${rgbCss(variety.dorsal)}`,
+          flexShrink: 0,
+        }}
+      />
+      <span
+        style={{
+          fontSize: 12,
+          letterSpacing: '0.02em',
+          color: count > 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.7)',
+        }}
+      >
+        {variety.label}
+      </span>
+      <MixStepper disabled={minusDisabled} onClick={onMinus} ariaLabel={`Remove one ${variety.label}`}>
+        −
+      </MixStepper>
+      <span
+        style={{
+          minWidth: 18,
+          textAlign: 'center',
+          fontVariantNumeric: 'tabular-nums',
+          fontSize: 12,
+          fontWeight: 600,
+          color: count > 0 ? '#F1E6D2' : 'rgba(255,255,255,0.35)',
+        }}
+      >
+        {count}
+      </span>
+      <MixStepper disabled={plusDisabled} onClick={onPlus} ariaLabel={`Add one ${variety.label}`}>
+        +
+      </MixStepper>
+    </>
+  );
+}
+
+function MixStepper({ disabled, onClick, ariaLabel, children }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        border: 'none',
+        background: disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.12)',
+        color: disabled ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
+        cursor: disabled ? 'default' : 'pointer',
+        fontSize: 14,
+        lineHeight: 1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SectionLabel({ children, style }) {
+  return (
+    <div
+      style={{
+        fontSize: 10,
+        letterSpacing: '0.2em',
+        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: 600,
+        ...(style || {}),
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
