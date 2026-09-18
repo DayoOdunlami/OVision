@@ -176,7 +176,18 @@ export default function PondCanvas({
         }
       }
 
-      const fish = varieties.map((v) => new SpineFish(w, h, v));
+      // Koi are built at an absolute pixel size, which means on a phone
+      // a single fish fills a third of the screen and the board reads as
+      // an aquarium rather than a pond seen from above. Scale the whole
+      // shoal down with the viewport. Cloning the variety (rather than
+      // mutating it) matters — VARIETIES is a shared module-level array.
+      const sizeFactor = Math.max(0.55, Math.min(1, w / 1000));
+      const fish = varieties.map(
+        (v) => new SpineFish(w, h, {
+          ...v,
+          sizeScale: (v.sizeScale || 1) * sizeFactor,
+        }),
+      );
 
       // Tag one fish per named person. First-match wins, and a fish
       // already claimed by someone else is skipped, so two people who

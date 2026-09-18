@@ -358,9 +358,18 @@ export default function PosterPond({ board }) {
         }
         .pond-today-arrow { color: rgba(255, 214, 170, 0.8); font-size: 0.7rem; }
 
+        /* On a phone the fixed chrome (member chip left, view pills
+           right) spans the full width, so the centred masthead has to
+           start below it rather than behind it. */
         @media (max-width: 720px) {
-          .pond-masthead-owner { letter-spacing: 0.32em; }
+          .pond-masthead {
+            padding-top: calc(3.9rem + env(safe-area-inset-top, 0px));
+            gap: 0.7rem;
+          }
+          .pond-masthead-owner { letter-spacing: 0.32em; font-size: 0.58rem; }
           .pond-today-ref      { display: none; }
+          .pond-today-chip     { padding: 0.4rem 0.7rem; }
+          .pond-today-names    { font-size: 0.88rem; }
         }
       `}</style>
     </div>
