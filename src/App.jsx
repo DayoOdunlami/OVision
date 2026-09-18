@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import SharedStyles from './components/SharedStyles.jsx';
 import ViewToggle from './components/ViewToggle.jsx';
-import PosterAtmos from './views/PosterAtmos.jsx';
-import PosterTextured from './views/PosterTextured.jsx';
 import PosterPond from './views/PosterPond.jsx';
 import DocumentView from './views/Document.jsx';
-import FamilyBoardView from './views/FamilyBoardView.jsx';
 import {
   loadBoard,
   MEMBER_INDEX,
@@ -13,24 +10,27 @@ import {
 } from './data/board.js';
 
 // ═══════════════════════════════════════════════════════════════════
-// App — top-level. Loads board content via the async loadBoard()
-// adapter (currently local, later Notion) and routes between the
-// identity-board views (Atmos / Textured / Pond / Document) and the
-// separate Family Board.
+// App — top-level for the Pond surface.
 //
-// View state is persisted in localStorage so the fridge-tablet
-// remembers whatever you were last looking at. The default is Pond
-// because that's the merge target this project is heading towards.
+// There are two surfaces in this project and only one of them is a
+// React app:
+//
+//   /       → this. The Pond: ambient, peripheral, always-on. Lives on
+//             the fridge tablet and is meant to be glanced at.
+//   /pray/  → a self-contained static page. Focal, sequential, one
+//             line at a time. Deliberately NOT a pond view, because
+//             animated koi behind prayer text would fight the exact
+//             problem that surface exists to solve.
+//
+// The two share one localStorage (same origin) — see data/prayerLink.js.
+//
+// Within the Pond surface there are two views: the pond itself, and
+// Document, which is the full-text fallback for everything the pond
+// deliberately leaves out. Atmosphere / Textured / Family were retired.
 // ═══════════════════════════════════════════════════════════════════
 
 const DEFAULT_VIEW = 'poster-pond';
-const VALID_VIEWS = new Set([
-  'poster-atmos',
-  'poster-text',
-  'poster-pond',
-  'document',
-  'family',
-]);
+const VALID_VIEWS = new Set(['poster-pond', 'document']);
 const VALID_MEMBERS = new Set(MEMBER_INDEX.map((m) => m.id));
 
 export default function App() {
@@ -80,17 +80,18 @@ export default function App() {
     } catch {}
   }, [memberId]);
 
-  // The Family Board manages its own body scrolling; identity-board
-  // views scroll the document. Flip overflow accordingly so we don't
-  // get double scrollbars on the long editorial views.
+  // The pond is deep water edge-to-edge; Document is warm paper. Set
+  // the body background to match so iOS overscroll rubber-banding
+  // reveals more water / more paper rather than a cream seam under the
+  // pond. index.html ships the paper colour as the pre-hydration
+  // default, so only the pond needs an override.
   useEffect(() => {
-    const isFamily = view === 'family';
-    document.documentElement.style.overflow = isFamily ? 'hidden' : 'auto';
-    document.body.style.overflow = isFamily ? 'hidden' : 'auto';
-    document.body.style.background = isFamily ? '#061915' : '#F1E6D2';
+    const onPond = view === 'poster-pond';
+    document.body.style.background = onPond ? '#0b2a2e' : '#F1E6D2';
+    document.documentElement.style.background = onPond ? '#0b2a2e' : '#F1E6D2';
     return () => {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
+      document.body.style.background = '';
+      document.documentElement.style.background = '';
     };
   }, [view]);
 
@@ -101,12 +102,10 @@ export default function App() {
     return (
       <>
         <SharedStyles />
-        <div style={{ minHeight: '100vh', background: '#F1E6D2' }} />
+        <div style={{ minHeight: '100vh', background: '#0b2a2e' }} />
       </>
     );
   }
-
-  const onFamilyBoard = view === 'family';
 
   return (
     <>
@@ -117,14 +116,10 @@ export default function App() {
         members={MEMBER_INDEX}
         memberId={memberId}
         setMemberId={setMemberId}
-        showMemberPicker={!onFamilyBoard}
       />
 
-      {view === 'poster-atmos' && <PosterAtmos    board={board} />}
-      {view === 'poster-text'  && <PosterTextured board={board} />}
-      {view === 'poster-pond'  && <PosterPond     board={board} />}
-      {view === 'document'     && <DocumentView   board={board} />}
-      {view === 'family'       && <FamilyBoardView />}
+      {view === 'poster-pond' && <PosterPond   board={board} />}
+      {view === 'document'    && <DocumentView board={board} />}
     </>
   );
 }

@@ -5,6 +5,7 @@ import FullZone from '../pond/zones/FullZone.jsx';
 import CommitmentsZone from '../pond/zones/CommitmentsZone.jsx';
 import MarrowZone from '../pond/zones/MarrowZone.jsx';
 import { POND_VARIETIES } from '../SpineFish.js';
+import { readPrayerState, todayKoi, PRAY_URL } from '../data/prayerLink.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PosterPond — STAGE 3 rebuild.
@@ -53,6 +54,13 @@ const DEFAULT_FLOURISH = 'bubble';
 // viewport-scaled variety rotation. An object maps variety name to
 // integer count, e.g. { chagoi: 1, ogon: 1, shiro: 1 }.
 const MIX_KEY = 'vb.pond.mix.counts';
+
+// Concept flags. Both default ON so the integration is what you see
+// first, but they're toggleable because they're still concepts — the
+// point is to be able to flip them off and judge whether the pond is
+// better with or without.
+const CONCEPT_KEY = 'vb.pond.concepts';
+const DEFAULT_CONCEPTS = { namedKoi: true, pairToday: true };
 // Small CSS-colour helper used to draw a swatch next to each variety
 // row so it's clear which fish is which at a glance.
 const rgbCss = (rgb) => `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
@@ -84,6 +92,24 @@ export default function PosterPond({ board }) {
   // null = auto (viewport-scaled), object = explicit per-variety counts.
   const [mixCounts, setMixCounts] = useState(null);
 
+  const [concepts, setConcepts] = useState(DEFAULT_CONCEPTS);
+
+  // The prayer surface's state, read (never written) from the shared
+  // localStorage of the same origin. See data/prayerLink.js.
+  const [prayer, setPrayer] = useState(() => readPrayerState());
+
+  useEffect(() => {
+    const refresh = () => setPrayer(readPrayerState());
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
+
   useEffect(() => {
     const saved = window.localStorage?.getItem(FLOURISH_KEY);
     if (saved && FLOURISH_VARIANTS.some((v) => v.id === saved)) {
@@ -96,7 +122,24 @@ export default function PosterPond({ board }) {
         if (parsed && typeof parsed === 'object') setMixCounts(parsed);
       }
     } catch {}
+    try {
+      const raw = window.localStorage?.getItem(CONCEPT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          setConcepts({ ...DEFAULT_CONCEPTS, ...parsed });
+        }
+      }
+    } catch {}
   }, []);
+
+  const toggleConcept = (key) => {
+    setConcepts((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { window.localStorage?.setItem(CONCEPT_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const setVariant = (id) => {
     setFlourishVariant(id);
@@ -127,6 +170,17 @@ export default function PosterPond({ board }) {
     [mixCounts],
   );
 
+  // Today's two people → two koi varieties, or [] when the concept is
+  // off or the prayer surface has never been opened here. Memoised on
+  // the *names* rather than the state object so PondCanvas's effect
+  // doesn't tear down and respawn the pond on every focus event.
+  const todayNamesKey = prayer.todayNames.join('|');
+  const namedKoi = useMemo(
+    () => (concepts.namedKoi ? todayKoi(prayer) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [concepts.namedKoi, todayNamesKey],
+  );
+
   const cadenceFromValues = (values) =>
     Array.isArray(values) ? values.join(' · ') : undefined;
 
@@ -151,30 +205,41 @@ export default function PosterPond({ board }) {
         fishMax={5}
         skipPads
         mix={mixTotal > 0 ? mixCounts : null}
+        namedKoi={namedKoi}
+        pairToday={concepts.pairToday && namedKoi.length >= 2}
       />
 
       {/* Content layer. position:relative + zIndex:1 so all zones sit
           above the fixed canvas. Keep plenty of vertical rhythm. */}
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Masthead — owner + period, tiny */}
-        <header
-          style={{
-            paddingTop: '3vh',
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'Manrope, sans-serif',
-              fontSize: '0.7rem',
-              letterSpacing: '0.5em',
-              textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.7)',
-              textShadow: '0 1px 6px rgba(0,0,0,0.4)',
-            }}
-          >
+        {/* Masthead — owner + period, plus (when the prayer surface has
+            been used here) a live chip showing who today's rota is for.
+            The chip is the crossing point between the two surfaces:
+            tapping it opens /pray/ straight onto today's prayer. */}
+        <header className="pond-masthead">
+          <div className="pond-masthead-owner">
             {board?.owner || 'Identity Board'} · {board?.period || ''}
           </div>
+
+          {prayer.available && (
+            <a href={PRAY_URL} className="pond-today-chip">
+              <span className="pond-today-dot" aria-hidden="true" />
+              <span className="pond-today-label">
+                {prayer.isSunday ? 'Sunday' : 'Today'}
+              </span>
+              <span className="pond-today-names">
+                {prayer.isSunday
+                  ? 'All of us'
+                  : prayer.todayNames.join(' & ') || '—'}
+              </span>
+              {prayer.prayerRef && (
+                <span className="pond-today-ref">{prayer.prayerRef}</span>
+              )}
+              <span aria-hidden="true" className="pond-today-arrow">
+                {prayer.prayedToday ? '✓' : '↗'}
+              </span>
+            </a>
+          )}
         </header>
 
         {/* 01 · Flourish */}
@@ -206,6 +271,7 @@ export default function PosterPond({ board }) {
           cadence="Silence · Fasting · Confession"
           verse={friction.prayer?.text}
           anchor={friction.prayer?.reference}
+          showNames={concepts.namedKoi}
         />
 
         {/* Footer breath */}
@@ -223,7 +289,80 @@ export default function PosterPond({ board }) {
         mixTotal={mixTotal}
         bumpVariety={bumpVariety}
         resetMixAuto={resetMixAuto}
+        concepts={concepts}
+        toggleConcept={toggleConcept}
+        prayerAvailable={prayer.available}
       />
+
+      <style>{`
+        .pond-masthead {
+          padding-top: 3vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.9rem;
+        }
+        .pond-masthead-owner {
+          font-family: 'Manrope', sans-serif;
+          font-size: clamp(0.6rem, 1.6vw, 0.7rem);
+          letter-spacing: 0.5em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.82);
+          text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+          text-align: center;
+          padding: 0 1rem;
+        }
+
+        .pond-today-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.55rem;
+          flex-wrap: wrap;
+          justify-content: center;
+          padding: 0.45rem 0.85rem;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 224, 176, 0.3);
+          background: rgba(8, 34, 40, 0.62);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          text-decoration: none;
+          font-family: 'Manrope', sans-serif;
+          box-shadow: 0 4px 16px rgba(2, 16, 20, 0.35);
+          max-width: min(94vw, 34rem);
+        }
+        .pond-today-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: #ffcf8f;
+          box-shadow: 0 0 8px rgba(255, 207, 143, 0.8);
+          flex-shrink: 0;
+        }
+        .pond-today-label {
+          font-size: 0.58rem;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255, 214, 170, 0.85);
+        }
+        .pond-today-names {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 700;
+          font-size: 0.95rem;
+          color: #ffeed8;
+        }
+        .pond-today-ref {
+          font-size: 0.58rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.55);
+        }
+        .pond-today-arrow { color: rgba(255, 214, 170, 0.8); font-size: 0.7rem; }
+
+        @media (max-width: 720px) {
+          .pond-masthead-owner { letter-spacing: 0.32em; }
+          .pond-today-ref      { display: none; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -240,6 +379,9 @@ function PondSettingsMenu({
   mixTotal,
   bumpVariety,
   resetMixAuto,
+  concepts,
+  toggleConcept,
+  prayerAvailable,
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -372,6 +514,50 @@ function PondSettingsMenu({
             </div>
           </div>
 
+          {/* Section: Concepts — the prayer-surface integration, kept
+              behind switches so it can be judged against the pond
+              without it. Disabled with an explanation when /pray/ has
+              never been opened on this device, because there'd be no
+              rota to read and the toggles would silently do nothing. */}
+          <div>
+            <SectionLabel>Concepts</SectionLabel>
+            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <ConceptRow
+                label="Name today's koi"
+                hint="Two koi carry the names from the rota"
+                on={concepts.namedKoi}
+                disabled={!prayerAvailable}
+                onToggle={() => toggleConcept('namedKoi')}
+              />
+              <ConceptRow
+                label="Swim them as a pair"
+                hint="Knowing and being known"
+                on={concepts.pairToday}
+                disabled={!prayerAvailable || !concepts.namedKoi}
+                onToggle={() => toggleConcept('pairToday')}
+              />
+            </div>
+            {!prayerAvailable && (
+              <div
+                style={{
+                  marginTop: 7,
+                  fontSize: 10,
+                  lineHeight: 1.45,
+                  color: 'rgba(255,255,255,0.5)',
+                }}
+              >
+                Open{' '}
+                <a
+                  href={PRAY_URL}
+                  style={{ color: 'rgba(255,214,170,0.9)' }}
+                >
+                  Pray
+                </a>{' '}
+                once to link the two surfaces.
+              </div>
+            )}
+          </div>
+
           {/* Section: Fish mix */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -434,6 +620,80 @@ function PondSettingsMenu({
         </div>
       )}
     </div>
+  );
+}
+
+// A labelled switch. Styled as a track + knob rather than a checkbox
+// so it reads at the same weight as the rest of this panel, but it is
+// a real <button> with aria-pressed so it stays keyboard-operable.
+function ConceptRow({ label, hint, on, disabled, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      disabled={disabled}
+      aria-pressed={on && !disabled}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        width: '100%',
+        padding: '6px 4px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 8,
+        cursor: disabled ? 'default' : 'pointer',
+        textAlign: 'left',
+        opacity: disabled ? 0.42 : 1,
+      }}
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span
+          style={{
+            display: 'block',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.95)',
+            fontWeight: 500,
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            display: 'block',
+            fontSize: 9.5,
+            letterSpacing: '0.04em',
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: 1,
+          }}
+        >
+          {hint}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        style={{
+          flexShrink: 0,
+          width: 30,
+          height: 17,
+          borderRadius: 999,
+          padding: 2,
+          background: on && !disabled ? 'rgba(255, 207, 143, 0.9)' : 'rgba(255,255,255,0.14)',
+          transition: 'background 0.18s ease',
+          display: 'flex',
+          justifyContent: on && !disabled ? 'flex-end' : 'flex-start',
+        }}
+      >
+        <span
+          style={{
+            width: 13,
+            height: 13,
+            borderRadius: '50%',
+            background: on && !disabled ? '#3a1a06' : 'rgba(255,255,255,0.75)',
+            transition: 'background 0.18s ease',
+          }}
+        />
+      </span>
+    </button>
   );
 }
 

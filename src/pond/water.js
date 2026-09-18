@@ -19,13 +19,19 @@
 // WARM_POND is retained for Family-Board-style renders where a deep,
 // more ancient feel is wanted.
 
+// Re-tuned to actually read as *deep water*. The previous ramp ran
+// from near-white to mid-teal, which made the whole board a flat pale
+// mint: no sense of a basin, and white type had nothing to sit on.
+// The sunlit centre is kept (it's what the god rays land on) but it
+// falls away much faster and bottoms out genuinely dark, so the koi
+// read as suspended in a volume and overlaid text stays legible.
 export const CLEAR_POND = {
   depth: [
-    [0.00, '#eaf7f3'],   // shallow: near-white glaze (sun on water)
-    [0.30, '#b8e0d6'],   // mid: pale aqua
-    [0.60, '#6ea7a1'],   // deeper: soft teal
-    [0.85, '#2d5f62'],   // edge: deep teal
-    [1.00, '#0e2e33'],   // rim: cool depth
+    [0.00, '#cdeee6'],   // shallow: sunlit glaze, no longer blown out
+    [0.26, '#8ec9c0'],   // mid: aqua
+    [0.52, '#448d8c'],   // deeper: teal
+    [0.76, '#1b5459'],   // edge: deep teal
+    [1.00, '#06222a'],   // rim: near-black cool depth
   ],
   currentDark:  '#2f6a6a',
   currentLight: '#d4f4ec',

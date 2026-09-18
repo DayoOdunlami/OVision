@@ -22,23 +22,44 @@ import {
 } from './pads.js';
 
 // ═══════════════════════════════════════════════════════════════════
-// PondCanvas — single full-viewport canvas. Stage 2: full ambient
-// pond (water gradient, currents, god rays, caustics, vignette,
-// shimmer, lily pads, drifting blossoms) plus SpineFish swimming
-// uniformly across the whole canvas. No zones yet.
+// PondCanvas — one fixed full-viewport canvas behind the whole board.
+// Paints the ambient pond (water gradient, currents, god rays,
+// caustics, vignette, shimmer, drifting blossoms, tap ripples) and the
+// koi themselves.
 //
-// Performance notes:
-//   · Fish count scales with viewport area, 7–11 max.
-//   · SpineFish is imported from the existing src/SpineFish.js so the
-//     Family Board and the Identity Board share one implementation.
-//   · If measured FPS drops below 30 for 2s, the loop freezes to a
-//     single static frame (accessibility + low-end devices).
-//   · prefers-reduced-motion → static frame on first paint, no loop.
+// The zones above don't own canvases. They publish *attractors* as DOM
+// data attributes and this loop reads them each frame:
 //
-// Interaction (carried over from KoiBoard): pointer moves influence
-// fish via cur ref; short tap drops a ripple. Long-press / food is
-// deferred to Stage 5 — the identity board's hero-word ambient
-// doesn't need the play-with-the-fish affordance.
+//   [data-full-attractor]    → koi swell with proximity, within a range
+//                              the zone sets from prayer consistency
+//   [data-marrow-attractor]  → koi passing close take the word's colour
+//
+// It also publishes two things outward:
+//
+//   window.__ambientFish     → spine points + radii, consumed by
+//                              FlourishZone (particle scatter) and
+//                              CommitmentsZone (lily-pad wake)
+//   name labels              → for koi tagged with a `personName`,
+//                              drawn on the water above the fish
+//
+// Performance / robustness notes:
+//   · Fish count scales with viewport area, clamped by fishMin/fishMax,
+//     plus one guaranteed koi per named person.
+//   · Koi are drawn back-to-front by their own `depth` value, so the
+//     pond reads as a volume.
+//   · The loop never hard-freezes on low FPS. An earlier version killed
+//     it below 30fps for 2s, which fired during first paint and font
+//     layout on a cold load — the "fish keep freezing" symptom. rAF is
+//     throttled by the browser anyway; a slow pond beats a dead one.
+//   · A zero-size viewport (hidden tab, collapsed pane, tablet waking
+//     from sleep) is skipped rather than painted, because drawing from
+//     a 0×0 canvas throws and used to take down the whole React tree.
+//   · prefers-reduced-motion → one static frame, retried until the
+//     element is actually measurable, then no loop.
+//
+// Interaction: pointer moves influence koi via the `cur` ref; a tap
+// drops a ripple. Feeding (`env.food`) is wired but unused here — the
+// identity board doesn't need the play-with-the-fish affordance.
 // ═══════════════════════════════════════════════════════════════════
 
 export default function PondCanvas({
@@ -56,6 +77,16 @@ export default function PondCanvas({
   // these counts (ignoring fishMin/fishMax). When null/undefined the
   // density-based auto mix (buildPondMix) is used as before.
   mix = null,
+  // CONCEPT — named koi. An array of { koi: 'sanke', person: 'Bella' }.
+  // Each entry guarantees one koi of that variety exists in the pond
+  // and tags it with the person's name, which gets drawn on the water
+  // beside the fish. Fed from the prayer surface's rota, so the koi
+  // carrying a name is whoever is being prayed for today.
+  namedKoi = [],
+  // CONCEPT — pair today's two named koi so they swim together, per
+  // the original brief's Zone 04 note: "two fish swimming in
+  // synchronised pairs — a metaphor for knowing-and-being-known".
+  pairToday = false,
 }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({
@@ -82,6 +113,9 @@ export default function PondCanvas({
     // only fish pixels, not the water behind them.
     fishLayer: null,
     fishLayerCtx: null,
+    // Subset of `fish` that carry a personName, kept so the label pass
+    // and the pairing nudge don't have to re-scan every fish.
+    namedFish: [],
   });
 
   useEffect(() => {
@@ -101,8 +135,11 @@ export default function PondCanvas({
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.floor(rect.width * DPR);
-      canvas.height = Math.floor(rect.height * DPR);
+      // Never size a backing store to zero — see the guard in
+      // paintFrame. A 1px floor keeps every canvas a legal image
+      // source even if resize runs while the element is unmeasurable.
+      canvas.width = Math.max(1, Math.floor(rect.width * DPR));
+      canvas.height = Math.max(1, Math.floor(rect.height * DPR));
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
       const w = rect.width;
@@ -115,7 +152,7 @@ export default function PondCanvas({
         mix &&
         typeof mix === 'object' &&
         Object.values(mix).reduce((a, b) => a + (b | 0), 0) > 0;
-      const varieties = hasCountOverride
+      const baseVarieties = hasCountOverride
         ? buildPondMixFromCounts(mix)
         : (() => {
             const area = w * h;
@@ -125,7 +162,37 @@ export default function PondCanvas({
             );
             return buildPondMix(count);
           })();
-      stateRef.current.fish = varieties.map((v) => new SpineFish(w, h, v));
+
+      // Named koi are guaranteed present. If the ambient mix already
+      // happens to contain that variety we reuse it rather than adding
+      // a duplicate, so naming two people never quietly inflates the
+      // fish count (and the frame cost) beyond what was asked for.
+      const varieties = [...baseVarieties];
+      const named = (namedKoi || []).filter((n) => n && n.koi && n.person);
+      for (const n of named) {
+        if (!varieties.some((v) => v.name === n.koi)) {
+          const [extra] = buildPondMixFromCounts({ [n.koi]: 1 });
+          if (extra) varieties.push(extra);
+        }
+      }
+
+      const fish = varieties.map((v) => new SpineFish(w, h, v));
+
+      // Tag one fish per named person. First-match wins, and a fish
+      // already claimed by someone else is skipped, so two people who
+      // share a variety still get two distinct koi.
+      stateRef.current.namedFish = [];
+      for (const n of named) {
+        const target = fish.find(
+          (f) => f.variety?.name === n.koi && !f.personName,
+        );
+        if (target) {
+          target.personName = n.person;
+          stateRef.current.namedFish.push(target);
+        }
+      }
+
+      stateRef.current.fish = fish;
 
       // Fish-layer offscreen — same logical CSS size, same DPR transform.
       // Lazily created, resized whenever the viewport changes.
@@ -134,8 +201,8 @@ export default function PondCanvas({
         stateRef.current.fishLayerCtx = stateRef.current.fishLayer.getContext('2d');
       }
       const off = stateRef.current.fishLayer;
-      off.width = canvas.width;
-      off.height = canvas.height;
+      off.width = Math.max(1, canvas.width);
+      off.height = Math.max(1, canvas.height);
       stateRef.current.fishLayerCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
     };
     resize();
@@ -148,6 +215,15 @@ export default function PondCanvas({
       const W = rect.width;
       const H = rect.height;
       const s = stateRef.current;
+
+      // Bail on a zero-size frame. This happens for real: a hidden or
+      // unloading document, a display:none ancestor, or the moment
+      // between mount and first layout. Painting on through it throws
+      // InvalidStateError from drawImage (a canvas of width or height 0
+      // is not a valid image source), which killed the whole React tree
+      // because there's no error boundary above this component.
+      if (!(W > 0) || !(H > 0)) return false;
+      if (!s.fishLayer || !(s.fishLayer.width > 0) || !(s.fishLayer.height > 0)) return false;
       const t = s.tick;
       const ts = t * 0.0028;
 
@@ -190,12 +266,19 @@ export default function PondCanvas({
         document.querySelectorAll('[data-full-attractor]').forEach((n) => {
           const r = n.getBoundingClientRect();
           if (r.bottom < -600 || r.top > H + 600) return;
+          // maxScale/minScale are published by FullZone as data
+          // attributes, because how far the koi swell is driven by
+          // prayer consistency rather than being a constant. Falls back
+          // to the original fixed values when the attributes are
+          // absent or unparseable.
+          const dMax = Number(n.dataset.fullMax);
+          const dMin = Number(n.dataset.fullMin);
           s.fullTargets.push({
             cx: r.left + r.width / 2,
             cy: r.top + r.height / 2,
             radius: Math.max(360, Math.min(680, r.width * 1.15)),
-            maxScale: 1.85,  // centre: ~85% larger
-            minScale: 0.78,  // far:   ~22% smaller
+            maxScale: Number.isFinite(dMax) && dMax > 0 ? dMax : 1.85,
+            minScale: Number.isFinite(dMin) && dMin > 0 ? dMin : 0.78,
             influenceRadius: Math.max(720, Math.min(1200, r.width * 2.2)),
           });
         });
@@ -254,10 +337,48 @@ export default function PondCanvas({
         return best;
       };
 
-      const ambient = [];
+      // ── Update everyone, then draw back-to-front ──────────────
+      // Update and draw used to be one pass, which meant fish were
+      // painted in array order and the `depth` value each fish already
+      // maintains (0.25 near the surface → 0.65 deep) had no visual
+      // consequence. Splitting the passes lets us sort by depth, so a
+      // deep koi actually passes *behind* a shallow one and the pond
+      // reads as a volume rather than a flat plane.
       for (const f of s.fish) {
         f.update(W, H, s.cur, { food: [], onBreak: () => {} });
+      }
 
+      // ── CONCEPT: pair today's two named koi ───────────────────
+      // A light-touch follow rather than a real flocking rule: nudge
+      // the follower's existing target to trail the leader at an
+      // offset. We only do this when the follower is calm — a fleeing
+      // or feeding fish keeps its own agenda, so a cursor jab still
+      // scatters the pair and they re-form afterwards, which is the
+      // behaviour we want anyway.
+      if (pairToday && s.namedFish.length >= 2) {
+        const [leader, follower] = s.namedFish;
+        if (leader && follower && follower.fleeCooldown <= 0 && !follower.feedTarget) {
+          const trail = 78;
+          const ang = leader.parts?.[0]?.radian ?? 0;
+          const tx = leader.mouth.x - Math.cos(ang) * trail;
+          const ty = leader.mouth.y - Math.sin(ang) * trail + 34;
+          if (follower.target) {
+            // Ease rather than snap, so the follower swims into
+            // formation instead of teleporting its aim point.
+            follower.target.x += (tx - follower.target.x) * 0.06;
+            follower.target.y += (ty - follower.target.y) * 0.06;
+            follower.isIdle = false;
+          }
+        }
+      }
+
+      const drawOrder = [...s.fish].sort(
+        (a, b) => (b.depth ?? 0.4) - (a.depth ?? 0.4),
+      );
+
+      const ambient = [];
+      const labels = [];
+      for (const f of drawOrder) {
         const scale = resolveFullScale(f);
         if (scale !== 1) {
           offCtx.save();
@@ -300,6 +421,20 @@ export default function PondCanvas({
           const tip = midRow[midRow.length - 1];
           if (tip) push(tip.x, tip.y, 4);
         }
+
+        // Named koi get their label position recorded here (drawn
+        // later, onto the main canvas, so the marrow tint mask can't
+        // repaint the text).
+        if (f.personName) {
+          labels.push({
+            name: f.personName,
+            x: f.head.x,
+            y: f.head.y,
+            // Offset above the fish, scaled with the Full swell so the
+            // label doesn't end up inside a fattened koi.
+            lift: 26 * scale + 8,
+          });
+        }
       }
       window.__ambientFish = ambient;
 
@@ -325,6 +460,67 @@ export default function PondCanvas({
 
       // Flatten the fish layer onto the main canvas.
       ctx.drawImage(off, 0, 0, W, H);
+
+      // ── Name labels for the koi carrying today's names ────────
+      // Drawn after the flatten so the marrow tint mask (which is
+      // source-atop over fish pixels only) can't tint the text. A
+      // label sits quiet by default and brightens as its koi enters
+      // the marrow radius, which is the whole point: you watch the
+      // name draw near and take the colour.
+      if (labels.length) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '700 13px Manrope, system-ui, sans-serif';
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '0.16em';
+
+        for (const L of labels) {
+          // Nearness to the closest marrow attractor, 0 (far) → 1 (at
+          // the word). Drives both opacity and the warm tint.
+          let heat = 0;
+          for (const m of s.marrowTargets) {
+            const d = Math.hypot(L.x - m.cx, L.y - m.cy);
+            if (d < m.radius) {
+              const k = 1 - d / m.radius;
+              if (k > heat) heat = k;
+            }
+          }
+
+          const text = L.name.toUpperCase();
+          const y = L.y - L.lift;
+          const w = ctx.measureText(text).width;
+          const padX = 11;
+          const padY = 6;
+          // Quiet, but legible from across a kitchen — the earlier
+          // 0.42 base was effectively invisible against sunlit water.
+          const alpha = 0.72 + heat * 0.28;
+
+          // Pill backing, so the label stays readable over both pale
+          // sunlit water and the dark rim.
+          ctx.globalAlpha = alpha * 0.92;
+          ctx.fillStyle = heat > 0.02
+            ? `rgba(74, 18, 8, ${0.68 + heat * 0.27})`
+            : 'rgba(6, 30, 36, 0.62)';
+          const bw = w + padX * 2;
+          const bh = 13 + padY * 2;
+          const r = bh / 2;
+          ctx.beginPath();
+          ctx.moveTo(L.x - bw / 2 + r, y - bh / 2);
+          ctx.arcTo(L.x + bw / 2, y - bh / 2, L.x + bw / 2, y + bh / 2, r);
+          ctx.arcTo(L.x + bw / 2, y + bh / 2, L.x - bw / 2, y + bh / 2, r);
+          ctx.arcTo(L.x - bw / 2, y + bh / 2, L.x - bw / 2, y - bh / 2, r);
+          ctx.arcTo(L.x - bw / 2, y - bh / 2, L.x + bw / 2, y - bh / 2, r);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = heat > 0.02
+            ? `rgb(255, ${Math.round(226 - heat * 40)}, ${Math.round(198 - heat * 70)})`
+            : 'rgba(240, 248, 245, 0.95)';
+          ctx.fillText(text, L.x, y);
+        }
+        ctx.restore();
+      }
 
       // Ripples
       s.ripples = s.ripples.filter((r) => !r.isDead());
@@ -352,6 +548,7 @@ export default function PondCanvas({
 
       paintVignette(ctx, W, H, palette);
       paintShimmer(ctx, W, H, ts, palette);
+      return true;
     };
 
     // Previous versions killed the loop permanently when FPS dipped.
@@ -379,8 +576,18 @@ export default function PondCanvas({
     };
 
     if (reduced) {
-      // Paint one static frame, no loop.
-      paintFrame();
+      // Paint one static frame, no loop. But if the element isn't
+      // measurable yet — a hidden tab, a collapsed pane, a tablet
+      // waking from sleep — that single frame would paint nothing and,
+      // with no loop to come back, the pond would stay permanently
+      // blank. So retry on animation frames until the first paint
+      // actually lands, then stop.
+      const paintOnce = () => {
+        if (disposed) return;
+        resize();
+        if (!paintFrame()) raf = requestAnimationFrame(paintOnce);
+      };
+      paintOnce();
     } else {
       loop();
     }
@@ -422,7 +629,10 @@ export default function PondCanvas({
     // with the new fish. React useEffect compares object identity,
     // so PosterPond must only pass a fresh object when the counts
     // actually change (which it does — counts live in state).
-  }, [palette, interactive, fishMin, fishMax, skipPads, mix]);
+    // `namedKoi` must be a stable reference from the caller (PosterPond
+    // memoises it) or this effect thrashes and the pond respawns every
+    // render. `pairToday` is a boolean so it's safe as-is.
+  }, [palette, interactive, fishMin, fishMax, skipPads, mix, namedKoi, pairToday]);
 
   return (
     <canvas

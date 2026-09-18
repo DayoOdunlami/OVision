@@ -46,6 +46,71 @@ export default function SharedStyles() {
         font-size: 0.68rem;
       }
 
+      /* ── Pond zone typography ──────────────────────────────────────
+         Every pond zone shares these three text roles. They used to be
+         inline per-zone at opacities as low as 0.55, which was simply
+         unreadable over pale water — the Flourish cadence and the
+         marrow verse both disappeared on the live build. Raised to
+         legible weights, given a real shadow, and centralised so all
+         four zones stay consistent. */
+      .pond-zone-eyebrow {
+        font-family: 'Manrope', sans-serif;
+        font-size: clamp(0.66rem, 1.6vw, 0.75rem);
+        letter-spacing: 0.42em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.92);
+        margin-bottom: 1.2rem;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 18px rgba(0, 0, 0, 0.35);
+      }
+      .pond-zone-cadence {
+        font-family: 'Manrope', sans-serif;
+        font-size: clamp(0.72rem, 1.9vw, 0.82rem);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 1.5rem;
+        text-align: center;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 18px rgba(0, 0, 0, 0.35);
+      }
+      .pond-zone-verse {
+        font-family: 'Fraunces', Georgia, serif;
+        font-style: italic;
+        font-size: clamp(0.9rem, 2.2vw, 1.02rem);
+        line-height: 1.5;
+        color: rgba(255, 252, 244, 0.82);
+        margin-top: 0.7rem;
+        text-align: center;
+        max-width: 34rem;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      }
+      .pond-zone-verse .ref { opacity: 0.62; margin-left: 6px; }
+      .pond-zone-hint {
+        font-family: 'Manrope', sans-serif;
+        font-size: clamp(0.64rem, 1.7vw, 0.72rem);
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        font-style: italic;
+        color: rgba(255, 222, 186, 0.78);
+        margin-top: 1.2rem;
+        text-align: center;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      }
+
+      /* Shared shape for each full-height pond zone. */
+      .pond-zone {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6vh 6vw;
+      }
+      @media (max-width: 720px) {
+        .pond-zone { padding: 5vh 7vw; }
+      }
+
       .chapter-num {
         font-family: 'Fraunces', serif;
         font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 144;

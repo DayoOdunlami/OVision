@@ -198,19 +198,7 @@ export default function FlourishZone({
         padding: '4vw 6vw',
       }}
     >
-      <div
-        style={{
-          fontFamily: 'Manrope, sans-serif',
-          fontSize: '0.75rem',
-          letterSpacing: '0.42em',
-          textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.78)',
-          marginBottom: '1.2rem',
-          textShadow: '0 1px 6px rgba(0,0,0,0.35)',
-        }}
-      >
-        01 · Identity
-      </div>
+      <div className="pond-zone-eyebrow">01 · Identity</div>
 
       <div
         ref={wrapRef}
@@ -262,35 +250,12 @@ export default function FlourishZone({
         </h1>
       </div>
 
-      <div
-        style={{
-          fontFamily: 'Manrope, sans-serif',
-          fontSize: '0.82rem',
-          letterSpacing: '0.32em',
-          textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.72)',
-          marginTop: '1.6rem',
-          textShadow: '0 1px 6px rgba(0,0,0,0.35)',
-        }}
-      >
-        {cadence}
-      </div>
+      <div className="pond-zone-cadence">{cadence}</div>
 
       {(verse || anchor) && (
-        <div
-          style={{
-            fontFamily: 'Fraunces, Georgia, serif',
-            fontStyle: 'italic',
-            fontSize: '0.95rem',
-            color: 'rgba(255,255,255,0.55)',
-            marginTop: '0.6rem',
-            textAlign: 'center',
-            maxWidth: 520,
-            textShadow: '0 1px 4px rgba(0,0,0,0.3)',
-          }}
-        >
+        <div className="pond-zone-verse">
           {verse}
-          {anchor && <span style={{ opacity: 0.6, marginLeft: 6 }}>— {anchor}</span>}
+          {anchor && <span className="ref">— {anchor}</span>}
         </div>
       )}
     </section>
