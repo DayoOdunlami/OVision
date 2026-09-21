@@ -1136,7 +1136,11 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   animation: rise 0.7s 0.5s var(--ease) both;
 }
 
-/* ── Completion: E · a koi swims past ───────────────────────────────── */
+/* ── Completion: E · a koi swims past ─────────────────────────────────
+   The canvas spans the whole puzzle overlay and sits behind everything
+   in it, so the fish can keep swimming while the next verse loads or
+   the Amen card shows. */
+.overlay.puzzle > :not(.pz-koi) { position: relative; z-index: 1; }
 .pz-koi {
   position: absolute;
   inset: 0;

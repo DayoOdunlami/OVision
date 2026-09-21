@@ -38,6 +38,22 @@ export default function PuzzleMode({ day, celebrate = 'recommended', onClose, on
   const [done, setDone] = useState(false);
   const [left, setLeft] = useState(null);
   const hintRef = useRef(null);
+  // The koi lives here, at the level of the whole puzzle, not inside a
+  // verse. It used to belong to the verse, so tapping "Next verse" or
+  // "Amen" unmounted it — usually before it had even swum into view.
+  // Now it keeps swimming across whatever comes next.
+  const [koi, setKoi] = useState(null);          // { id, person } | null
+  const doneRef = useRef(false);
+  const koiIdRef = useRef(0);
+  const releaseKoi = (person) => {
+    koiIdRef.current += 1;
+    setKoi({ id: koiIdRef.current, person });
+  };
+  const koiGone = () => {
+    setKoi(null);
+    // If Amen was already tapped, we were only staying open for the fish.
+    if (doneRef.current) onClose();
+  };
 
   useEscape(true, onClose);
   useBodyLock(true);
@@ -57,12 +73,17 @@ export default function PuzzleMode({ day, celebrate = 'recommended', onClose, on
   };
   const amen = () => {
     setDone(true);
+    doneRef.current = true;
     onAmen();
-    setTimeout(onClose, 2000);
+    // Stay open until the koi has finished its crossing (koiGone closes
+    // us); without one, a short pause on the Amen card as before. The
+    // long timeout is only a backstop.
+    setTimeout(onClose, koi ? 12000 : 2000);
   };
 
   return (
     <div className="overlay puzzle" role="dialog" aria-modal="true" aria-label="Verse puzzle">
+      {koi && <KoiPass key={koi.id} person={koi.person} onGone={koiGone} />}
       <div className="overlay-top">
         <div className="pz-head">
           <div className="pz-who">{who}</div>
@@ -108,6 +129,7 @@ export default function PuzzleMode({ day, celebrate = 'recommended', onClose, on
           passage={day.isSunday ? day.title : day.prayer.ref}
           hintRef={hintRef}
           onComplete={() => setComplete(true)}
+          onKoi={releaseKoi}
           onLeft={setLeft}
         />
       )}
@@ -135,7 +157,7 @@ export default function PuzzleMode({ day, celebrate = 'recommended', onClose, on
 }
 
 // ── One verse ───────────────────────────────────────────────────────
-function Round({ html, mode, effects, people, passage, hintRef, onComplete, onLeft }) {
+function Round({ html, mode, effects, people, passage, hintRef, onComplete, onKoi, onLeft }) {
   const puzzle = useMemo(() => buildPuzzle(html, mode), [html, mode]);
   const { tokens, slots, slotAt, covered } = puzzle;
 
@@ -246,7 +268,7 @@ function Round({ html, mode, effects, people, passage, hintRef, onComplete, onLe
       next.gather = Math.max(0, Math.round(dy));
     }
     if (effects.includes('koi') && people.length) {
-      next.koi = people[Math.floor(Math.random() * people.length)];
+      onKoi(people[Math.floor(Math.random() * people.length)]);
     }
     setFx(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -673,7 +695,7 @@ function Round({ html, mode, effects, people, passage, hintRef, onComplete, onLe
           <i /><i /><i />
         </span>
       )}
-      {fx?.koi && <KoiPass person={fx.koi} />}
+
 
       {phase === 'reading' && (
         <div className="pz-intro">
@@ -725,9 +747,11 @@ function Round({ html, mode, effects, people, passage, hintRef, onComplete, onLe
 // play area. It swims for a couple of seconds offscreen first so it's
 // already heading the right way, then it's shifted to just off the
 // left edge.
-function KoiPass({ person }) {
+function KoiPass({ person, onGone }) {
   const canvasRef = useRef(null);
   const [leaving, setLeaving] = useState(false);
+  const goneRef = useRef(onGone);
+  goneRef.current = onGone;
 
   useEffect(() => {
     let raf = 0;
@@ -759,7 +783,23 @@ function KoiPass({ person }) {
       const size = Math.max(0.6, Math.min(1, W / 900));
       const fish = new SpineFish(W, H, { ...v, sizeScale: (v.sizeScale || 1) * size });
 
-      const lane = H * 0.8;
+      // Just below wherever the verse ends — a fixed lane ran straight
+      // through the last line of a long verse on a phone — and always
+      // clear of the footer buttons.
+      // Re-measured for the first couple of seconds, because the verse
+      // may still be easing into its gathered position when the koi
+      // arrives; the fish drifts down with it.
+      const verseEl = canvas.parentElement?.querySelector('.pz-verse');
+      let lane = H * 0.74;
+      const measureLane = () => {
+        if (!verseEl) return H * 0.74;
+        // Amen swaps the verse for the Amen card mid-swim; keep the lane
+        // the fish already has rather than measuring a detached element.
+        if (!verseEl.isConnected) return lane;
+        const bottom = verseEl.getBoundingClientRect().bottom - canvas.getBoundingClientRect().top;
+        return Math.min(Math.max(bottom + 70, H * 0.55), H - 130);
+      };
+      lane = measureLane();
       const pace = 0.55 + 0.3 * ((size - 0.6) / 0.4);
       const cur = { x: -9999, y: -9999 };
       const env = { food: [], onBreak: () => {} };
@@ -778,14 +818,20 @@ function KoiPass({ person }) {
       // Pre-swim in a wide world so it's facing right, then place it
       // just off the left edge (SpineFish wraps at 110px outside).
       for (let i = 0; i < 150; i++) { steer(); fish.update(W * 4, H, cur, env); t++; }
-      fish.shift(-90 - fish.mouth.x, lane - fish.mouth.y);
+      // Start with the head already on screen: an entrance from fully
+      // offscreen took a second or two to show anything, which is long
+      // enough to tap past it.
+      fish.shift(Math.min(70, W * 0.12) - fish.mouth.x, lane - fish.mouth.y);
 
       const started = performance.now();
       let lastX = fish.mouth.x;
       const label = person.toUpperCase();
 
+      let frames = 0;
       const frame = () => {
         if (dead) return;
+        if (frames < 130 && frames % 10 === 0) lane = measureLane();
+        frames++;
         steer();
         fish.update(W, H, cur, env);
         t++;
@@ -818,12 +864,17 @@ function KoiPass({ person }) {
         lastX = x;
         if (x > W + 80 || wrapped || performance.now() - started > 12000) {
           setLeaving(true);
-          leaveTimer = setTimeout(() => ctx.clearRect(0, 0, W, H), 600);
+          leaveTimer = setTimeout(() => {
+            ctx.clearRect(0, 0, W, H);
+            goneRef.current?.();
+          }, 600);
           return;
         }
         raf = requestAnimationFrame(frame);
       };
-      raf = requestAnimationFrame(frame);
+      // First frame now, not on the next animation frame, so the fish is
+      // there the instant the canvas is.
+      frame();
     })();
 
     return () => {

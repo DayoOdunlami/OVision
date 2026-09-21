@@ -115,15 +115,7 @@ src/pray/
 Everything is kept under one `localStorage` key, `familyPrayer`, in exactly the
 shape the original single-file app used — see the comment at the top of
 `src/pray/lib/state.js`. Add fields freely; never rename one. The pond reads this
-record, and so does the classic page.
-
-### Classic version
-
-The original single-file app is kept at `/pray/classic/`
-(`public/pray/classic/index.html`), copied through untouched, and shares the same
-stored state. It's there for side-by-side comparison and can be deleted once the
-React version has settled. It only knows the original nine prayers: in a week
-set to one of the newer five it shows a pointer to the new app instead.
+record.
 
 ### A note on translations
 
@@ -140,8 +132,7 @@ npm install
 npm run dev
 ```
 
-Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`,
-classic prayer at `http://localhost:5173/pray/classic/index.html`.
+Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`.
 
 ## Deploy
 

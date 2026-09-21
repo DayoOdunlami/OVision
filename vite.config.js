@@ -11,9 +11,6 @@ import react from '@vitejs/plugin-react';
 // carry the animated pond), but they share an origin — and therefore
 // localStorage — plus any modules under src/shared/. Vite splits code
 // both pages use into a common chunk, so React is only downloaded once.
-//
-// public/pray/classic/ is the original single-file prayer app, copied
-// through untouched and kept reachable while the React version beds in.
 export default defineConfig({
   plugins: [react()],
   server: {

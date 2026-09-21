@@ -27,7 +27,7 @@ import { prayers } from './data/prayers.js';
 // until you ask for it.
 //
 // State is the shared `familyPrayer` record (see lib/state.js), written
-// through on every change so the pond and the classic page see it.
+// through on every change so the pond sees it.
 // ═══════════════════════════════════════════════════════════════════
 
 export default function PrayApp() {
@@ -66,7 +66,7 @@ export default function PrayApp() {
     writeTextScale(v);
   };
 
-  // Another tab (e.g. /pray/classic/) changed the record — pick it up.
+  // Another tab of this app changed the record — pick it up.
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === 'familyPrayer') setState(loadState());

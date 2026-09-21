@@ -7,8 +7,7 @@ import { prayers } from '../data/prayers.js';
 // COMPATIBILITY IS THE POINT OF THIS FILE. The stored shape is exactly
 // what the original single-file app wrote under `familyPrayer`, so an
 // existing rota, petition log and prayed-day history carry straight
-// over, the classic page at /pray/classic/ can still read and write the
-// same record, and the pond's prayerLink keeps working untouched:
+// over, and the pond's prayerLink keeps working untouched:
 //
 //   {
 //     weekPairs:     [[i,j], …]   six pairs, indices into FAMILY

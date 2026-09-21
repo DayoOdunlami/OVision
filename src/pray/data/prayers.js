@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 // prayers.js — the content of the prayer surface.
 //
-// Moved verbatim from the original single-file app (now served at
-// /pray/classic/). Each prayer renders in three registers:
+// The first nine moved verbatim from the original single-file app; the
+// rest were added later. Each prayer renders in three registers:
 //
 //   flowing.{solo,family,kids}(ctx)  continuous prose
 //   sections[].spoken(ctx)           modern English, one thought each

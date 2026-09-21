@@ -81,6 +81,21 @@ export function tokenize(html) {
 const hasLetter = (s) => /\p{L}/u.test(s);
 const letterCount = (s) => (s.match(/\p{L}/gu) || []).length;
 
+// Words too common to be worth recalling. In Memory mode a verse like
+// Psalm 121:3–6 otherwise dropped "the" five times out of nine — no
+// help to anyone learning it. (Words and Phrases modes still use them:
+// there, every word falls anyway.)
+const FILLER = new Set([
+  'the', 'and', 'but', 'for', 'nor', 'yet', 'you', 'your', 'yours',
+  'they', 'them', 'their', 'theirs', 'that', 'this', 'these', 'those',
+  'with', 'from', 'into', 'onto', 'are', 'was', 'were', 'has', 'have',
+  'had', 'our', 'ours', 'its', 'his', 'her', 'him', 'she', 'what',
+  'when', 'then', 'than', 'all', 'let', 'who', 'may', 'will', 'can',
+  'just', 'not', 'too', 'very', 'out', 'how',
+]);
+const bare = (s) => s.toLowerCase().replace(/[^\p{L}']/gu, '').replace(/'s$/, '');
+const isCue = (s) => letterCount(s) >= 3 && !FILLER.has(bare(s));
+
 // → { tokens, slots: [{ idxs, text }], slotAt: Map<tokenIdx, slotIdx>,
 //     covered: Set<tokenIdx> }
 export function buildPuzzle(html, mode) {
@@ -110,12 +125,12 @@ export function buildPuzzle(html, mode) {
     });
     flush();
   } else {
-    // Memory: roughly every third word, skipping tiny words ("a", "of")
-    // which make poor recall cues and fiddly tiles.
+    // Memory: roughly every third word, skipping tiny and filler words
+    // ("a", "of", "the", "them"), which make poor recall cues.
     let gap = 0;
     tokens.forEach((t, i) => {
       if (!isWord(t)) return;
-      if (gap >= 2 && letterCount(t.text) >= 3) {
+      if (gap >= 2 && isCue(t.text)) {
         groups.push([i]);
         gap = 0;
       } else {

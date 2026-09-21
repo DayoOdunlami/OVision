@@ -238,7 +238,6 @@ export default function ControlSheet({
               <button className="btn btn-quiet" onClick={() => onPrint(false)}>Print rota</button>
               <button className="btn btn-quiet" onClick={() => onPrint(true)}>Print with notes</button>
             </div>
-            <a className="sheet-link" href="/pray/classic/index.html">Open the classic version</a>
           </Group>
         </div>
       </div>
