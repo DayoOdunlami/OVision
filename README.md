@@ -59,19 +59,53 @@ retired — the Family board was a second, duplicate pond with its own data mode
 
 ## Prayer surface
 
-`public/pray/index.html` — one self-contained static file, no build step. Vite
-copies `public/` into `dist/` as-is, so it ships with the same deploy.
+A React app with its own entry point (`pray/index.html` → `src/pray/`),
+built by the same Vite config as the pond. It's a separate page, not a
+route inside the pond, so it never carries the animated water.
 
-- Nine prayers from Scripture, each in three registers (flowing prose / spoken
-  modern English / kids) plus an **Explore** note on the Greek or Hebrew.
-- Six-person rota, reshuffled weekly; Sunday is the whole household.
-- **Pray it** — pace mode: a breath card, then one line per tap, then the
-  blessing. Reaching *Amen* is what records the day as prayed.
-- Week strip of seven dots, tappable, because you'll sometimes pray without the
-  app open.
-- **Praying as** is a setting, so everyone in the house gets the first-person
-  voice on their own device.
-- Printable rota sheet with blank name slots.
+```
+pray/index.html            entry — fonts, meta
+src/shared/family.js       the household roster (both surfaces import it)
+src/pray/
+  PrayApp.jsx              owns state; dock; overlays
+  data/prayers.js          the nine prayers, blessings, prompts
+  lib/state.js             storage, weekly rota, consistency
+  lib/context.js           names → pronouns → grammar
+  lib/script.js            "what is this day's prayer?" — shared by
+                           reading view, Pray it and the puzzle
+  components/
+    ReadingView.jsx        the landing page: who, passage, prayer
+    ControlSheet.jsx       every control, in one bottom sheet
+    PaceMode.jsx           Pray it — one thought per card, then Amen
+    PrintSheet.jsx         the paper rota
+  pray.css
+```
+
+- **Reading first.** The prayer is the landing page, in Literata at ~22px on a
+  phone and ~25px on a tablet. Above it: only who and which passage. Swipe
+  sideways (or use the arrow keys) to change day.
+- **One Options sheet** for day, voice (Solo / Together / Kids), style
+  (Flowing / Spoken), text size, focus dimming, the week, "praying as",
+  new week and printing.
+- **Pray it** — a breath card, one thought per tap, then the blessing.
+  Reaching *Amen* is what records the day as prayed.
+- Nine prayers from Scripture, each in three registers plus an **Explore** note
+  on the Greek or Hebrew. Six-person rota, reshuffled weekly; Sunday is the
+  whole household.
+
+### Stored state
+
+Everything is kept under one `localStorage` key, `familyPrayer`, in exactly the
+shape the original single-file app used — see the comment at the top of
+`src/pray/lib/state.js`. Add fields freely; never rename one. The pond reads this
+record, and so does the classic page.
+
+### Classic version
+
+The original single-file app is kept at `/pray/classic/`
+(`public/pray/classic/index.html`), copied through untouched, and shares the same
+stored state. It's there for side-by-side comparison and can be deleted once the
+React version has settled.
 
 ### A note on translations
 
@@ -88,7 +122,8 @@ npm install
 npm run dev
 ```
 
-Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`.
+Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`,
+classic prayer at `http://localhost:5173/pray/classic/index.html`.
 
 ## Deploy
 

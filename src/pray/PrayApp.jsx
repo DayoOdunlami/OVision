@@ -1,0 +1,191 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import ReadingView from './components/ReadingView.jsx';
+import ControlSheet from './components/ControlSheet.jsx';
+import PaceMode from './components/PaceMode.jsx';
+import PrintSheet from './components/PrintSheet.jsx';
+import { buildDay } from './lib/script.js';
+import {
+  loadState, writeStored, createWeek, weekTally, isoDate, isoForDayIndex,
+  todayDayIndex, readTextScale, writeTextScale,
+} from './lib/state.js';
+import { prayers } from './data/prayers.js';
+
+// ═══════════════════════════════════════════════════════════════════
+// PrayApp — the prayer surface.
+//
+// Layout, top to bottom:
+//   · a quiet back-link to the Pond
+//   · the reading view — the prayer is the landing page
+//   · a dock at the bottom, in thumb reach: Options · Pray it
+//
+// Everything else — day, voice, style, text size, the week, settings —
+// lives in the Options sheet, so none of it competes with the prayer
+// until you ask for it.
+//
+// State is the shared `familyPrayer` record (see lib/state.js), written
+// through on every change so the pond and the classic page see it.
+// ═══════════════════════════════════════════════════════════════════
+
+export default function PrayApp() {
+  const [state, setState] = useState(() => loadState());
+  const [dayIndex, setDayIndexRaw] = useState(() => todayDayIndex());
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [overlay, setOverlay] = useState(null); // null | 'pace'
+  const [focus, setFocus] = useState(false);
+  const [textScale, setTextScaleRaw] = useState(() => readTextScale());
+  const [printNotes, setPrintNotes] = useState(false);
+
+  // Write-through update. Every change is persisted immediately; there
+  // is no "save" step anywhere in this app.
+  const update = useCallback((patch) => {
+    setState((prev) => {
+      const next = { ...prev, ...patch };
+      writeStored(next);
+      return next;
+    });
+  }, []);
+
+  const setDayIndex = useCallback((i) => {
+    setDayIndexRaw(i);
+    update({ selectedDay: i });   // kept in the record for compatibility
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [update]);
+
+  const setTextScale = (v) => {
+    setTextScaleRaw(v);
+    writeTextScale(v);
+  };
+
+  // Another tab (e.g. /pray/classic/) changed the record — pick it up.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'familyPrayer') setState(loadState());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const day = useMemo(() => buildDay(state, dayIndex), [state, dayIndex]);
+  const tally = weekTally(state.prayed);
+  const prayedToday = Boolean(state.prayed?.[isoDate()]);
+  const prayedThatDay = dayIndex <= todayDayIndex() && Boolean(state.prayed?.[isoForDayIndex(dayIndex)]);
+  const isKids = state.mode === 'kids' && !state.spokenView;
+
+  const markPrayedToday = () => {
+    update({ prayed: { ...state.prayed, [isoDate()]: true } });
+  };
+
+  const togglePrayedDay = (i) => {
+    if (i > todayDayIndex()) return;
+    const iso = isoForDayIndex(i);
+    const prayed = { ...state.prayed };
+    if (prayed[iso]) delete prayed[iso];
+    else prayed[iso] = true;
+    update({ prayed });
+  };
+
+  const savePetition = (text) => {
+    const entry = {
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      names: day?.logNames || '',
+      text,
+      prayer: prayers[state.prayerIndex].ref,
+    };
+    update({ log: [...(state.log || []), entry] });
+  };
+
+  const newWeek = () => {
+    const next = createWeek(state.prayerIndex + 1, state);
+    writeStored(next);
+    setState(next);
+    setDayIndexRaw(todayDayIndex());
+    setSheetOpen(false);
+  };
+
+  const print = (withNotes) => {
+    setPrintNotes(withNotes);
+    setSheetOpen(false);
+    // Let React render the notes (or not) before the print dialog
+    // snapshots the page.
+    setTimeout(() => window.print(), 250);
+  };
+
+  return (
+    <div
+      className="pray-app"
+      style={{ '--scale': textScale }}
+    >
+      <a className="to-pond" href="/" aria-label="Back to the pond">
+        <span aria-hidden="true">&#8592;</span> Pond
+      </a>
+
+      <ReadingView
+        day={day}
+        dayIndex={dayIndex}
+        setDayIndex={setDayIndex}
+        prayedThatDay={prayedThatDay}
+        focus={focus}
+        onSavePetition={savePetition}
+        isKids={isKids}
+      />
+
+      <nav className="dock" aria-label="Prayer controls">
+        <button className="dock-side" onClick={() => setSheetOpen(true)} aria-haspopup="dialog">
+          <OptionsIcon />
+          <span>Options</span>
+        </button>
+        <button
+          className="dock-main"
+          onClick={() => setOverlay('pace')}
+          disabled={!day}
+        >
+          <span aria-hidden="true" className="dock-main-icon">&#9655;</span>
+          Pray it
+        </button>
+        <div className={'dock-side dock-status' + (prayedToday ? ' is-done' : '')} aria-live="polite">
+          <span className="dock-status-num">{tally.done}/{tally.elapsed}</span>
+          <span>{prayedToday ? 'Prayed' : 'This week'}</span>
+        </div>
+      </nav>
+
+      <ControlSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        state={state}
+        dayIndex={dayIndex}
+        setDayIndex={(i) => { setDayIndex(i); }}
+        update={update}
+        tally={tally}
+        togglePrayedDay={togglePrayedDay}
+        textScale={textScale}
+        setTextScale={setTextScale}
+        focus={focus}
+        setFocus={setFocus}
+        onNewWeek={newWeek}
+        onPrint={print}
+      />
+
+      {overlay === 'pace' && day && (
+        <PaceMode
+          day={day}
+          onClose={() => setOverlay(null)}
+          onAmen={markPrayedToday}
+        />
+      )}
+
+      <PrintSheet state={state} withNotes={printNotes} />
+    </div>
+  );
+}
+
+function OptionsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+      <circle cx="9" cy="7" r="2.4" fill="var(--paper)" />
+      <circle cx="15" cy="17" r="2.4" fill="var(--paper)" />
+    </svg>
+  );
+}

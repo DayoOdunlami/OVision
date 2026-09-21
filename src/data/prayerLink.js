@@ -1,12 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════
 // prayerLink.js — the bridge between the two surfaces.
 //
-// The Pond (this React app, served at "/") and the Prayer surface
-// (a self-contained static page at "/pray/") are deployed from the
-// same origin, which means they share one localStorage. That is the
-// whole integration: no API, no database, no build coupling. The
-// prayer surface writes its state under `familyPrayer`; the pond
-// reads it here and never writes it.
+// The Pond ("/") and the Prayer surface ("/pray/") are separate pages
+// built from one Vite project and deployed from the same origin, which
+// means they share one localStorage. That is the whole integration: no
+// API, no database. The prayer surface writes its state under
+// `familyPrayer`; the pond reads it here and never writes it.
 //
 // What the pond wants to know:
 //   · who am I praying for today        → two koi pair up + get named
@@ -18,19 +17,13 @@
 // every consumer degrades to its ambient behaviour.
 // ═══════════════════════════════════════════════════════════════════
 
-const STORAGE_KEY = 'familyPrayer';
+import { FAMILY, PRAYER_STORAGE_KEY } from '../shared/family.js';
 
-// Must stay in sync with `family` in public/pray/index.html. Kept as a
-// literal (rather than imported) because the two surfaces are built
-// independently — the prayer page is plain HTML with no bundler.
-export const FAMILY = [
-  { name: 'Dayo',     label: 'Dad' },
-  { name: 'Claire',   label: 'Mum' },
-  { name: 'Bella',    label: 'Bella' },
-  { name: 'Florence', label: 'Florence' },
-  { name: 'Keziah',   label: 'Keziah' },
-  { name: 'Ezra',     label: 'Ezra' },
-];
+const STORAGE_KEY = PRAYER_STORAGE_KEY;
+
+// The roster now lives in src/shared/family.js, imported by both
+// surfaces — it used to be duplicated here and in the prayer page.
+export { FAMILY };
 
 // One koi variety per person. Chosen so each fish is visually distinct
 // at a glance on a fridge tablet — you should be able to tell who is
