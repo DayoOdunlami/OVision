@@ -68,7 +68,7 @@ pray/index.html            entry — fonts, meta
 src/shared/family.js       the household roster (both surfaces import it)
 src/pray/
   PrayApp.jsx              owns state; dock; overlays
-  data/prayers.js          the nine prayers, blessings, prompts
+  data/prayers.js          the fourteen prayers, blessings, prompts
   lib/state.js             storage, weekly rota, consistency
   lib/context.js           names → pronouns → grammar
   lib/puzzle.js            cuts a verse into slots and falling pieces
@@ -96,9 +96,19 @@ src/pray/
   third word — the default, for memorising), *Words*, and *Phrases* (easier for
   children). Names never fall. Right words snap home; wrong ones bounce back —
   no score. Physics is matter-js, loaded only when the puzzle is opened.
-- Nine prayers from Scripture, each in three registers plus an **Explore** note
-  on the Greek or Hebrew. Six-person rota, reshuffled weekly; Sunday is the
-  whole household.
+- **Fourteen prayers** from Scripture, each in three registers plus an
+  **Explore** note on the Greek or Hebrew. They rotate weekly in an order that
+  alternates Paul's letters with the Psalms and Gospels (`ROTATION` in
+  `lib/state.js`); **This week's prayer** in Options lets you choose instead.
+  A ✓ marks prayers rebuilt end to end in the puzzle. Five pray the identity
+  board itself: John 15 (the anchor verse), Psalm 1 (*flourish*), Psalm 63
+  (*full*), and Psalm 121 and Luke 2:52, short enough for the children to learn.
+- **Puzzle celebrations**, set in Options: *Balanced* (each verse: a ripple from
+  the last word and a sweep of gold; the whole prayer: the verse gathers
+  together and one of that day's koi swims past, with their name), *Quiet*
+  (ripple and gold every time) or *Grand* (gather and koi every time). Reduced
+  motion: the verse simply turns gold.
+- Six-person rota, reshuffled weekly; Sunday is the whole household.
 
 ### Stored state
 
@@ -112,7 +122,8 @@ record, and so does the classic page.
 The original single-file app is kept at `/pray/classic/`
 (`public/pray/classic/index.html`), copied through untouched, and shares the same
 stored state. It's there for side-by-side comparison and can be deleted once the
-React version has settled.
+React version has settled. It only knows the original nine prayers: in a week
+set to one of the newer five it shows a pointer to the new app instead.
 
 ### A note on translations
 

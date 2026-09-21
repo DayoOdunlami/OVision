@@ -249,6 +249,132 @@ export const prayers = [
         explain: (c) => `The comparison is staggering: <em>kathōs</em> — "just as" you, Father, are in me. Jesus prays for a family likeness to the Trinity itself, and then gives the reason: "so that the world may believe that you sent me." Unity here isn't for our comfort. It's evidence.`
       }
     ]
+  },
+
+  // ── Board prayers, psalms and a children's line ──────────────────
+  // Added so the rota prays the identity board itself (Flourish, Full,
+  // John 15:5), balances Paul's letters with the Psalms, and includes
+  // prayers short enough for the children to learn in the puzzle.
+  //
+  // APPEND ONLY. `prayerIndex` in stored state is a position in this
+  // array, so reordering would silently change the current week's
+  // prayer. Weekly order is set by ROTATION in ../lib/state.js instead.
+  //
+  // Wording, as before: original modern renderings, not quotations.
+  {
+    ref: 'John 15:4–5, 8–9',
+    theme: 'Abide — the flourishing that isn’t manufactured',
+    flowing: {
+      solo: (c) => `Jesus, you are the vine and ${c.pair} are branches.\n\nKeep ${c.themP} joined to you, and stay in ${c.themP}.\n\nLet ${c.themP} bear a great deal of fruit — not by straining, but by staying close. Apart from you ${c.theyP} can do nothing; with you, let ${c.theirP} lives show the Father’s glory.\n\nAnd as the Father loves you, and you love ${c.themP} — keep ${c.themP} living in that love.`,
+      family: (c) => `Jesus, you are the vine and ${c.pair} are branches.\n\nKeep ${c.themP} joined to you, and stay in ${c.themP}.\n\nLet ${c.themP} bear a great deal of fruit — not by straining, but by staying close. Apart from you ${c.theyP} can do nothing; with you, let ${c.theirP} lives show the Father’s glory.\n\nAnd as the Father loves you, and you love ${c.themP} — keep ${c.themP} living in that love.`,
+      kids: (c) => `Jesus, you are like a vine and we are like the branches.\n\nPlease keep ${c.pair} close to you, so good things can grow in ${c.themP}.\n\nHelp ${c.themP} to know how much you love ${c.themP}.`
+    },
+    sections: [
+      {
+        spoken:  (c) => `Jesus, keep ${c.them} joined to you — and you stay in ${c.them}. That's the whole of it.`,
+        explain: (c) => `<em>Menō</em> — remain, abide, stay put — comes eleven times in John 15:1–11, and it runs both ways: "you in me, and I in you." A branch has one job, which is not to leave. That's why this is an identity verse and not a productivity verse: the flourishing isn't manufactured, it's received.`
+      },
+      {
+        spoken:  (c) => `Let ${c.them} bear a lot of fruit — not by straining, but by staying close. Apart from you ${c.they} can do nothing.`,
+        explain: (c) => `"Nothing" is <em>ouden</em> — total. It sounds severe, but it's freeing: the fruit is the vine's own life showing up in the branch. Helping the people and things around you flourish is fruit language; this prayer asks for it at the source rather than at the branch tips.`
+      },
+      {
+        spoken:  (c) => `And as the Father loves you, and you love ${c.them} — keep ${c.them} living in that love.`,
+        explain: (c) => `The chain is striking: the Father's love for the Son is the <em>measure</em> of the Son's love for us — "as… so." Then the command: remain in my love. Not earn it or achieve it — live there. It's the same love Ephesians 3 prays to know beyond knowing.`
+      }
+    ]
+  },
+  {
+    ref: 'Psalm 1:1–3',
+    theme: 'A tree planted by streams of water',
+    flowing: {
+      solo: (c) => `Father, keep ${c.pair} from drifting into company that pulls ${c.themP} from you.\n\nLet ${c.themP} delight in what you say, and turn it over day and night.\n\nMake ${c.themP} like trees planted by streams of water — fruitful in season, leaves that don't wither — and let whatever ${c.theyP} put ${c.theirP} hand to come to good.`,
+      family: (c) => `Father, keep ${c.pair} from drifting into company that pulls ${c.themP} from you.\n\nLet ${c.themP} delight in what you say, and turn it over day and night.\n\nMake ${c.themP} like trees planted by streams of water — fruitful in season, leaves that don't wither — and let whatever ${c.theyP} put ${c.theirP} hand to come to good.`,
+      kids: (c) => `God, please help ${c.pair} to love your words.\n\nMake ${c.themP} like a strong tree next to a river, with deep roots and green leaves.\n\nHelp ${c.themP} to grow good fruit.`
+    },
+    sections: [
+      {
+        spoken:  (c) => `Keep ${c.them} from taking ${c.their} cues from voices that pull ${c.them} away from you. Let ${c.them} delight in what you say instead.`,
+        explain: (c) => `The psalm opens with three verbs of drift — walk, stand, sit (<em>halak, 'amad, yashab</em>) — a slow settling into the wrong company. The alternative isn't rule-keeping but <em>delight</em>. And "meditate" is <em>hagah</em>, the low murmur of a dove: words turned over under the breath, not just filed away.`
+      },
+      {
+        spoken:  (c) => `Plant ${c.them} by the water. Roots down deep where the stream runs, so ${c.they} are fed even when the ground around ${c.them} is dry.`,
+        explain: (c) => `"Planted" (<em>shatul</em>) means <em>transplanted</em> — set in place by someone, on purpose. The streams are irrigation channels, dug deliberately. The flourishing isn't self-generated; it comes from where ${c.they} have been placed and what ${c.they} are drinking from.`
+      },
+      {
+        spoken:  (c) => `Let ${c.them} bear fruit in the right season, and keep ${c.their} leaves green. Whatever ${c.they} put ${c.their} hand to — let it come to good.`,
+        explain: (c) => `Fruit "in its season" — not constantly, not on demand. The unwithering leaf is the part you see all year. "Prospers" is <em>tsalach</em>: to push through, to come out well — not wealth, but a life that reaches what it's for. This is the Old Testament word underneath <em>flourish</em>.`
+      }
+    ]
+  },
+  {
+    ref: 'Psalm 63:1–5',
+    theme: 'Thirst, then filled',
+    flowing: {
+      solo: (c) => `God, give ${c.pair} a thirst for you — a longing of the whole self, like dry ground waiting for rain.\n\nLet ${c.themP} see your power and your glory, and find that your love is better than life.\n\nThen fill ${c.themP} — satisfy ${c.themP} as with the richest of food — until praise simply spills out.`,
+      family: (c) => `God, give ${c.pair} a thirst for you — a longing of the whole self, like dry ground waiting for rain.\n\nLet ${c.themP} see your power and your glory, and find that your love is better than life.\n\nThen fill ${c.themP} — satisfy ${c.themP} as with the richest of food — until praise simply spills out.`,
+      kids: (c) => `God, please make ${c.pair} thirsty for you, like when you really, really want a drink of water.\n\nShow ${c.themP} how good you are.\n\nFill ${c.themP} up with your love until ${c.theyP} want to sing.`
+    },
+    sections: [
+      {
+        spoken:  (c) => `Give ${c.them} a real thirst for you, God. Not a duty — a longing. The kind you feel in a dry place.`,
+        explain: (c) => `David writes this in the wilderness of Judah. <em>Nephesh</em>, "soul," is also the word for throat — the thirst is bodily. You're asking for an appetite, not a habit, which is the precondition for being filled at all.`
+      },
+      {
+        spoken:  (c) => `Let ${c.them} see you — your power, your glory — and find that your love is better than life itself.`,
+        explain: (c) => `"Better than life" — <em>tov chesed mechayyim</em>. <em>Chesed</em> is covenant love: loyal, unearned, steady. David ranks it above staying alive. The prayer is that ${c.they} would taste something that quietly reorders everything else beneath it.`
+      },
+      {
+        spoken:  (c) => `And fill ${c.them}. Satisfy ${c.them} the way the richest meal does — so full that praise just comes out.`,
+        explain: (c) => `"As with fat and richness" — the best portions at a feast. <em>Tisba'</em> is the word for having eaten enough. This is the <em>Full</em> of your season: filled first, and then the lips praise. Pouring out comes after filling up, not instead of it.`
+      }
+    ]
+  },
+  {
+    ref: 'Psalm 121',
+    theme: 'The one who keeps you',
+    flowing: {
+      solo: (c) => `Father, when ${c.pair} look up at everything too big for ${c.themP}, let ${c.themP} know where ${c.theirP} help comes from — from you, the maker of heaven and earth.\n\nDon't let ${c.theirP} feet slip. You never doze while you watch over ${c.themP}.\n\nBe ${c.theirP} shade by day and by night. Keep ${c.themP} from all harm; watch over ${c.theirP} life.\n\nWatch over ${c.theirP} going out and ${c.theirP} coming in, now and for ever.`,
+      family: (c) => `Father, when ${c.pair} look up at everything too big for ${c.themP}, let ${c.themP} know where ${c.theirP} help comes from — from you, the maker of heaven and earth.\n\nDon't let ${c.theirP} feet slip. You never doze while you watch over ${c.themP}.\n\nBe ${c.theirP} shade by day and by night. Keep ${c.themP} from all harm; watch over ${c.theirP} life.\n\nWatch over ${c.theirP} going out and ${c.theirP} coming in, now and for ever.`,
+      kids: (c) => `God, when ${c.pair} feel small, help ${c.themP} remember that you are big. You made the mountains!\n\nYou never fall asleep.\n\nPlease keep ${c.themP} safe when ${c.theyP} go out, and when ${c.theyP} come home.`
+    },
+    sections: [
+      {
+        spoken:  (c) => `When ${c.they} look up at whatever feels too big — let ${c.them} know ${c.their} help comes from you, the one who made the mountains.`,
+        explain: (c) => `A "Song of Ascents," sung by pilgrims on the road up to Jerusalem. The hills were beautiful and dangerous — bandits, and shrines to other gods. "Where does my help come from?" is a real question; the answer points past the hills to the one who made them.`
+      },
+      {
+        spoken:  (c) => `You never sleep on ${c.them}. Don't let ${c.their} foot slip. Be the shade right beside ${c.them} — in the heat of the day and the dark of the night.`,
+        explain: (c) => `One Hebrew word, <em>shamar</em> — keep, guard, watch — comes six times in eight verses. "Shade at your right hand" is the place of someone walking beside you. The picture isn't a fortress; it's a companion who stays awake.`
+      },
+      {
+        spoken:  (c) => `Watch over ${c.their} going out and ${c.their} coming in — school, work, home, everything in between — now and for ever.`,
+        explain: (c) => `"Going out and coming in" is a Hebrew way of saying all of life's ordinary movements: leaving in the morning, coming home at night. It's the most everyday-sized promise in the Psalms — a good one to pray at the front door.`
+      }
+    ]
+  },
+  {
+    ref: 'Luke 2:52',
+    theme: 'Growing up whole',
+    flowing: {
+      solo: (c) => `Father, as Jesus grew, let ${c.pair} grow —\n\nin wisdom, and in body,\n\nand in favour with you, and with the people around ${c.themP}.`,
+      family: (c) => `Father, as Jesus grew, let ${c.pair} grow —\n\nin wisdom, and in body,\n\nand in favour with you, and with the people around ${c.themP}.`,
+      kids: (c) => `God, please help ${c.pair} to grow —\n\nclever in the right way, and strong in ${c.theirP} bodies,\n\nclose to you, and kind to other people. Just like Jesus when he was a boy.`
+    },
+    sections: [
+      {
+        spoken:  (c) => `Let ${c.them} grow in wisdom — not just knowing things, but knowing what to do with them.`,
+        explain: (c) => `Luke says Jesus <em>grew</em> — <em>proekopten</em>, to advance, to cut a way forward like a pioneer. Even the Son of God grew; growing isn't a failure to be finished. And <em>sophia</em> is practical skill in living, not information.`
+      },
+      {
+        spoken:  (c) => `Let ${c.them} grow strong in body — healthy, rested, at home in ${c.their} own skin.`,
+        explain: (c) => `<em>Hēlikia</em> can mean height or age — physical maturing. It sits in the same breath as wisdom; the body isn't an afterthought in this verse. A good line over the children, and over any season of training.`
+      },
+      {
+        spoken:  (c) => `And let ${c.them} grow in favour — with you, and with the people around ${c.them}. Loved by God, and good to be around.`,
+        explain: (c) => `<em>Charis</em> — grace, favour. It echoes what was said of the boy Samuel (1 Samuel 2:26). Two directions, upward and outward. Mind, body, God, people: a whole-person picture of growing up, in one sentence.`
+      }
+    ]
   }
 ];
 

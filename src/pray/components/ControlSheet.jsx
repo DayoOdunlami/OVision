@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { FAMILY } from '../../shared/family.js';
-import { DAY_NAMES, todayDayIndex, isoForDayIndex, TEXT_SCALES } from '../lib/state.js';
+import {
+  DAY_NAMES, todayDayIndex, isoForDayIndex, TEXT_SCALES, ROTATION, CELEBRATIONS,
+} from '../lib/state.js';
+import { prayers } from '../data/prayers.js';
 import { dayWho } from '../lib/script.js';
 import { useEscape, useBodyLock } from './bits.jsx';
 
@@ -32,6 +35,9 @@ export default function ControlSheet({
   setFocus,
   onNewWeek,
   onPrint,
+  onChoosePrayer,
+  celebrate,
+  setCelebrate,
 }) {
   const panelRef = useRef(null);
   const [dragY, setDragY] = useState(0);
@@ -137,6 +143,12 @@ export default function ControlSheet({
             />
           </Group>
 
+          <PrayerPicker
+            current={state.prayerIndex}
+            learned={state.learned || {}}
+            onChoose={onChoosePrayer}
+          />
+
           <Group label="Reading">
             <div className="row-split">
               <div className="size-stepper" role="group" aria-label="Text size">
@@ -190,6 +202,14 @@ export default function ControlSheet({
             </div>
           </Group>
 
+          <Group label="Puzzle celebration" hint={CELEBRATE_HINTS[celebrate]}>
+            <Segmented
+              value={celebrate}
+              onChange={setCelebrate}
+              options={CELEBRATIONS}
+            />
+          </Group>
+
           {/* ── Housekeeping ────────────────────────────────────── */}
           <Group label="Praying as" hint="Solo mode says “me” and “we” when you're one of the pair.">
             <div className="chips">
@@ -223,6 +243,56 @@ export default function ControlSheet({
         </div>
       </div>
     </div>
+  );
+}
+
+const CELEBRATE_HINTS = {
+  recommended: 'Each verse: a ripple and a sweep of gold. The whole prayer: it gathers together, and a koi swims past.',
+  quiet: 'A ripple and a sweep of gold, every time. Nothing more.',
+  grand: 'Every verse gathers together, and a koi swims past.',
+};
+
+// This week's prayer. Collapsed to the current choice; open it to pick
+// another. Listed in rotation order, so "next" in the list is next
+// week. A ✓ marks prayers you've rebuilt end to end in the puzzle.
+function PrayerPicker({ current, learned, onChoose }) {
+  const cur = prayers[current];
+  return (
+    <section className="grp">
+      <details className="picker">
+        <summary className="picker-summary">
+          <span className="grp-label" style={{ margin: 0 }}>This week&rsquo;s prayer</span>
+          <span className="picker-current">
+            <span className="picker-ref">{cur?.ref}</span>
+            <span className="picker-theme">{cur?.theme}</span>
+          </span>
+          <span className="picker-change">Change</span>
+        </summary>
+        <ul className="picker-list">
+          {ROTATION.map((i) => {
+            const p = prayers[i];
+            const isCur = i === current;
+            return (
+              <li key={i}>
+                <button
+                  className={'picker-row' + (isCur ? ' is-active' : '')}
+                  onClick={() => onChoose(i)}
+                  aria-pressed={isCur}
+                >
+                  <span className="picker-row-text">
+                    <span className="picker-ref">{p.ref}</span>
+                    <span className="picker-theme">{p.theme}</span>
+                  </span>
+                  {learned[p.ref] && (
+                    <span className="picker-learned" title="Rebuilt in the puzzle">&#10003;</span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </details>
+    </section>
   );
 }
 

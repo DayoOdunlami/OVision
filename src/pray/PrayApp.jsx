@@ -9,7 +9,8 @@ const PuzzleMode = lazy(() => import('./components/PuzzleMode.jsx'));
 import { buildDay } from './lib/script.js';
 import {
   loadState, writeStored, createWeek, weekTally, isoDate, isoForDayIndex,
-  todayDayIndex, readTextScale, writeTextScale,
+  todayDayIndex, readTextScale, writeTextScale, advance,
+  readCelebrate, writeCelebrate,
 } from './lib/state.js';
 import { prayers } from './data/prayers.js';
 
@@ -37,6 +38,12 @@ export default function PrayApp() {
   const [focus, setFocus] = useState(false);
   const [textScale, setTextScaleRaw] = useState(() => readTextScale());
   const [printNotes, setPrintNotes] = useState(false);
+  const [celebrate, setCelebrateRaw] = useState(() => readCelebrate());
+
+  const setCelebrate = (v) => {
+    setCelebrateRaw(v);
+    writeCelebrate(v);
+  };
 
   // Write-through update. Every change is persisted immediately; there
   // is no "save" step anywhere in this app.
@@ -77,6 +84,24 @@ export default function PrayApp() {
     update({ prayed: { ...state.prayed, [isoDate()]: true } });
   };
 
+  // Rebuilding a whole prayer in the puzzle counts as praying it, and
+  // also marks it "learned" (first date kept) for the prayer picker.
+  const puzzleAmen = () => {
+    const key = day?.learnKey;
+    update({
+      prayed: { ...state.prayed, [isoDate()]: true },
+      learned: key && !state.learned?.[key]
+        ? { ...state.learned, [key]: isoDate() }
+        : state.learned,
+    });
+  };
+
+  // Choose this week's prayer by hand. The rotation carries on from
+  // whichever one you pick.
+  const choosePrayer = (i) => {
+    update({ prayerIndex: i, prayerRef: prayers[i].ref, prayerTheme: prayers[i].theme });
+  };
+
   const togglePrayedDay = (i) => {
     if (i > todayDayIndex()) return;
     const iso = isoForDayIndex(i);
@@ -97,7 +122,7 @@ export default function PrayApp() {
   };
 
   const newWeek = () => {
-    const next = createWeek(state.prayerIndex + 1, state);
+    const next = createWeek(advance(state.prayerIndex, 1), state);
     writeStored(next);
     setState(next);
     setDayIndexRaw(todayDayIndex());
@@ -170,14 +195,18 @@ export default function PrayApp() {
         setFocus={setFocus}
         onNewWeek={newWeek}
         onPrint={print}
+        onChoosePrayer={choosePrayer}
+        celebrate={celebrate}
+        setCelebrate={setCelebrate}
       />
 
       {overlay === 'puzzle' && day && (
         <Suspense fallback={<div className="overlay" aria-busy="true" />}>
           <PuzzleMode
             day={day}
+            celebrate={celebrate}
             onClose={() => setOverlay(null)}
-            onAmen={markPrayedToday}
+            onAmen={puzzleAmen}
           />
         </Suspense>
       )}

@@ -22,6 +22,8 @@ import { prayers } from '../data/prayers.js';
 //     selfName:      string
 //     prayerRef:     string       mirrored for the pond
 //     prayerTheme:   string       mirrored for the pond
+//     learned:       { [ref]: 'YYYY-MM-DD' }   prayers rebuilt in the
+//                                  puzzle, first time each (added later)
 //   }
 //
 // Add fields freely; never rename or repurpose one.
@@ -30,6 +32,26 @@ import { prayers } from '../data/prayers.js';
 export const VALID_MODES = ['solo', 'family', 'kids'];
 export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const DAY_NAMES_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+// ── Rotation ─────────────────────────────────────────────────────────
+// The order weeks move through the prayers, as indices into `prayers`.
+// Kept separate from the array because stored state holds an index, so
+// the array itself can only ever be appended to. This order alternates
+// Paul's letters with the Psalms and Gospels, and keeps the three
+// knowledge-and-fruit prayers (Phil 1, Col 1, Eph 1) apart.
+//
+//   Eph 1 · Ps 1 · Eph 3 · Ps 121 · Phil 1 · John 15 · Col 1 · Ps 63 ·
+//   Rom 15 · Luke 2 · 1 Thess 3 · Ps 139 · Heb 13 · John 17
+export const ROTATION = [0, 10, 1, 12, 2, 9, 3, 11, 4, 13, 5, 7, 6, 8];
+
+// The prayer `steps` weeks after `idx` in the rotation. An index not in
+// the rotation (shouldn't happen) restarts it.
+export function advance(idx, steps = 1) {
+  const pos = ROTATION.indexOf(idx);
+  const from = pos < 0 ? -1 : pos;
+  const n = ROTATION.length;
+  return ROTATION[(((from + steps) % n) + n) % n];
+}
 
 export function todayDayIndex() {
   const d = new Date().getDay();
@@ -110,6 +132,7 @@ export function createWeek(prayerIndex, prev) {
     selfName: prev?.selfName || DEFAULT_SELF,
     prayerRef: prayers[idx].ref,
     prayerTheme: prayers[idx].theme,
+    learned: prev?.learned && typeof prev.learned === 'object' ? prev.learned : {},
   };
 }
 
@@ -127,13 +150,14 @@ export function loadState() {
   const daysSince = Math.floor((Date.now() - started.getTime()) / 86400000);
   if (!Number.isFinite(daysSince) || daysSince >= 7) {
     const steps = Number.isFinite(daysSince) ? Math.floor(daysSince / 7) : 1;
-    s = createWeek((s.prayerIndex ?? 0) + steps, s);
+    s = createWeek(advance(s.prayerIndex ?? 0, steps), s);
   }
 
   if (!VALID_MODES.includes(s.mode)) s.mode = 'solo';
   if (typeof s.spokenView !== 'boolean') s.spokenView = false;
   if (!s.prayed || typeof s.prayed !== 'object') s.prayed = {};
   if (!Array.isArray(s.log)) s.log = [];
+  if (!s.learned || typeof s.learned !== 'object') s.learned = {};
   if (!FAMILY.some((p) => p.name === s.selfName)) s.selfName = DEFAULT_SELF;
   if (!(s.prayerIndex >= 0 && s.prayerIndex < prayers.length)) s.prayerIndex = 0;
   s.prayerRef = prayers[s.prayerIndex].ref;
@@ -168,4 +192,41 @@ export function readTextScale() {
 
 export function writeTextScale(v) {
   try { localStorage.setItem(SCALE_KEY, String(v)); } catch {}
+}
+
+// ── Puzzle celebration preference ───────────────────────────────────
+// What happens when a verse, and then the whole prayer, is rebuilt.
+// Per device, like text size.
+//
+//   recommended  verse: ripple + gold sweep   prayer: gather + koi
+//   quiet        ripple + gold sweep for both
+//   grand        gather + koi for both
+export const CELEBRATIONS = [
+  { value: 'recommended', label: 'Balanced' },
+  { value: 'quiet',       label: 'Quiet' },
+  { value: 'grand',       label: 'Grand' },
+];
+const CELEBRATE_KEY = 'familyPrayer.celebrate';
+
+export function readCelebrate() {
+  try {
+    const v = localStorage.getItem(CELEBRATE_KEY);
+    return CELEBRATIONS.some((c) => c.value === v) ? v : 'recommended';
+  } catch {
+    return 'recommended';
+  }
+}
+
+export function writeCelebrate(v) {
+  try { localStorage.setItem(CELEBRATE_KEY, v); } catch {}
+}
+
+// Which effects to play for a completed verse (`isLast` = the final
+// verse of the prayer, which gets the bigger moment in Balanced).
+export function celebrationEffects(style, isLast) {
+  const small = ['ripple', 'sweep'];
+  const big = ['gather', 'koi'];
+  if (style === 'quiet') return small;
+  if (style === 'grand') return big;
+  return isLast ? big : small;
 }

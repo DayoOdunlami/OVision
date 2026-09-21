@@ -2,6 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import Matter from 'matter-js';
 import { useEscape, useBodyLock } from './bits.jsx';
 import { buildPuzzle, PUZZLE_MODES, readPuzzleMode, writePuzzleMode } from '../lib/puzzle.js';
+import { celebrationEffects } from '../lib/state.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PuzzleMode — the verse falls apart; you put it back together.
@@ -30,7 +31,7 @@ import { buildPuzzle, PUZZLE_MODES, readPuzzleMode, writePuzzleMode } from '../l
 // the pointer position anyway to test the slot.
 // ═══════════════════════════════════════════════════════════════════
 
-export default function PuzzleMode({ day, onClose, onAmen }) {
+export default function PuzzleMode({ day, celebrate = 'recommended', onClose, onAmen }) {
   const [round, setRound] = useState(0);
   const [mode, setModeRaw] = useState(() => readPuzzleMode());
   const [complete, setComplete] = useState(false);
@@ -102,6 +103,9 @@ export default function PuzzleMode({ day, onClose, onAmen }) {
           key={`${round}:${mode}`}
           html={steps[round].html}
           mode={mode}
+          effects={celebrationEffects(celebrate, last)}
+          people={day.people || []}
+          passage={day.isSunday ? day.title : day.prayer.ref}
           hintRef={hintRef}
           onComplete={() => setComplete(true)}
           onLeft={setLeft}
@@ -131,7 +135,7 @@ export default function PuzzleMode({ day, onClose, onAmen }) {
 }
 
 // ── One verse ───────────────────────────────────────────────────────
-function Round({ html, mode, hintRef, onComplete, onLeft }) {
+function Round({ html, mode, effects, people, passage, hintRef, onComplete, onLeft }) {
   const puzzle = useMemo(() => buildPuzzle(html, mode), [html, mode]);
   const { tokens, slots, slotAt, covered } = puzzle;
 
@@ -152,6 +156,10 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
   // Keyboard path: focus a piece, press Enter/Space to try it in the
   // live slot. Set by the physics effect, which owns the bodies.
   const tryPlaceRef = useRef(null);
+  // The slot filled last: where the completion ripple starts from.
+  const lastSlotRef = useRef(0);
+  // Completion effects in play: { ripple, sweep, gather, koi, still }
+  const [fx, setFx] = useState(null);
 
   const liveOf = (set) => {
     for (let i = 0; i < slots.length; i++) if (!set.has(i)) return i;
@@ -205,6 +213,44 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
     ro.observe(stage);
     return () => ro.disconnect();
   }, [phase, puzzle]);
+
+  // ── Celebrate a finished verse ────────────────────────────────────────
+  // Which effects play is decided upstream (celebrationEffects): the
+  // Balanced default gives each verse a ripple and a gold sweep and the
+  // whole prayer a gather and a passing koi; Quiet and Grand use one
+  // pair for both. Reduced motion gets none of it: the verse just turns
+  // gold.
+  useEffect(() => {
+    if (phase !== 'complete') return;
+    const stage = stageRef.current;
+    const verse = verseRef.current;
+    if (!stage || !verse) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setFx({ still: true });
+      return;
+    }
+    const next = {};
+    if (effects.includes('ripple')) {
+      const el = slotRefs.current[lastSlotRef.current];
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const st = stage.getBoundingClientRect();
+        next.ripple = { x: r.left - st.left + r.width / 2, y: r.top - st.top + r.height / 2 };
+      }
+    }
+    if (effects.includes('sweep')) next.sweep = true;
+    if (effects.includes('gather')) {
+      // Ease the finished verse down to sit centred in the play area,
+      // leaving room for the reference that fades in beneath it.
+      const dy = (stage.clientHeight - verse.offsetHeight) / 2 - verse.offsetTop - 24;
+      next.gather = Math.max(0, Math.round(dy));
+    }
+    if (effects.includes('koi') && people.length) {
+      next.koi = people[Math.floor(Math.random() * people.length)];
+    }
+    setFx(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   // ── The physics world. Built the moment the words are let fall. ────
   // useLayoutEffect so the pieces are positioned over their slots
@@ -377,6 +423,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       if (i < 0 || !c) return;
       // Claim the slot synchronously, before React re-renders.
       filledRef.current = new Set(filledRef.current).add(i);
+      lastSlotRef.current = i;
       it.busy = true;
       Composite.remove(engine.world, it.body);
       wakeAll();
@@ -573,7 +620,17 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
 
   return (
     <div className="pz-stage" ref={stageRef}>
-      <p ref={verseRef} className={'pz-verse' + (phase === 'complete' ? ' is-complete' : '')}>
+      <p
+        ref={verseRef}
+        className={
+          'pz-verse' +
+          (phase === 'complete' ? ' is-complete' : '') +
+          (fx?.sweep ? ' fx-sweep' : '') +
+          (fx?.gather != null ? ' fx-gather' : '') +
+          (fx?.still ? ' fx-still' : '')
+        }
+        style={fx?.gather != null ? { transform: `translateY(${fx.gather}px)` } : undefined}
+      >
         {tokens.map((t, i) => {
           if (covered.has(i)) return null;
           const sep = i > 0 ? ' ' : '';
@@ -586,6 +643,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
                 {sep}
                 <span
                   ref={(el) => { slotRefs.current[k] = el; }}
+                  style={{ '--i': i }}
                   className={
                     'pz-slot' +
                     (isFilled ? ' is-filled' : '') +
@@ -603,11 +661,19 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
           return (
             <Fragment key={i}>
               {sep}
-              <span className={t.isName ? 'pz-name' : undefined}>{t.text}</span>
+              <span className={t.isName ? 'pz-name' : undefined} style={{ '--i': i }}>{t.text}</span>
             </Fragment>
           );
         })}
+        {fx?.gather != null && <span className="pz-gather-ref">{passage}</span>}
       </p>
+
+      {fx?.ripple && (
+        <span className="pz-ripple" style={{ left: fx.ripple.x, top: fx.ripple.y }} aria-hidden="true">
+          <i /><i /><i />
+        </span>
+      )}
+      {fx?.koi && <KoiPass person={fx.koi} />}
 
       {phase === 'reading' && (
         <div className="pz-intro">
@@ -645,5 +711,133 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ── A koi swims past ──────────────────────────────────────────────────
+// The pond's own SpineFish, in the variety that belongs to one of the
+// people you've just prayed for, crossing once behind the finished
+// verse with their name beside it. Loaded on demand: the fish code only
+// arrives if a celebration actually calls for it.
+//
+// Steering: a fish chases its `target`, so the target is kept a fixed
+// distance ahead of its mouth, along a lane in the lower part of the
+// play area. It swims for a couple of seconds offscreen first so it's
+// already heading the right way, then it's shifted to just off the
+// left edge.
+function KoiPass({ person }) {
+  const canvasRef = useRef(null);
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    let raf = 0;
+    let dead = false;
+    let leaveTimer = 0;
+
+    (async () => {
+      const [fishMod, link] = await Promise.all([
+        import('../../SpineFish.js'),
+        import('../../data/prayerLink.js'),
+      ]);
+      const canvas = canvasRef.current;
+      if (dead || !canvas) return;
+      const SpineFish = fishMod.default;
+      const { buildPondMixFromCounts, ShadingMode } = fishMod;
+
+      const W = canvas.clientWidth;
+      const H = canvas.clientHeight;
+      if (!W || !H) return;
+      const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.width = Math.round(W * DPR);
+      canvas.height = Math.round(H * DPR);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ShadingMode.current = 'symmetric';
+
+      const variety = link.KOI_BY_PERSON[person] || 'kohaku';
+      const [v] = buildPondMixFromCounts({ [variety]: 1 });
+      const size = Math.max(0.6, Math.min(1, W / 900));
+      const fish = new SpineFish(W, H, { ...v, sizeScale: (v.sizeScale || 1) * size });
+
+      const lane = H * 0.8;
+      const pace = 0.55 + 0.3 * ((size - 0.6) / 0.4);
+      const cur = { x: -9999, y: -9999 };
+      const env = { food: [], onBreak: () => {} };
+      let t = 0;
+      const steer = () => {
+        if (fish.target) {
+          fish.target.x = fish.mouth.x + 260;
+          fish.target.y = lane + Math.sin(t * 0.015) * 26;
+        }
+        fish.isIdle = false;
+        // Calmer on small screens, so a phone gets an unhurried 4s-ish
+        // crossing rather than a 3s dash; ~7s across a desktop.
+        fish.energy = pace;
+      };
+
+      // Pre-swim in a wide world so it's facing right, then place it
+      // just off the left edge (SpineFish wraps at 110px outside).
+      for (let i = 0; i < 150; i++) { steer(); fish.update(W * 4, H, cur, env); t++; }
+      fish.shift(-90 - fish.mouth.x, lane - fish.mouth.y);
+
+      const started = performance.now();
+      let lastX = fish.mouth.x;
+      const label = person.toUpperCase();
+
+      const frame = () => {
+        if (dead) return;
+        steer();
+        fish.update(W, H, cur, env);
+        t++;
+
+        ctx.clearRect(0, 0, W, H);
+        fish.draw(ctx);
+
+        // Their name, riding just above the fish.
+        ctx.save();
+        ctx.font = '700 12px "Source Sans 3", system-ui, sans-serif';
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '0.16em';
+        const tw = ctx.measureText(label).width;
+        const lx = fish.head.x;
+        const ly = fish.head.y - 34 * size - 10;
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(42, 34, 29, 0.72)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(lx - tw / 2 - 10, ly - 11, tw + 20, 22, 11);
+        else ctx.rect(lx - tw / 2 - 10, ly - 11, tw + 20, 22);
+        ctx.fill();
+        ctx.fillStyle = '#FFF3DC';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx, ly + 0.5);
+        ctx.restore();
+
+        // Done once it has crossed (or wrapped back round, or run long).
+        const x = fish.mouth.x;
+        const wrapped = x < lastX - W / 2;
+        lastX = x;
+        if (x > W + 80 || wrapped || performance.now() - started > 12000) {
+          setLeaving(true);
+          leaveTimer = setTimeout(() => ctx.clearRect(0, 0, W, H), 600);
+          return;
+        }
+        raf = requestAnimationFrame(frame);
+      };
+      raf = requestAnimationFrame(frame);
+    })();
+
+    return () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(leaveTimer);
+    };
+  }, [person]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={'pz-koi' + (leaving ? ' is-leaving' : '')}
+      aria-hidden="true"
+    />
   );
 }

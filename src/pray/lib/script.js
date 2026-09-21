@@ -46,6 +46,11 @@ export function buildDay(state, dayIndex) {
       instruction: null,
       closing: isKids ? 'That’s it. You just prayed. God heard you.' : null,
       logNames: 'Whole family',
+      // Real names (never kids' labels) — used to pick whose koi swims
+      // past when the puzzle is finished — and the key the puzzle
+      // records as "learned".
+      people: FAMILY.map((p) => p.name),
+      learnKey: 'The Lord’s Prayer',
     };
   }
 
@@ -103,6 +108,8 @@ export function buildDay(state, dayIndex) {
       : null,
     closing: isKids ? 'That’s it. You just prayed. God heard you.' : null,
     logNames: who.b ? `${who.a} & ${who.b}` : who.a,
+    people: [p1.name, p2.name],
+    learnKey: prayer.ref,
   };
 }
 

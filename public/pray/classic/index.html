@@ -918,6 +918,16 @@ let currentState;
 
 function render() {
   currentState = initState();
+  // This week's prayer may be one added in the React version, which this
+  // page doesn't carry. Say so rather than crash, and write nothing: the
+  // shared record belongs to the React app now.
+  if (!prayers[currentState.prayerIndex]) {
+    document.getElementById('app').innerHTML =
+      '<div style="max-width:30rem;margin:30vh auto 0;text-align:center;font-family:var(--sans);color:var(--ink-light);line-height:1.6;padding:0 1.5rem">' +
+      '<p>This week&rsquo;s prayer (' + (currentState.prayerRef || 'a newer prayer') + ') is only in the new version.</p>' +
+      '<p><a href="/pray/" style="color:var(--gold)">Open the new prayer app</a></p></div>';
+    return;
+  }
   const app = document.getElementById('app');
   const today = getTodayDayIndex();
   const selectedDay = currentState.selectedDay ?? today;
