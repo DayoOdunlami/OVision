@@ -246,9 +246,9 @@ export default function ControlSheet({
 }
 
 const CELEBRATE_HINTS = {
-  recommended: 'Each verse: a ripple and a sweep of gold. The whole prayer: it gathers together, and a koi swims past.',
+  recommended: 'Each verse: a ripple and a sweep of gold. The whole prayer: it gathers together, and the koi of everyone you prayed for swim in and stay.',
   quiet: 'A ripple and a sweep of gold, every time. Nothing more.',
-  grand: 'Every verse gathers together, and a koi swims past.',
+  grand: 'Every verse gathers together and a koi swims past; at the end, everyone\u2019s koi swim in and stay.',
 };
 
 // This week's prayer. Collapsed to the current choice; open it to pick

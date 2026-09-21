@@ -32,10 +32,10 @@ export default function PaceMode({ day, onClose, onAmen }) {
 
   const next = () => setI((v) => Math.min(cards.length - 1, v + 1));
   const back = () => setI((v) => Math.max(0, v - 1));
+  // The Amen card stays until you tap Done, as in the puzzle.
   const amen = () => {
     setDone(true);
     onAmen();
-    setTimeout(onClose, 2000);
   };
 
   // Space / → / Enter advance, ← goes back. Ignored while typing.
@@ -76,6 +76,9 @@ export default function PaceMode({ day, onClose, onAmen }) {
             <div className="pace-done-mark">&#10003;</div>
             <div className="pace-done-text">Amen.</div>
             <div className="pace-done-sub">Marked for today</div>
+            <button className="btn btn-primary pace-done-btn" onClick={onClose} autoFocus>
+              Done
+            </button>
           </div>
         ) : card.kind === 'breath' ? (
           <div key="breath" className="pace-breath">

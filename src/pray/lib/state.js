@@ -197,9 +197,12 @@ export function writeTextScale(v) {
 // What happens when a verse, and then the whole prayer, is rebuilt.
 // Per device, like text size.
 //
-//   recommended  verse: ripple + gold sweep   prayer: gather + koi
+//   recommended  verse: ripple + gold sweep   prayer: gather + koi school
 //   quiet        ripple + gold sweep for both
-//   grand        gather + koi for both
+//   grand        verse: gather + a passing koi  prayer: gather + koi school
+//
+// 'koi' is one fish that crosses and leaves; 'school' is the koi of
+// everyone prayed for, who swim in and stay until the puzzle is closed.
 export const CELEBRATIONS = [
   { value: 'recommended', label: 'Balanced' },
   { value: 'quiet',       label: 'Quiet' },
@@ -224,7 +227,7 @@ export function writeCelebrate(v) {
 // verse of the prayer, which gets the bigger moment in Balanced).
 export function celebrationEffects(style, isLast) {
   const small = ['ripple', 'sweep'];
-  const big = ['gather', 'koi'];
+  const big = ['gather', isLast ? 'school' : 'koi'];
   if (style === 'quiet') return small;
   if (style === 'grand') return big;
   return isLast ? big : small;

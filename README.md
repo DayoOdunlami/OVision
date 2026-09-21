@@ -105,9 +105,13 @@ src/pray/
   (*full*), and Psalm 121 and Luke 2:52, short enough for the children to learn.
 - **Puzzle celebrations**, set in Options: *Balanced* (each verse: a ripple from
   the last word and a sweep of gold; the whole prayer: the verse gathers
-  together and one of that day's koi swims past, with their name), *Quiet*
-  (ripple and gold every time) or *Grand* (gather and koi every time). Reduced
-  motion: the verse simply turns gold.
+  together and the koi of everyone prayed for swim in, with their names, and
+  stay), *Quiet* (ripple and gold every time) or *Grand* (each verse gathers and
+  a koi swims past; at the end, everyone's koi swim in and stay). The koi that
+  stay wander below the verse and answer a finger like pond koi — curious ones
+  come, shy ones scatter. Reduced motion: the verse simply turns gold.
+- **Amen cards stay** (puzzle and Pray it) until you tap Done — nothing closes
+  on its own.
 - Six-person rota, reshuffled weekly; Sunday is the whole household.
 
 ### Stored state

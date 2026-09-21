@@ -900,6 +900,14 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   font-size: 1.8rem;
 }
 .pace-done-text { font-family: var(--display); font-size: 2.4rem; font-weight: 600; }
+.pace-done-btn { margin-top: 1.8rem; }
+.pace-done-hint {
+  margin: 0.9rem 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink-3);
+}
 .pace-done-sub {
   margin-top: 0.5rem;
   font-family: var(--sans);
