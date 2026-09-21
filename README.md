@@ -103,15 +103,18 @@ src/pray/
   A ✓ marks prayers rebuilt end to end in the puzzle. Five pray the identity
   board itself: John 15 (the anchor verse), Psalm 1 (*flourish*), Psalm 63
   (*full*), and Psalm 121 and Luke 2:52, short enough for the children to learn.
-- **Puzzle celebrations**, set in Options: *Balanced* (each verse: a ripple from
-  the last word and a sweep of gold; the whole prayer: the verse gathers
-  together and the koi of everyone prayed for swim in, with their names, and
-  stay), *Quiet* (ripple and gold every time) or *Grand* (each verse gathers and
-  a koi swims past; at the end, everyone's koi swim in and stay). The koi that
-  stay wander below the verse and answer a finger like pond koi — curious ones
-  come, shy ones scatter. Reduced motion: the verse simply turns gold.
-- **Amen cards stay** (puzzle and Pray it) until you tap Done — nothing closes
-  on its own.
+- **Amen brings the koi** — in Pray it and the puzzle alike, the koi of everyone
+  prayed for swim in, with their names, and stay until you tap Done; tapping
+  the gold ✓ calls them again. They wander below the text and answer a finger
+  like pond koi — curious ones come, shy ones scatter. Shared component:
+  `components/KoiSchool.jsx`.
+- **Celebration**, set in Options: *Balanced* (default: koi at Amen; in the
+  puzzle, each verse also gets a ripple from the last word and a sweep of gold,
+  and the finished prayer gathers together), *Quiet* (no koi unless you tap the
+  ✓; ripple and gold in the puzzle) or *Grand* (as Balanced, plus a koi passing
+  after every verse). Reduced motion: no koi; the verse simply turns gold.
+- **Version** at the foot of Options is the commit the page was built from
+  (Vercel's `VERCEL_GIT_COMMIT_SHA`), so a deployed page can be matched to git.
 - Six-person rota, reshuffled weekly; Sunday is the whole household.
 
 ### Stored state

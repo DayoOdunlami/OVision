@@ -214,6 +214,7 @@ export default function PrayApp() {
       {overlay === 'pace' && day && (
         <PaceMode
           day={day}
+          celebrate={celebrate}
           onClose={() => setOverlay(null)}
           onAmen={markPrayedToday}
         />

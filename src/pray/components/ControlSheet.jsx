@@ -202,7 +202,7 @@ export default function ControlSheet({
             </div>
           </Group>
 
-          <Group label="Puzzle celebration" hint={CELEBRATE_HINTS[celebrate]}>
+          <Group label="Celebration" hint={CELEBRATE_HINTS[celebrate]}>
             <Segmented
               value={celebrate}
               onChange={setCelebrate}
@@ -239,6 +239,10 @@ export default function ControlSheet({
               <button className="btn btn-quiet" onClick={() => onPrint(true)}>Print with notes</button>
             </div>
           </Group>
+
+          {/* So "are we looking at the same thing?" has an answer: the
+              commit this page was built from, matching the git log. */}
+          <p className="build-id">Version {__BUILD_ID__}</p>
         </div>
       </div>
     </div>
@@ -246,9 +250,9 @@ export default function ControlSheet({
 }
 
 const CELEBRATE_HINTS = {
-  recommended: 'Each verse: a ripple and a sweep of gold. The whole prayer: it gathers together, and the koi of everyone you prayed for swim in and stay.',
-  quiet: 'A ripple and a sweep of gold, every time. Nothing more.',
-  grand: 'Every verse gathers together and a koi swims past; at the end, everyone\u2019s koi swim in and stay.',
+  recommended: 'At Amen — in Pray it or the puzzle — the koi of everyone you prayed for swim in and stay. In the puzzle, each verse also gets a ripple and a sweep of gold.',
+  quiet: 'No koi unless you tap the tick on the Amen card. In the puzzle, a ripple and a sweep of gold after each verse.',
+  grand: 'At Amen, everyone\u2019s koi swim in and stay. In the puzzle, a koi also swims past after every verse.',
 };
 
 // This week's prayer. Collapsed to the current choice; open it to pick

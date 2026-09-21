@@ -892,12 +892,31 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   height: 72px;
   margin: 0 auto 1.3rem;
   border-radius: 50%;
+  border: none;
   background: var(--gold-fill);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.8rem;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 rgba(185, 138, 69, 0.45);
+  animation: tick-glow 2.6s ease-in-out 1s infinite;
+  transition: transform 0.15s var(--ease);
+}
+.pace-done-mark:hover { transform: scale(1.06); }
+.pace-done-mark:active { transform: scale(0.96); }
+@keyframes tick-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(185, 138, 69, 0.4); }
+  50%      { box-shadow: 0 0 0 12px rgba(185, 138, 69, 0); }
+}
+.build-id {
+  margin: 18px 0 0;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--ink-4);
+  text-align: center;
+  letter-spacing: 0.04em;
 }
 .pace-done-text { font-family: var(--display); font-size: 2.4rem; font-weight: 600; }
 .pace-done-btn { margin-top: 1.8rem; }
@@ -1148,7 +1167,7 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
    The canvas spans the whole puzzle overlay and sits behind everything
    in it, so the fish can keep swimming while the next verse loads or
    the Amen card shows. */
-.overlay.puzzle > :not(.pz-koi) { position: relative; z-index: 1; }
+.overlay > :not(.pz-koi) { position: relative; z-index: 1; }
 .pz-koi {
   position: absolute;
   inset: 0;

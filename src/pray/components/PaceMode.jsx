@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Html, Explore, useEscape, useBodyLock } from './bits.jsx';
+import KoiSchool from './KoiSchool.jsx';
 
 // ═══════════════════════════════════════════════════════════════════
 // PaceMode — "Pray it".
@@ -8,7 +9,9 @@ import { Html, Explore, useEscape, useBodyLock } from './bits.jsx';
 //
 //   breath   → settle; no text to read
 //   step × n → one thought per card, advance on tap
-//   blessing → Amen, which records the day as prayed
+//   blessing → Amen, which records the day as prayed, and the koi of
+//              everyone prayed for swim in (tap the tick to call them
+//              again) — unless the celebration is set to Quiet
 //
 // Exists because the stated problem is a wandering mind. Focus mode
 // only dims competing text; this gives attention a single thing to
@@ -16,7 +19,7 @@ import { Html, Explore, useEscape, useBodyLock } from './bits.jsx';
 // view and the puzzle use.
 // ═══════════════════════════════════════════════════════════════════
 
-export default function PaceMode({ day, onClose, onAmen }) {
+export default function PaceMode({ day, celebrate = 'recommended', onClose, onAmen }) {
   const cards = [
     { kind: 'breath' },
     ...day.steps.map((s) => ({ kind: 'line', ...s })),
@@ -24,6 +27,13 @@ export default function PaceMode({ day, onClose, onAmen }) {
   ];
   const [i, setI] = useState(0);
   const [done, setDone] = useState(false);
+  const [koi, setKoi] = useState(null);          // { id } | null
+  const koiIdRef = useRef(0);
+  const callKoi = () => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    koiIdRef.current += 1;
+    setKoi({ id: koiIdRef.current });
+  };
   const card = cards[i];
   const last = i === cards.length - 1;
 
@@ -36,6 +46,7 @@ export default function PaceMode({ day, onClose, onAmen }) {
   const amen = () => {
     setDone(true);
     onAmen();
+    if (celebrate !== 'quiet') callKoi();
   };
 
   // Space / → / Enter advance, ← goes back. Ignored while typing.
@@ -61,6 +72,7 @@ export default function PaceMode({ day, onClose, onAmen }) {
 
   return (
     <div className="overlay pace" role="dialog" aria-modal="true" aria-label="Pray it">
+      {koi && <KoiSchool key={koi.id} people={day.people || []} stay onGone={() => setKoi(null)} />}
       <div className="overlay-top">
         <div className="pace-dots" aria-hidden="true">
           {cards.map((_, n) => (
@@ -73,9 +85,19 @@ export default function PaceMode({ day, onClose, onAmen }) {
       <div className="pace-body">
         {done ? (
           <div className="pace-done">
-            <div className="pace-done-mark">&#10003;</div>
+            <button
+              className="pace-done-mark"
+              onClick={callKoi}
+              aria-label="Call the koi"
+              title="Call the koi"
+            >
+              &#10003;
+            </button>
             <div className="pace-done-text">Amen.</div>
             <div className="pace-done-sub">Marked for today</div>
+            <p className="pace-done-hint">
+              {koi ? 'Stay as long as you like.' : 'Tap the tick to call the koi.'}
+            </p>
             <button className="btn btn-primary pace-done-btn" onClick={onClose} autoFocus>
               Done
             </button>
