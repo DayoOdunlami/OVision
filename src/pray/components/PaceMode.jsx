@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html, Explore, useEscape, useBodyLock } from './bits.jsx';
 import KoiSchool from './KoiSchool.jsx';
+import AmenCard from './AmenCard.jsx';
 
 // ═══════════════════════════════════════════════════════════════════
 // PaceMode — "Pray it".
@@ -84,24 +85,7 @@ export default function PaceMode({ day, celebrate = 'recommended', onClose, onAm
 
       <div className="pace-body">
         {done ? (
-          <div className="pace-done">
-            <button
-              className="pace-done-mark"
-              onClick={callKoi}
-              aria-label="Call the koi"
-              title="Call the koi"
-            >
-              &#10003;
-            </button>
-            <div className="pace-done-text">Amen.</div>
-            <div className="pace-done-sub">Marked for today</div>
-            <p className="pace-done-hint">
-              {koi ? 'Stay as long as you like.' : 'Tap the tick to call the koi.'}
-            </p>
-            <button className="btn btn-primary pace-done-btn" onClick={onClose} autoFocus>
-              Done
-            </button>
-          </div>
+          <AmenCard koiActive={Boolean(koi)} onCallKoi={callKoi} onDone={onClose} />
         ) : card.kind === 'breath' ? (
           <div key="breath" className="pace-breath">
             <div className="pace-ring"><span /></div>

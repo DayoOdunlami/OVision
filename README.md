@@ -103,11 +103,15 @@ src/pray/
   A ✓ marks prayers rebuilt end to end in the puzzle. Five pray the identity
   board itself: John 15 (the anchor verse), Psalm 1 (*flourish*), Psalm 63
   (*full*), and Psalm 121 and Luke 2:52, short enough for the children to learn.
-- **Amen brings the koi** — in Pray it and the puzzle alike, the koi of everyone
-  prayed for swim in, with their names, and stay until you tap Done; tapping
-  the gold ✓ calls them again. They wander below the text and answer a finger
-  like pond koi — curious ones come, shy ones scatter. Shared component:
-  `components/KoiSchool.jsx`.
+- **Amen brings the koi** — in Pray it and the puzzle alike. The paper is the
+  pond's surface: the koi of everyone prayed for *rise* from beneath it — faint,
+  blurred and small at first, then a pair of soft rings as each breaks the
+  surface, then clear, with their name — each at its own moment and pace. Once
+  up they drift slowly and rest often, and stay until you tap Done; tapping the
+  gold ✓ calls them again. They answer a finger like pond koi — curious ones
+  come, shy ones scatter. On the Amen card they nudge the ✓, "Amen." and its two
+  quiet lines aside like lily pads, which drift back; the Done button never
+  moves. (`components/KoiSchool.jsx`, `components/AmenCard.jsx`.)
 - **Celebration**, set in Options: *Balanced* (default: koi at Amen; in the
   puzzle, each verse also gets a ripple from the last word and a sweep of gold,
   and the finished prayer gathers together), *Quiet* (no koi unless you tap the

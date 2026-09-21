@@ -920,6 +920,9 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 }
 .pace-done-text { font-family: var(--display); font-size: 2.4rem; font-weight: 600; }
 .pace-done-btn { margin-top: 1.8rem; }
+/* Nudged blocks are moved by transform from script; keep them as the
+   same blocks the card always had, and let them paint above the koi. */
+.pace-done .nudge { position: relative; will-change: transform; }
 .pace-done-hint {
   margin: 0.9rem 0 0;
   font-family: var(--serif);

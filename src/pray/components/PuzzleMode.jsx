@@ -4,6 +4,7 @@ import { useEscape, useBodyLock } from './bits.jsx';
 import { buildPuzzle, PUZZLE_MODES, readPuzzleMode, writePuzzleMode } from '../lib/puzzle.js';
 import { celebrationEffects } from '../lib/state.js';
 import KoiSchool from './KoiSchool.jsx';
+import AmenCard from './AmenCard.jsx';
 
 // ═══════════════════════════════════════════════════════════════════
 // PuzzleMode — the verse falls apart; you put it back together.
@@ -104,24 +105,14 @@ export default function PuzzleMode({ day, celebrate = 'recommended', onClose, on
 
       {done ? (
         <div className="pace-body">
-          <div className="pace-done">
-            <button
-              className="pace-done-mark"
-              onClick={() => releaseKoi({ people: day.people || [], stay: true })}
-              aria-label="Call the koi"
-              title="Call the koi"
-            >
-              &#10003;
-            </button>
-            <div className="pace-done-text">Amen.</div>
-            <div className="pace-done-sub">Marked for today</div>
-            <p className="pace-done-hint">
-              {koi?.stay ? 'Stay as long as you like.' : 'Tap the tick to call the koi.'}
-            </p>
-            <button className="btn btn-primary pace-done-btn" onClick={onClose} autoFocus>
-              Done
-            </button>
-          </div>
+          <AmenCard
+            koiActive={Boolean(koi?.stay)}
+            onCallKoi={() => {
+              if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+              releaseKoi({ people: day.people || [], stay: true });
+            }}
+            onDone={onClose}
+          />
         </div>
       ) : (
         <Round
