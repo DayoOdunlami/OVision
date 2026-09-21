@@ -83,9 +83,12 @@ src/pray/
   pray.css
 ```
 
-- **Reading first.** The prayer is the landing page, in Literata at ~22px on a
-  phone and ~25px on a tablet. Above it: only who and which passage. Swipe
-  sideways (or use the arrow keys) to change day.
+- **Reading first, sized to the screen.** The prayer is the landing page, in
+  Literata. Type is fluid with window width — body ~24px on a phone, ~34px at
+  1280px, ~40px on a large laptop — and the reading column widens with it, so
+  a big screen gets bigger words rather than more empty paper. Pray it, the
+  puzzle, the Amen card and the koi all scale the same way. Options → Reading
+  adds up to 200% on top. Swipe sideways (or arrow keys) to change day.
 - **One Options sheet** for day, voice (Solo / Together / Kids), style
   (Flowing / Spoken), text size, focus dimming, the week, "praying as",
   new week and printing.
@@ -112,7 +115,7 @@ src/pray/
   gold ✓ calls them again. They answer a finger like pond koi — curious ones
   come, shy ones scatter. Near the surface they visit the Amen card's words and
   push the ✓, "Amen." and its two quiet lines aside like lily pads on an anchor
-  line — typically ~50px, drifting home over ~5s; the Done button never moves.
+  line — typically ~55px, gliding home over ~7–12s; the Done button never moves.
   (`components/KoiSchool.jsx`, `components/AmenCard.jsx`.)
 - **Celebration**, set in Options: *Balanced* (default: koi at Amen; in the
   puzzle, each verse also gets a ripple from the last word and a sweep of gold,

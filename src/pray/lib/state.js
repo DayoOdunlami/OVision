@@ -178,7 +178,8 @@ export function weekTally(prayed) {
 // Per-device, so it lives outside the shared record: the fridge tablet
 // and a phone want different sizes.
 const SCALE_KEY = 'familyPrayer.textScale';
-export const TEXT_SCALES = [0.9, 1, 1.12, 1.26, 1.42];
+// Up to 200%. The older steps are kept, so a saved choice survives.
+export const TEXT_SCALES = [0.9, 1, 1.12, 1.26, 1.42, 1.6, 1.8, 2];
 
 export function readTextScale() {
   try {

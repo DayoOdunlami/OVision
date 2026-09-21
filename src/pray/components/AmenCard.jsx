@@ -43,21 +43,20 @@ export default function AmenCard({ koiActive, onCallKoi, onDone }) {
 // draws it slowly home. Reads the koi's body points from
 // `window.__prayerKoi` (published each frame by KoiSchool).
 //
-// Tuned by measurement: over 90s of real (frame-stepped) koi on a
-// laptop-sized screen, words were pushed ~19 times, typically ~50px
-// (never past ~60), and drifted home in ~5s. On smaller screens the
-// push and the anchor's slack scale down with the width. The first version used a
-// stiff spring — ~30px, snapped back in a moment — which read as a
-// jiggle in place rather than a drift. A short reach matters as much
-// as the push: with a long one the koi kept shoving the word ahead of
-// itself, surfing it across the screen.
-const REACH = 45;        // px beyond the element's own half-size
-const PUSH = 0.3;        // strength of a koi's push, per frame
-const STIFF = 0.0012;    // the anchor's pull home
-const DAMP = 0.962;      // velocity kept per frame (water drag)
-const SOFT = 35;         // px — beyond this the anchor line goes taut…
-const TAUT = 0.012;      // …and pulls this much harder per px past it
-const MAX = 70;          // px — a backstop, not normally reached
+// Tuned by measurement, twice. First pass: words pushed ~50px, home in
+// ~5s — read well, but snapped back too quickly. Second: a much weaker
+// anchor and more water drag, so a word glides home over ~8–10s. With
+// drag that low, the *reach* (not the push strength) is what limits how
+// far a word travels — it glides until it's out of the koi's reach — so
+// the reach came down to keep the distance about the same. Scaled down
+// on smaller screens.
+const REACH = 25;        // px beyond the element's own half-size
+const PUSH = 0.1;        // strength of a koi's push, per frame
+const STIFF = 0.00012;   // the anchor's pull home — weak, so it glides
+const DAMP = 0.984;      // velocity kept per frame (water drag)
+const SOFT = 32;         // px — beyond this the anchor line goes taut…
+const TAUT = 0.003;      // …and pulls this much harder per px past it
+const MAX = 80;          // px — a backstop, not normally reached
 
 function Nudge({ as: Tag = 'div', className, children }) {
   const ref = useRef(null);

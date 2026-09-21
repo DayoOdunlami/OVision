@@ -36,7 +36,6 @@
   --display: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   --sans:    'Source Sans 3', system-ui, -apple-system, sans-serif;
 
-  --measure: 34rem;
   --dock-h:  76px;
   --radius:  14px;
   --ease:    cubic-bezier(0.22, 1, 0.36, 1);
@@ -64,6 +63,15 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
 
 .pray-app {
   --scale: 1;
+  /* Sized to the window, not designed at one size. Body text grows
+     smoothly with width — ~24px on a phone, ~34px at 1280px, ~40px on
+     a large laptop — so a big screen gets bigger words, not more empty
+     paper. --t is that, times the reader's own text-size choice (up to
+     200%); --scale-soft applies half of that choice to display-sized
+     things (the Amen card), which are already large. */
+  --body: clamp(1.5rem, 0.95rem + 1.45vw, 2.5rem);
+  --t: calc(var(--body) * var(--scale));
+  --scale-soft: calc(1 + (var(--scale) - 1) * 0.5);
   min-height: 100vh;
   min-height: 100dvh;
 }
@@ -97,7 +105,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
 
 /* ═══ Reading view ═══════════════════════════════════════════════════ */
 .rv {
-  max-width: calc(var(--measure) + 3rem);
+  max-width: calc(var(--t) * 26 + 3rem);
   margin: 0 auto;
   padding:
     calc(68px + env(safe-area-inset-top, 0px))
@@ -126,7 +134,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
 }
 .rv-day {
   font-family: var(--sans);
-  font-size: 0.74rem;
+  font-size: clamp(0.74rem, 0.62rem + 0.3vw, 0.95rem);
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -151,7 +159,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
 .rv-who {
   font-family: var(--display);
   font-weight: 600;
-  font-size: clamp(2.35rem, 9.5vw, 3.4rem);
+  font-size: clamp(2.35rem, 1.1rem + 3.2vw, 5.4rem);
   line-height: 1.05;
   letter-spacing: -0.01em;
   margin: 0;
@@ -163,7 +171,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
   margin-top: 0.7rem;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 1rem;
+  font-size: clamp(1rem, 0.78rem + 0.55vw, 1.45rem);
   color: var(--ink-2);
 }
 .rv-ref-dot { color: var(--ink-4); font-style: normal; }
@@ -194,7 +202,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
 
 .rv-p {
   font-family: var(--serif);
-  font-size: calc(1.36rem * var(--scale));   /* ≈ 21.8px at 100% */
+  font-size: var(--t);
   line-height: 1.62;
   font-weight: 400;
   color: var(--ink);
@@ -202,7 +210,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
   text-wrap: pretty;
   hyphens: manual;
 }
-.rv.is-kids .rv-p { font-size: calc(1.5rem * var(--scale)); line-height: 1.6; }
+.rv.is-kids .rv-p { font-size: calc(var(--t) * 1.1); line-height: 1.58; }
 .rv-lords { line-height: 1.85; }
 
 /* Names: gold, a touch heavier — they're who this is for. */
@@ -269,7 +277,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
   background: var(--paper-2);
   border-radius: 0 10px 10px 0;
   font-family: var(--sans);
-  font-size: calc(1rem * var(--scale));
+  font-size: calc(var(--t) * 0.68);
   line-height: 1.65;
   color: var(--ink-2);
   animation: rise 0.3s var(--ease) both;
@@ -294,7 +302,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
   cursor: pointer;
   font-family: var(--serif);
   font-style: italic;
-  font-size: calc(1.14rem * var(--scale));
+  font-size: calc(var(--t) * 0.84);
   line-height: 1.55;
   color: var(--ink-2);
 }
@@ -336,7 +344,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-vis
 .rv-blessing-text {
   font-family: var(--serif);
   font-style: italic;
-  font-size: calc(1.22rem * var(--scale));
+  font-size: calc(var(--t) * 0.9);
   line-height: 1.8;
   color: var(--ink);
   margin: 0;
@@ -848,17 +856,19 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   justify-content: center;
   padding: 1.5rem 0.5rem;
 }
-.pace-card { width: 100%; max-width: 36rem; animation: rise 0.5s var(--ease) both; }
+.pace-card { width: 100%; animation: rise 0.5s var(--ease) both; }
 .pace-text {
   margin: 0;
   font-family: var(--serif);
-  font-size: calc(clamp(1.55rem, 5.6vw, 2.15rem) * var(--scale));
+  font-size: calc(clamp(1.6rem, 1rem + 2.3vw, 3.6rem) * var(--scale));
+  max-width: 21em;
+  margin-inline: auto;
   line-height: 1.55;
   color: var(--ink);
   text-wrap: pretty;
 }
 .pace-card.is-blessing .pace-text { font-style: italic; text-align: center; }
-.pace-card .explore { margin-top: 1.4rem; }
+.pace-card .explore { margin: 1.4rem auto 0; max-width: calc(clamp(1.6rem, 1rem + 2.3vw, 3.6rem) * var(--scale) * 21); }
 
 .pace-breath { text-align: center; animation: rise 0.5s var(--ease) both; }
 .pace-ring { width: 120px; height: 120px; margin: 0 auto 2.2rem; }
@@ -874,22 +884,22 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 .pace-who {
   font-family: var(--display);
   font-weight: 600;
-  font-size: clamp(2.1rem, 8vw, 2.9rem);
+  font-size: clamp(2.1rem, 1.1rem + 3.4vw, 5.2rem);
   line-height: 1.1;
   color: var(--ink);
 }
 .pace-hint {
   margin: 1.1rem 0 0;
   font-family: var(--sans);
-  font-size: 0.95rem;
+  font-size: clamp(0.95rem, 0.8rem + 0.4vw, 1.3rem);
   line-height: 1.7;
   color: var(--ink-3);
 }
 
 .pace-done { text-align: center; animation: rise 0.45s var(--ease) both; }
 .pace-done-mark {
-  width: clamp(88px, 9vw, 128px);
-  height: clamp(88px, 9vw, 128px);
+  width: calc(clamp(88px, 10vw, 184px) * var(--scale-soft));
+  height: calc(clamp(88px, 10vw, 184px) * var(--scale-soft));
   margin: 0 auto 1.4rem;
   border-radius: 50%;
   border: none;
@@ -898,7 +908,7 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(2.1rem, 3.4vw, 3.1rem);
+  font-size: calc(clamp(2.1rem, 3.8vw, 4.4rem) * var(--scale-soft));
   cursor: pointer;
   box-shadow: 0 0 0 0 rgba(185, 138, 69, 0.45);
   animation: tick-glow 2.6s ease-in-out 1s infinite;
@@ -920,15 +930,15 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 }
 .pace-done-text {
   font-family: var(--display);
-  font-size: clamp(3.4rem, 6vw + 1rem, 6rem);
+  font-size: calc(clamp(3.4rem, 1rem + 6.5vw, 8rem) * var(--scale-soft));
   font-weight: 600;
   line-height: 1;
 }
 .pace-done-btn {
   margin-top: 2.2rem;
-  min-height: 54px;
-  min-width: 11rem;
-  font-size: 1.02rem;
+  min-height: clamp(54px, 4.2vw, 72px);
+  min-width: clamp(11rem, 14vw, 17rem);
+  font-size: clamp(1rem, 0.8rem + 0.45vw, 1.35rem);
 }
 /* Sit the card a little above centre (optical centre), leaving the
    lower part of the screen as open water for the koi. */
@@ -940,13 +950,13 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   margin: 1.1rem 0 0;
   font-family: var(--serif);
   font-style: italic;
-  font-size: clamp(1.15rem, 1.6vw, 1.5rem);
+  font-size: calc(clamp(1.15rem, 0.8rem + 1.2vw, 2.1rem) * var(--scale-soft));
   color: var(--ink-3);
 }
 .pace-done-sub {
   margin-top: 0.9rem;
   font-family: var(--sans);
-  font-size: clamp(0.8rem, 1.1vw, 1rem);
+  font-size: calc(clamp(0.8rem, 0.6rem + 0.5vw, 1.25rem) * var(--scale-soft));
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -957,8 +967,8 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 /* On wide screens the puzzle is a centred column, so the pile lands
    under the verse instead of spreading across 1,400px of desktop. */
 .overlay.puzzle {
-  padding-left:  max(18px, env(safe-area-inset-left, 0px), calc((100vw - 60rem) / 2));
-  padding-right: max(18px, env(safe-area-inset-right, 0px), calc((100vw - 60rem) / 2));
+  padding-left:  max(18px, env(safe-area-inset-left, 0px), calc((100vw - 78rem) / 2));
+  padding-right: max(18px, env(safe-area-inset-right, 0px), calc((100vw - 78rem) / 2));
 }
 /* The footer holds its height from the first frame. It used to be
    empty while reading and then gain a row when the words fell — which
@@ -1000,7 +1010,7 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 .pz-verse {
   position: relative;
   z-index: 1;
-  max-width: 52rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 1rem 0.25rem 0;
   font-family: var(--serif);
@@ -1238,13 +1248,9 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 
 /* ═══ Larger screens ═════════════════════════════════════════════════ */
 @media (min-width: 768px) {
-  :root { --measure: 38rem; }
   .rv { padding-top: calc(96px + env(safe-area-inset-top, 0px)); }
-  .rv-p { font-size: calc(1.55rem * var(--scale)); line-height: 1.64; }   /* ≈ 24.8px */
-  .rv.is-kids .rv-p { font-size: calc(1.7rem * var(--scale)); }
-  .rv-blessing-text { font-size: calc(1.36rem * var(--scale)); }
+  .rv-p { line-height: 1.6; }
   .rv-head { margin-bottom: 3rem; }
-  .explore-text { font-size: calc(1.05rem * var(--scale)); }
 }
 
 /* Phones: bigger words, less air. The desktop proportions (generous
@@ -1260,15 +1266,13 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   .rv-daynav { margin-bottom: 0.4rem; }
   .rv-ref { margin-top: 0.45rem; }
   .rv-p {
-    font-size: calc(1.52rem * var(--scale));   /* ≈ 24.3px at 100% */
     line-height: 1.5;
     margin-bottom: 0.8em;
   }
-  .rv.is-kids .rv-p { font-size: calc(1.66rem * var(--scale)); line-height: 1.48; }
+  .rv.is-kids .rv-p { line-height: 1.48; }
   .rv-section { margin-bottom: 1.1rem; }
-  .rv-blessing-text { font-size: calc(1.34rem * var(--scale)); line-height: 1.65; }
+  .rv-blessing-text { line-height: 1.65; }
   .rv-petition { margin: 1.8rem 0; }
-  .rv-petition-prompt { font-size: calc(1.2rem * var(--scale)); }
   .rv-blessing { margin-top: 2rem; padding-top: 1.6rem; }
 }
 

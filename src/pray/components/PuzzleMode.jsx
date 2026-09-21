@@ -212,7 +212,9 @@ function Round({ html, mode, effects, people, passage, hintRef, onComplete, onKo
       if (!W || !H) return;
       const tiles = pieceRefs.current.filter(Boolean);
       let lo = 17;
-      let hi = W < 520 ? 34 : 48;
+      // The fit decides the size; the ceiling only stops a short verse
+      // on a huge screen from becoming a poster.
+      let hi = W < 520 ? 40 : Math.min(84, Math.round(W / 16));
       let best = lo;
       for (let n = 0; n < 9; n++) {
         const f = (lo + hi) / 2;

@@ -117,7 +117,7 @@ export default function KoiSchool({ people, stay, onGone }) {
       const crowd = people.length;
       // Scaled to the screen: small on a phone, generous on a laptop,
       // where 1:1 koi were lost in the space.
-      const size = Math.max(0.55, Math.min(1.35, W / 900)) * (crowd > 3 ? 0.8 : 1);
+      const size = Math.max(0.7, Math.min(1.8, W / 800)) * (crowd > 3 ? 0.8 : 1);
       const randIn = (a, b) => a + Math.random() * (b - a);
       const env = { food: [], onBreak: () => {} };
       const far = { x: -9999, y: -9999 };
@@ -341,7 +341,7 @@ export default function KoiSchool({ people, stay, onGone }) {
         if (alpha <= 0.01) return;
         const f = k.fish;
         ctx.save();
-        ctx.font = '700 12px "Source Sans 3", system-ui, sans-serif';
+        ctx.font = `700 ${Math.round(12 * Math.min(1.5, Math.max(1, size)))}px "Source Sans 3", system-ui, sans-serif`;
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0.16em';
         const tw = ctx.measureText(k.label).width;
         const lx = f.head.x;
