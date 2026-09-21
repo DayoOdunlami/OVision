@@ -141,6 +141,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
   const [rejectAt, setRejectAt] = useState(-1);         // slot that just refused a word
 
   const stageRef = useRef(null);
+  const verseRef = useRef(null);
   const slotRefs = useRef([]);
   const pieceRefs = useRef([]);
   // Mirrors of state for the imperative physics/pointer code, which
@@ -161,6 +162,49 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
   useEffect(() => {
     onLeft(phase === 'playing' ? slots.length - filled.size : null);
   }, [phase, filled, slots.length, onLeft]);
+
+  // ── Size the words to the screen ───────────────────────────────────
+  // The largest type at which the verse *and* the pile it will become
+  // both fit in the play area. Both grow with the square of the type
+  // size, so this is a short binary search over real DOM measurements
+  // (verse height, and the summed area of every tile). Tiles share the
+  // same size, so a word looks identical in the pile and in its slot.
+  //
+  // Runs while reading, and again if the screen changes size before the
+  // words fall. Once they've fallen the size is fixed — the physics
+  // bodies are built at it.
+  useLayoutEffect(() => {
+    if (phase !== 'reading') return;
+    const stage = stageRef.current;
+    const verse = verseRef.current;
+    if (!stage || !verse) return;
+
+    const fit = () => {
+      const W = stage.clientWidth;
+      const H = stage.clientHeight;
+      if (!W || !H) return;
+      const tiles = pieceRefs.current.filter(Boolean);
+      let lo = 17;
+      let hi = W < 520 ? 34 : 48;
+      let best = lo;
+      for (let n = 0; n < 9; n++) {
+        const f = (lo + hi) / 2;
+        stage.style.setProperty('--pz-size', `${f}px`);
+        const verseH = verse.offsetHeight;
+        let area = 0;
+        for (const t of tiles) area += (t.offsetWidth + 6) * (t.offsetHeight + 4);
+        // A tumbled pile of flat tiles packs at roughly two-thirds.
+        const pileH = area / (W * 0.66);
+        if (verseH + pileH + 28 <= H) { best = f; lo = f; } else { hi = f; }
+      }
+      stage.style.setProperty('--pz-size', `${best}px`);
+    };
+
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [phase, puzzle]);
 
   // ── The physics world. Built the moment the words are let fall. ────
   // useLayoutEffect so the pieces are positioned over their slots
@@ -218,9 +262,13 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
         density: 0.0016,
         sleepThreshold: 40,
       });
+      // Tiles are words: they have to stay readable. Raising the
+      // moment of inertia makes them turn lazily, and the loop below
+      // caps the tilt, so they still tumble but never land upside down.
+      Body.setInertia(body, body.inertia * 4);
       if (!reduced) {
         Body.setVelocity(body, { x: (Math.random() - 0.5) * 4, y: -Math.random() * 2.5 });
-        Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.09);
+        Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.05);
       }
       return { k, el, body, w, h, text: slot.text, placed: false, busy: false, home: null };
     });
@@ -254,6 +302,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
     // ── Loop: fixed 60Hz steps, whatever the display rate ─────────────
     // A 120Hz iPad would otherwise run the physics at double speed.
     const STEP = 1000 / 60;
+    const MAX_TILT = 0.42;   // ≈24° — tilted enough to feel tumbled, still readable
     let acc = 0;
     let lastT = performance.now();
     let raf = 0;
@@ -263,6 +312,14 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       let n = 0;
       while (acc >= STEP && n < 4) {
         Engine.update(engine, STEP);
+        for (const it of items) {
+          const b = it.body;
+          if (it.placed || it.busy || b.isStatic) continue;
+          if (b.angle > MAX_TILT || b.angle < -MAX_TILT) {
+            Body.setAngle(b, Math.sign(b.angle) * MAX_TILT);
+            Body.setAngularVelocity(b, 0);
+          }
+        }
         acc -= STEP;
         n++;
       }
@@ -276,6 +333,17 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+
+    // A settled pile is asleep, and a sleeping body ignores the world
+    // changing around it — so pulling a word out from under others left
+    // them hanging in mid-air. Anything that removes or moves a tile
+    // wakes the pile so it resettles into the gap.
+    const wakeAll = () => {
+      if (reduced) return;
+      for (const x of items) {
+        if (!x.placed && !x.busy && !x.body.isStatic) Sleeping.set(x.body, false);
+      }
+    };
 
     const liveIdx = () => liveOf(filledRef.current);
     const matches = (it) => {
@@ -311,6 +379,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       filledRef.current = new Set(filledRef.current).add(i);
       it.busy = true;
       Composite.remove(engine.world, it.body);
+      wakeAll();
       it.el.classList.add('is-placing');
       it.el.style.transform =
         `translate3d(${(c.x - it.w / 2).toFixed(1)}px, ${(c.y - it.h / 2).toFixed(1)}px, 0) rotate(0rad)`;
@@ -326,6 +395,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
     };
 
     const release = (it, vx, vy) => {
+      it.body.isSensor = false;
       if (reduced) {
         Body.setPosition(it.body, it.home);
         draw(it);
@@ -338,6 +408,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
         y: Math.max(-cap, Math.min(cap, vy)),
       });
       Sleeping.set(it.body, false);
+      wakeAll();
     };
 
     const refuse = () => {
@@ -358,7 +429,13 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       // active) the drag still works — don't let it abort the pickup.
       try { it.el.setPointerCapture?.(e.pointerId); } catch {}
       const p = toStage(e.clientX, e.clientY);
+      // A held word is lifted *off* the pile, not dragged through it: a
+      // sensor passes over other tiles instead of shoving them, so you
+      // can't knock the next word you need out of reach while you aim.
+      // The pile still reacts to the word *leaving* (wakeAll).
       Body.setStatic(it.body, true);
+      it.body.isSensor = true;
+      wakeAll();
       drag = {
         it,
         off: { x: p.x - it.body.position.x, y: p.y - it.body.position.y },
@@ -449,17 +526,32 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       }
     };
 
-    // Keep the walls at the edges if the window changes size. The slot
-    // positions are read live, so nothing else needs rebuilding.
+    // Keep the walls on the edges of the play area whenever *it*
+    // changes size — not just the window. This was the cropping bug:
+    // the floor was fixed where the stage ended at the moment the words
+    // fell, and then the footer appeared and the stage got shorter, so
+    // the bottom row rested below the visible edge. Tiles that end up
+    // outside the new bounds are lifted back in.
     const onResize = () => {
       W = stage.clientWidth;
       H = stage.clientHeight;
       Body.setPosition(floor, { x: W / 2, y: H + T / 2 });
       Body.setPosition(rightW, { x: W + T / 2, y: H / 2 });
       Body.setPosition(leftW, { x: -T / 2, y: H / 2 });
-      items.forEach((it) => !it.placed && Sleeping.set(it.body, false));
+      for (const it of items) {
+        if (it.placed || it.busy) continue;
+        const { x, y } = it.body.position;
+        const nx = Math.min(Math.max(x, it.w / 2), W - it.w / 2);
+        const ny = Math.min(y, H - it.h / 2);
+        if (nx !== x || ny !== y) Body.setPosition(it.body, { x: nx, y: ny });
+        if (reduced && it.home) {
+          it.home = { x: Math.min(it.home.x, W - it.w / 2), y: Math.min(it.home.y, H - it.h / 2) };
+        }
+      }
+      wakeAll();
     };
-    window.addEventListener('resize', onResize);
+    const ro = new ResizeObserver(onResize);
+    ro.observe(stage);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -467,7 +559,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
-      window.removeEventListener('resize', onResize);
+      ro.disconnect();
       hintRef.current = null;
       tryPlaceRef.current = null;
       Composite.clear(engine.world, false);
@@ -481,7 +573,7 @@ function Round({ html, mode, hintRef, onComplete, onLeft }) {
 
   return (
     <div className="pz-stage" ref={stageRef}>
-      <p className={'pz-verse' + (phase === 'complete' ? ' is-complete' : '')}>
+      <p ref={verseRef} className={'pz-verse' + (phase === 'complete' ? ' is-complete' : '')}>
         {tokens.map((t, i) => {
           if (covered.has(i)) return null;
           const sep = i > 0 ? ' ' : '';

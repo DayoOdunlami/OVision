@@ -853,6 +853,17 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 }
 
 /* ═══ Puzzle ═════════════════════════════════════════════════════════ */
+/* On wide screens the puzzle is a centred column, so the pile lands
+   under the verse instead of spreading across 1,400px of desktop. */
+.overlay.puzzle {
+  padding-left:  max(18px, env(safe-area-inset-left, 0px), calc((100vw - 60rem) / 2));
+  padding-right: max(18px, env(safe-area-inset-right, 0px), calc((100vw - 60rem) / 2));
+}
+/* The footer holds its height from the first frame. It used to be
+   empty while reading and then gain a row when the words fell — which
+   shrank the play area underneath a floor that had already been placed. */
+.overlay.puzzle .overlay-foot { min-height: 58px; align-items: center; }
+
 .pz-head { min-width: 0; }
 .pz-who {
   font-family: var(--display);
@@ -870,7 +881,7 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   color: var(--ink-3);
   margin-top: 2px;
 }
-.pz-modes { flex: none; margin: 12px 0 4px; }
+.pz-modes { flex: none; margin: 12px auto 4px; width: 100%; max-width: 26rem; }
 .pz-modes .seg-opt { min-height: 38px; font-size: 0.86rem; }
 
 /* The play area. touch-action: none so dragging a word never scrolls
@@ -888,12 +899,13 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 .pz-verse {
   position: relative;
   z-index: 1;
-  max-width: 36rem;
+  max-width: 52rem;
   margin: 0 auto;
-  padding: 1.2rem 0.25rem 0;
+  padding: 1rem 0.25rem 0;
   font-family: var(--serif);
-  font-size: calc(clamp(1.2rem, 4.6vw, 1.6rem) * var(--scale));
-  line-height: 1.95;
+  /* --pz-size is fitted to the screen per verse by PuzzleMode. */
+  font-size: var(--pz-size, 1.4rem);
+  line-height: 1.8;
   color: var(--ink);
   text-wrap: pretty;
 }
@@ -971,14 +983,16 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 12px;
+  /* 38px floor: still an easy target (tiles are wide), but a 42px floor
+     made the pile so tall on a phone that fitting starved the verse. */
+  min-height: max(38px, 1.7em);
+  padding: 0 0.5em;
+  border-radius: 0.5em;
   background: var(--paper-3);
   border: 1px solid var(--line-2);
   box-shadow: 0 2px 0 var(--line), 0 6px 14px rgba(60, 40, 20, 0.10);
   font-family: var(--serif);
-  font-size: calc(clamp(1.05rem, 4vw, 1.35rem) * var(--scale));
+  font-size: var(--pz-size, 1.4rem);
   color: var(--ink);
   white-space: nowrap;
   cursor: grab;
@@ -1049,9 +1063,34 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   .explore-text { font-size: calc(1.05rem * var(--scale)); }
 }
 
+/* Phones: bigger words, less air. The desktop proportions (generous
+   margins, airy leading) read as sparse on a narrow screen, where the
+   instinct was to pinch-zoom. Trade margin and leading for type size. */
+@media (max-width: 600px) {
+  .rv {
+    padding-top: calc(58px + env(safe-area-inset-top, 0px));
+    padding-left: max(1.1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.1rem, env(safe-area-inset-right, 0px));
+  }
+  .rv-head { margin-bottom: 1.5rem; }
+  .rv-daynav { margin-bottom: 0.4rem; }
+  .rv-ref { margin-top: 0.45rem; }
+  .rv-p {
+    font-size: calc(1.52rem * var(--scale));   /* ≈ 24.3px at 100% */
+    line-height: 1.5;
+    margin-bottom: 0.8em;
+  }
+  .rv.is-kids .rv-p { font-size: calc(1.66rem * var(--scale)); line-height: 1.48; }
+  .rv-section { margin-bottom: 1.1rem; }
+  .rv-blessing-text { font-size: calc(1.34rem * var(--scale)); line-height: 1.65; }
+  .rv-petition { margin: 1.8rem 0; }
+  .rv-petition-prompt { font-size: calc(1.2rem * var(--scale)); }
+  .rv-blessing { margin-top: 2rem; padding-top: 1.6rem; }
+}
+
 /* Very small phones: claw back a little side padding, not type size. */
 @media (max-width: 360px) {
-  .rv { padding-left: 1.1rem; padding-right: 1.1rem; }
+  .rv { padding-left: 0.9rem; padding-right: 0.9rem; }
   .dock-main { min-width: 8rem; padding: 0 1.1rem; }
 }
 
