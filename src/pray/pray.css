@@ -852,6 +852,181 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   color: var(--ink-3);
 }
 
+/* ═══ Puzzle ═════════════════════════════════════════════════════════ */
+.pz-head { min-width: 0; }
+.pz-who {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.pz-progress {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+.pz-modes { flex: none; margin: 12px 0 4px; }
+.pz-modes .seg-opt { min-height: 38px; font-size: 0.86rem; }
+
+/* The play area. touch-action: none so dragging a word never scrolls
+   the page or triggers pull-to-refresh. */
+.pz-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pz-verse {
+  position: relative;
+  z-index: 1;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 1.2rem 0.25rem 0;
+  font-family: var(--serif);
+  font-size: calc(clamp(1.2rem, 4.6vw, 1.6rem) * var(--scale));
+  line-height: 1.95;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.pz-name { color: var(--gold); font-weight: 600; }
+
+/* A slot: the word's own width, held open by invisible text, with an
+   underline where it goes. */
+.pz-slot {
+  position: relative;
+  display: inline-block;
+  line-height: 1.3;
+  border-radius: 6px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.pz-slot::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: -3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-2);
+  transition: background 0.2s, height 0.2s;
+}
+.pz-slot-text { visibility: hidden; }
+.pz-slot.is-reading .pz-slot-text { visibility: visible; color: var(--ink); }
+.pz-slot.is-reading::after { background: var(--gold-soft); }
+.pz-slot.is-filled .pz-slot-text {
+  visibility: visible;
+  color: var(--ink);
+  animation: slot-in 0.4s var(--ease) both;
+}
+.pz-slot.is-filled::after { background: transparent; }
+
+/* The next slot to fill. */
+.pz-slot.is-live { background: var(--gold-wash); box-shadow: 0 0 0 4px var(--gold-wash); }
+.pz-slot.is-live::after { background: var(--gold-fill); animation: live-pulse 1.8s ease-in-out infinite; }
+.pz-slot.is-hover-ok { background: rgba(185, 138, 69, 0.24); box-shadow: 0 0 0 6px rgba(185, 138, 69, 0.18); }
+.pz-slot.is-hover-ok::after { height: 3px; }
+.pz-slot.is-reject { animation: nope 0.4s ease; }
+
+.pz-verse.is-complete .pz-slot.is-filled .pz-slot-text { color: var(--gold); }
+
+.pz-intro {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 12%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0 1rem;
+  text-align: center;
+}
+.pz-intro-text {
+  margin: 0;
+  max-width: 22rem;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+.pz-pieces { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+
+/* A piece: a paper tile you can pick up. Min-height keeps it a
+   comfortable touch target even for short words. */
+.pz-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--paper-3);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 2px 0 var(--line), 0 6px 14px rgba(60, 40, 20, 0.10);
+  font-family: var(--serif);
+  font-size: calc(clamp(1.05rem, 4vw, 1.35rem) * var(--scale));
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+  transition: box-shadow 0.15s, border-color 0.15s, background 0.15s;
+}
+.pz-piece:focus-visible { outline: 2px solid var(--gold-fill); outline-offset: 2px; }
+.pz-piece.is-held {
+  cursor: grabbing;
+  z-index: 5;
+  border-color: var(--gold-fill);
+  box-shadow: 0 14px 28px rgba(60, 40, 20, 0.22);
+}
+.pz-piece.is-placing {
+  transition: transform 0.3s var(--ease), opacity 0.2s 0.12s;
+  opacity: 0;
+}
+.pz-piece.is-hint { animation: hint-glow 1.6s ease both; }
+
+.pz-left {
+  align-self: center;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-right: 4px;
+}
+
+@keyframes slot-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes nope {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+@keyframes hint-glow {
+  0%, 100% { box-shadow: 0 2px 0 var(--line), 0 6px 14px rgba(60, 40, 20, 0.10); }
+  30%, 70% { box-shadow: 0 0 0 4px var(--gold-soft), 0 0 22px rgba(185, 138, 69, 0.45); border-color: var(--gold-fill); }
+}
+
 /* ═══ Motion ═════════════════════════════════════════════════════════ */
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }

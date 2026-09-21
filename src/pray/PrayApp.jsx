@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import ReadingView from './components/ReadingView.jsx';
 import ControlSheet from './components/ControlSheet.jsx';
 import PaceMode from './components/PaceMode.jsx';
 import PrintSheet from './components/PrintSheet.jsx';
+// The puzzle pulls in matter-js (~30 KB gzipped). Loaded on demand so
+// the reading page — what almost every visit is — stays light.
+const PuzzleMode = lazy(() => import('./components/PuzzleMode.jsx'));
 import { buildDay } from './lib/script.js';
 import {
   loadState, writeStored, createWeek, weekTally, isoDate, isoForDayIndex,
@@ -16,7 +19,7 @@ import { prayers } from './data/prayers.js';
 // Layout, top to bottom:
 //   · a quiet back-link to the Pond
 //   · the reading view — the prayer is the landing page
-//   · a dock at the bottom, in thumb reach: Options · Pray it
+//   · a dock at the bottom, in thumb reach: Options · Pray it · Puzzle
 //
 // Everything else — day, voice, style, text size, the week, settings —
 // lives in the Options sheet, so none of it competes with the prayer
@@ -30,7 +33,7 @@ export default function PrayApp() {
   const [state, setState] = useState(() => loadState());
   const [dayIndex, setDayIndexRaw] = useState(() => todayDayIndex());
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [overlay, setOverlay] = useState(null); // null | 'pace'
+  const [overlay, setOverlay] = useState(null); // null | 'pace' | 'puzzle'
   const [focus, setFocus] = useState(false);
   const [textScale, setTextScaleRaw] = useState(() => readTextScale());
   const [printNotes, setPrintNotes] = useState(false);
@@ -67,7 +70,6 @@ export default function PrayApp() {
 
   const day = useMemo(() => buildDay(state, dayIndex), [state, dayIndex]);
   const tally = weekTally(state.prayed);
-  const prayedToday = Boolean(state.prayed?.[isoDate()]);
   const prayedThatDay = dayIndex <= todayDayIndex() && Boolean(state.prayed?.[isoForDayIndex(dayIndex)]);
   const isKids = state.mode === 'kids' && !state.spokenView;
 
@@ -142,10 +144,15 @@ export default function PrayApp() {
           <span aria-hidden="true" className="dock-main-icon">&#9655;</span>
           Pray it
         </button>
-        <div className={'dock-side dock-status' + (prayedToday ? ' is-done' : '')} aria-live="polite">
-          <span className="dock-status-num">{tally.done}/{tally.elapsed}</span>
-          <span>{prayedToday ? 'Prayed' : 'This week'}</span>
-        </div>
+        <button
+          className="dock-side"
+          onClick={() => setOverlay('puzzle')}
+          disabled={!day}
+          aria-haspopup="dialog"
+        >
+          <PuzzleIcon />
+          <span>Puzzle</span>
+        </button>
       </nav>
 
       <ControlSheet
@@ -165,6 +172,16 @@ export default function PrayApp() {
         onPrint={print}
       />
 
+      {overlay === 'puzzle' && day && (
+        <Suspense fallback={<div className="overlay" aria-busy="true" />}>
+          <PuzzleMode
+            day={day}
+            onClose={() => setOverlay(null)}
+            onAmen={markPrayedToday}
+          />
+        </Suspense>
+      )}
+
       {overlay === 'pace' && day && (
         <PaceMode
           day={day}
@@ -175,6 +192,18 @@ export default function PrayApp() {
 
       <PrintSheet state={state} withNotes={printNotes} />
     </div>
+  );
+}
+
+function PuzzleIcon() {
+  // Three tiles, one lifted out of line — a verse coming apart.
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="13" width="6" height="5" rx="1.5" />
+      <rect x="10.5" y="13" width="11" height="5" rx="1.5" />
+      <rect x="6" y="4" width="8" height="5" rx="1.5" transform="rotate(-10 10 6.5)" />
+    </svg>
   );
 }
 

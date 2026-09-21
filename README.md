@@ -71,12 +71,14 @@ src/pray/
   data/prayers.js          the nine prayers, blessings, prompts
   lib/state.js             storage, weekly rota, consistency
   lib/context.js           names → pronouns → grammar
+  lib/puzzle.js            cuts a verse into slots and falling pieces
   lib/script.js            "what is this day's prayer?" — shared by
                            reading view, Pray it and the puzzle
   components/
     ReadingView.jsx        the landing page: who, passage, prayer
     ControlSheet.jsx       every control, in one bottom sheet
     PaceMode.jsx           Pray it — one thought per card, then Amen
+    PuzzleMode.jsx         the verse falls apart; put it back (lazy-loaded)
     PrintSheet.jsx         the paper rota
   pray.css
 ```
@@ -89,6 +91,11 @@ src/pray/
   new week and printing.
 - **Pray it** — a breath card, one thought per tap, then the blessing.
   Reaching *Amen* is what records the day as prayed.
+- **Puzzle** — read the verse, let words fall into a pile, then drag (or tap)
+  them back into the next glowing slot, in order. Three cuts: *Memory* (every
+  third word — the default, for memorising), *Words*, and *Phrases* (easier for
+  children). Names never fall. Right words snap home; wrong ones bounce back —
+  no score. Physics is matter-js, loaded only when the puzzle is opened.
 - Nine prayers from Scripture, each in three registers plus an **Explore** note
   on the Greek or Hebrew. Six-person rota, reshuffled weekly; Sunday is the
   whole household.
