@@ -38,17 +38,26 @@ export default function AmenCard({ koiActive, onCallKoi, onDone }) {
 }
 
 // ── Nudge ─────────────────────────────────────────────────────────────
-// A block that koi can push. Reads the surfaced koi's body points from
-// `window.__prayerKoi` (published each frame by KoiSchool) and runs the
-// same spring model as the pond's lily pads: a push away from nearby
-// fish, weighted by how close and how thick that part of the body is;
-// a pull back home; damping just under critical, so it overshoots once
-// and settles. Offset is capped so nothing wanders off.
-const REACH = 70;        // px beyond the element's own half-size
-const PUSH = 1.6;        // strength of a koi's push
-const STIFF = 0.045;     // pull back towards home
-const DAMP = 0.86;       // velocity kept per frame
-const MAX = 26;          // px
+// A block that koi can push, like a lily pad on an anchor line: a koi
+// passing close shoves it aside, it glides away, and a weak anchor
+// draws it slowly home. Reads the koi's body points from
+// `window.__prayerKoi` (published each frame by KoiSchool).
+//
+// Tuned by measurement: over 90s of real (frame-stepped) koi on a
+// laptop-sized screen, words were pushed ~19 times, typically ~50px
+// (never past ~60), and drifted home in ~5s. On smaller screens the
+// push and the anchor's slack scale down with the width. The first version used a
+// stiff spring — ~30px, snapped back in a moment — which read as a
+// jiggle in place rather than a drift. A short reach matters as much
+// as the push: with a long one the koi kept shoving the word ahead of
+// itself, surfing it across the screen.
+const REACH = 45;        // px beyond the element's own half-size
+const PUSH = 0.3;        // strength of a koi's push, per frame
+const STIFF = 0.0012;    // the anchor's pull home
+const DAMP = 0.962;      // velocity kept per frame (water drag)
+const SOFT = 35;         // px — beyond this the anchor line goes taut…
+const TAUT = 0.012;      // …and pulls this much harder per px past it
+const MAX = 70;          // px — a backstop, not normally reached
 
 function Nudge({ as: Tag = 'div', className, children }) {
   const ref = useRef(null);
@@ -60,6 +69,10 @@ function Nudge({ as: Tag = 'div', className, children }) {
 
     let raf = 0;
     let x = 0, y = 0, vx = 0, vy = 0;
+    // Smaller drift on smaller screens: ~60% on a phone.
+    const scale = Math.min(1.1, Math.max(0.6, window.innerWidth / 1200));
+    const push = PUSH * scale;
+    const soft = SOFT * scale;
     // Home position: the element's rect measured without our own offset.
     let home = null;
     let frame = 0;
@@ -86,26 +99,38 @@ function Nudge({ as: Tag = 'div', className, children }) {
           const d = Math.hypot(dx, dy);
           if (d >= 1 || d === 0) continue;
           const near = 1 - d;
-          const w = near * near * Math.min(1.8, Math.max(0.4, (p.r || 6) / 10)) * PUSH;
+          const w = near * near * Math.min(1.8, Math.max(0.4, (p.r || 6) / 10)) * push;
           fx += (dx / d) * w;
           fy += (dy / d) * w;
         }
       }
-      vx = (vx + fx - x * STIFF) * DAMP;
-      vy = (vy + fy - y * STIFF) * DAMP;
+      // Anchor: weak near home, taut past SOFT, so a word can drift but
+      // never wander off however long a koi lingers nearby.
+      const disp = Math.hypot(x, y);
+      const k = STIFF + (disp > soft ? TAUT * (disp - soft) / disp : 0);
+      vx = (vx + fx - x * k) * DAMP;
+      vy = (vy + fy - y * k) * DAMP;
       x = Math.max(-MAX, Math.min(MAX, x + vx));
       y = Math.max(-MAX, Math.min(MAX, y + vy));
 
-      if (Math.abs(x) > 0.05 || Math.abs(y) > 0.05) {
-        el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) rotate(${(x * 0.12).toFixed(2)}deg)`;
+      if (Math.abs(x) > 0.05 || Math.abs(y) > 0.05 || Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01) {
+        // A pad pushed sideways turns a little as it goes.
+        const rot = Math.max(-7, Math.min(7, x * 0.09 + vy * 1.5));
+        el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) rotate(${rot.toFixed(2)}deg)`;
       } else if (el.style.transform) {
         el.style.transform = '';
         x = y = vx = vy = 0;
       }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const loop = () => { tick(); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    // Development only: let KoiSchool's frame-stepping hook step these
+    // too, for previews that don't run requestAnimationFrame.
+    if (import.meta.env.DEV) (window.__nudgeTicks ||= new Set()).add(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (import.meta.env.DEV) window.__nudgeTicks?.delete(tick);
+    };
   }, []);
 
   return (

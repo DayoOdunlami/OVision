@@ -888,9 +888,9 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
 
 .pace-done { text-align: center; animation: rise 0.45s var(--ease) both; }
 .pace-done-mark {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 1.3rem;
+  width: clamp(88px, 9vw, 128px);
+  height: clamp(88px, 9vw, 128px);
+  margin: 0 auto 1.4rem;
   border-radius: 50%;
   border: none;
   background: var(--gold-fill);
@@ -898,7 +898,7 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: clamp(2.1rem, 3.4vw, 3.1rem);
   cursor: pointer;
   box-shadow: 0 0 0 0 rgba(185, 138, 69, 0.45);
   animation: tick-glow 2.6s ease-in-out 1s infinite;
@@ -918,22 +918,35 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   text-align: center;
   letter-spacing: 0.04em;
 }
-.pace-done-text { font-family: var(--display); font-size: 2.4rem; font-weight: 600; }
-.pace-done-btn { margin-top: 1.8rem; }
+.pace-done-text {
+  font-family: var(--display);
+  font-size: clamp(3.4rem, 6vw + 1rem, 6rem);
+  font-weight: 600;
+  line-height: 1;
+}
+.pace-done-btn {
+  margin-top: 2.2rem;
+  min-height: 54px;
+  min-width: 11rem;
+  font-size: 1.02rem;
+}
+/* Sit the card a little above centre (optical centre), leaving the
+   lower part of the screen as open water for the koi. */
+.pace-body:has(> .pace-done) { align-items: flex-start; padding-top: max(8vh, 3rem); }
 /* Nudged blocks are moved by transform from script; keep them as the
    same blocks the card always had, and let them paint above the koi. */
 .pace-done .nudge { position: relative; will-change: transform; }
 .pace-done-hint {
-  margin: 0.9rem 0 0;
+  margin: 1.1rem 0 0;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 1rem;
+  font-size: clamp(1.15rem, 1.6vw, 1.5rem);
   color: var(--ink-3);
 }
 .pace-done-sub {
-  margin-top: 0.5rem;
+  margin-top: 0.9rem;
   font-family: var(--sans);
-  font-size: 0.74rem;
+  font-size: clamp(0.8rem, 1.1vw, 1rem);
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;

@@ -107,11 +107,13 @@ src/pray/
   pond's surface: the koi of everyone prayed for *rise* from beneath it — faint,
   blurred and small at first, then a pair of soft rings as each breaks the
   surface, then clear, with their name — each at its own moment and pace. Once
-  up they drift slowly and rest often, and stay until you tap Done; tapping the
+  up they drift slowly, rest often, and keep sinking a little and rising again
+  (softer and fainter when deeper), and stay until you tap Done; tapping the
   gold ✓ calls them again. They answer a finger like pond koi — curious ones
-  come, shy ones scatter. On the Amen card they nudge the ✓, "Amen." and its two
-  quiet lines aside like lily pads, which drift back; the Done button never
-  moves. (`components/KoiSchool.jsx`, `components/AmenCard.jsx`.)
+  come, shy ones scatter. Near the surface they visit the Amen card's words and
+  push the ✓, "Amen." and its two quiet lines aside like lily pads on an anchor
+  line — typically ~50px, drifting home over ~5s; the Done button never moves.
+  (`components/KoiSchool.jsx`, `components/AmenCard.jsx`.)
 - **Celebration**, set in Options: *Balanced* (default: koi at Amen; in the
   puzzle, each verse also gets a ripple from the last word and a sweep of gold,
   and the finished prayer gathers together), *Quiet* (no koi unless you tap the

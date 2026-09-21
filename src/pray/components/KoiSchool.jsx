@@ -23,17 +23,27 @@ import { useEffect, useRef, useState } from 'react';
 //   pass  one koi fades in at the left, crosses once and leaves — used
 //         mid-prayer in the puzzle's Grand celebration.
 //
-// While surfaced, the fish publish their body points as
+// In the water: once up, each koi still sinks a little and rises again
+// on its own slow cycle (driving SpineFish's own depth, so its shadow
+// moves with it), going slightly fainter, softer and smaller when
+// deeper — so they read as moving *in* water, not on the page.
+//
+// While near the surface, the fish publish their body points as
 // `window.__prayerKoi` (viewport coordinates, with radii), which Nudge
 // uses to let them push the Amen card's words about like lily pads.
+// Every so often a koi chooses to visit one of those words, so the
+// meeting actually happens rather than being left to chance.
 //
 // Rendered as the first child of a full-screen overlay (the puzzle or
 // Pray it) on a canvas behind everything else in it, so moving on never
 // cuts it off. The fish code is loaded on demand.
 // ═══════════════════════════════════════════════════════════════════
 
-const SURFACE_FRAMES = [170, 240];   // how long a rise takes (≈2.8–4s)
-const DEEP = { alpha: 0.1, blur: 7, scale: 0.72 };
+const SURFACE_FRAMES = [260, 360];   // how long a rise takes (≈4.3–6s)
+const DEEP = { alpha: 0.08, blur: 8, scale: 0.7 };
+// Once surfaced, how much a koi changes at the bottom of its depth
+// cycle: a little fainter, softer and smaller — never gone.
+const DIVE = { alpha: 0.3, blur: 2.4, scale: 0.08 };
 
 const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 
@@ -72,9 +82,11 @@ export default function KoiSchool({ people, stay, onGone }) {
       // SpineFish sets its own alpha and blur while drawing, so a rising
       // fish is drawn onto this scratch layer first, and the layer is
       // then laid onto the page faded, blurred and scaled.
+      // Sized to one fish (grown as needed), not the whole screen, so
+      // compositing and blurring stay cheap even on a large display.
       const scratch = document.createElement('canvas');
-      scratch.width = canvas.width;
-      scratch.height = canvas.height;
+      scratch.width = 2;
+      scratch.height = 2;
       const sctx = scratch.getContext('2d');
       const canFilter = 'filter' in ctx;
 
@@ -103,7 +115,9 @@ export default function KoiSchool({ people, stay, onGone }) {
       const restTop = () => band.top + Math.min(55, (band.bottom - band.top) * 0.4);
 
       const crowd = people.length;
-      const size = Math.max(0.55, Math.min(1, W / 900)) * (crowd > 3 ? 0.8 : 1);
+      // Scaled to the screen: small on a phone, generous on a laptop,
+      // where 1:1 koi were lost in the space.
+      const size = Math.max(0.55, Math.min(1.35, W / 900)) * (crowd > 3 ? 0.8 : 1);
       const randIn = (a, b) => a + Math.random() * (b - a);
       const env = { food: [], onBreak: () => {} };
       const far = { x: -9999, y: -9999 };
@@ -122,7 +136,7 @@ export default function KoiSchool({ people, stay, onGone }) {
           label: person.toUpperCase(),
           fish,
           // Rising: staggered, uneven starts and paces — "personality".
-          delay: stay ? Math.round(20 + slot * randIn(45, 80)) : 0,
+          delay: stay ? Math.round(30 + slot * randIn(70, 120)) : 0,
           riseFrames: Math.round(randIn(...SURFACE_FRAMES)),
           risen: stay ? 0 : 1,
           rippled: !stay,
@@ -130,6 +144,8 @@ export default function KoiSchool({ people, stay, onGone }) {
           restTimer: 0,
           wasIdle: false,
           laneOffset: 0,
+          // Depth cycle: a new target depth every ~6–12s.
+          depthTimer: Math.round(randIn(120, 400)),
         };
         // Settle the spine by letting it swim briefly in open water,
         // then place it where it will surface.
@@ -159,6 +175,21 @@ export default function KoiSchool({ people, stay, onGone }) {
 
       // How far through its rise a fish is, 0 → 1.
       const surfaced = (k) => (stay ? ease(k.risen) : 1);
+      // How deep a surfaced fish currently is, 0 (at the surface) → 1,
+      // from SpineFish's own depth value, which we steer below.
+      const deepness = (k) => Math.min(1, Math.max(0, ((k.fish.depth ?? 0.4) - 0.22) / 0.46));
+
+      // Words a koi may visit (the Amen card's nudgeable blocks), as
+      // canvas-space centres. Read fresh each time — they move.
+      const wordSpots = () => {
+        const host = canvas.parentElement;
+        if (!host) return [];
+        const r0 = canvas.getBoundingClientRect();
+        return [...host.querySelectorAll('.nudge')].map((el) => {
+          const r = el.getBoundingClientRect();
+          return { x: r.left - r0.left + r.width / 2, y: r.top - r0.top + r.height / 2, hw: r.width / 2 };
+        });
+      };
 
       const steer = (k) => {
         const f = k.fish;
@@ -186,15 +217,33 @@ export default function KoiSchool({ people, stay, onGone }) {
         // drifts read as calm; long dashes read as busy.
         if (!k.rest || k.wasIdle || --k.restTimer <= 0) {
           k.wasIdle = false;
-          const reach = Math.min(170, W * 0.35);
-          k.rest = {
-            x: Math.min(W - 60, Math.max(60, f.mouth.x + randIn(-reach, reach))),
-            y: randIn(restTop(), band.bottom),
-          };
+          const spots = wordSpots();
+          if (spots.length && Math.random() < 0.5) {
+            // A visit: swim *through* one of the card's words and come to
+            // rest well beyond it. Resting beside a word (the first try)
+            // meant the koi's lazy idle circle kept pushing it for
+            // seconds on end, shoving it ~100px away.
+            const w = spots[Math.floor(Math.random() * spots.length)];
+            const side = f.mouth.x < w.x ? 1 : -1;
+            k.rest = {
+              x: Math.min(W - 40, Math.max(40, w.x + side * (w.hw + randIn(130, 210)))),
+              y: w.y + randIn(-8, 24),
+            };
+          } else {
+            const reach = Math.min(190, W * 0.35);
+            k.rest = {
+              x: Math.min(W - 60, Math.max(60, f.mouth.x + randIn(-reach, reach))),
+              y: randIn(restTop(), band.bottom),
+            };
+          }
           k.restTimer = Math.round(randIn(420, 780));
         }
         f.target.x = k.rest.x;
         f.target.y = k.rest.y;
+        if (surfaced(k) >= 1 && --k.depthTimer <= 0) {
+          f.targetDepth = randIn(0.22, 0.68);
+          k.depthTimer = Math.round(randIn(360, 720));
+        }
         // Still rising: barely moving. Surfaced: an unhurried glide.
         f.energy = surfaced(k) < 1 ? 0.12 : 0.2;
       };
@@ -223,11 +272,35 @@ export default function KoiSchool({ people, stay, onGone }) {
       // Draw one fish, scaled about its head by `s`, faded to `a`,
       // blurred by `b` px. Surfaced fish (a=1, s=1, b=0) skip the
       // scratch layer entirely.
+      // The region a fish (with fins, tail and its soft shadow) occupies.
+      const fishBox = (f, blurPx) => {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        const take = (p) => {
+          if (!p) return;
+          if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+          if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+        };
+        take(f.mouth); take(f.head);
+        if (f.parts) f.parts.forEach(take);
+        const rows = f.tail?.pieces;
+        if (rows) rows.forEach((row) => row && row.forEach(take));
+        const pad = (f.head?.radius || 20) * 3 + 40 + blurPx * 3;
+        return { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad };
+      };
+
       const drawFish = (f, a, s, b) => {
-        if (a >= 0.999 && s >= 0.999 && b <= 0.05) { f.draw(ctx); return; }
+        if (a >= 0.995 && s >= 0.995 && b <= 0.05) { f.draw(ctx); return; }
+        const bb = fishBox(f, b);
+        const bw = Math.ceil((bb.x1 - bb.x0) * DPR);
+        const bh = Math.ceil((bb.y1 - bb.y0) * DPR);
+        if (bw <= 0 || bh <= 0) return;
+        if (scratch.width < bw || scratch.height < bh) {
+          scratch.width = Math.max(scratch.width, bw);
+          scratch.height = Math.max(scratch.height, bh);
+        }
         sctx.setTransform(1, 0, 0, 1, 0, 0);
-        sctx.clearRect(0, 0, scratch.width, scratch.height);
-        sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        sctx.clearRect(0, 0, bw, bh);
+        sctx.setTransform(DPR, 0, 0, DPR, -bb.x0 * DPR, -bb.y0 * DPR);
         sctx.translate(f.head.x, f.head.y);
         sctx.scale(s, s);
         sctx.translate(-f.head.x, -f.head.y);
@@ -236,7 +309,7 @@ export default function KoiSchool({ people, stay, onGone }) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = a;
         if (canFilter && b > 0.05) ctx.filter = `blur(${(b * DPR).toFixed(1)}px)`;
-        ctx.drawImage(scratch, 0, 0);
+        ctx.drawImage(scratch, 0, 0, bw, bh, Math.round(bb.x0 * DPR), Math.round(bb.y0 * DPR), bw, bh);
         ctx.restore();
       };
 
@@ -272,7 +345,7 @@ export default function KoiSchool({ people, stay, onGone }) {
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0.16em';
         const tw = ctx.measureText(k.label).width;
         const lx = f.head.x;
-        const ly = f.head.y - 34 * size - 10;
+        const ly = f.head.y - 34 * Math.min(size, 1.1) - 10;
         ctx.globalAlpha = 0.9 * alpha;
         ctx.fillStyle = 'rgba(42, 34, 29, 0.72)';
         ctx.beginPath();
@@ -291,7 +364,8 @@ export default function KoiSchool({ people, stay, onGone }) {
         const r = canvas.getBoundingClientRect();
         const pts = [];
         for (const k of list) {
-          if (surfaced(k) < 0.85) continue;   // deep fish don't touch the surface
+          // Only fish near the surface touch the words floating on it.
+          if (surfaced(k) < 0.85 || deepness(k) > 0.65) continue;
           const f = k.fish;
           const add = (p, rad) => p && pts.push({ x: r.left + p.x, y: r.top + p.y, r: rad || 6 });
           add(f.mouth, f.mouth?.radius);
@@ -337,16 +411,21 @@ export default function KoiSchool({ people, stay, onGone }) {
         );
         for (const k of drawOrder) {
           const e = surfaced(k);
+          const dn = e >= 1 ? deepness(k) : 0;
           const passFade = stay ? 1 : Math.min(1, frames / 45);   // pass: fade in at the edge
           drawFish(
             k.fish,
-            (DEEP.alpha + (1 - DEEP.alpha) * e) * passFade,
-            DEEP.scale + (1 - DEEP.scale) * e,
-            DEEP.blur * (1 - e),
+            (DEEP.alpha + (1 - DEEP.alpha) * e) * (1 - DIVE.alpha * dn) * passFade,
+            (DEEP.scale + (1 - DEEP.scale) * e) * (1 - DIVE.scale * dn),
+            DEEP.blur * (1 - e) + DIVE.blur * dn,
           );
         }
-        // Names appear only once a fish is nearly up.
-        for (const k of active) drawLabel(k, Math.max(0, (surfaced(k) - 0.7) / 0.3));
+        // Names appear only once a fish is nearly up, and dim a little
+        // when it goes deep.
+        for (const k of active) {
+          const dn = surfaced(k) >= 1 ? deepness(k) : 0;
+          drawLabel(k, Math.max(0, (surfaced(k) - 0.7) / 0.3) * (1 - 0.35 * dn));
+        }
 
         publish(active);
 
@@ -377,7 +456,12 @@ export default function KoiSchool({ people, stay, onGone }) {
       // animation by hand, for tools and previews that don't run
       // requestAnimationFrame while hidden.
       if (import.meta.env.DEV) {
-        window.__koiStep = (n = 1) => { for (let i = 0; i < n; i++) if (!step()) break; };
+        window.__koiStep = (n = 1) => {
+          for (let i = 0; i < n; i++) {
+            if (!step()) break;
+            window.__nudgeTicks?.forEach((tick) => tick());
+          }
+        };
       }
       // First frame now, so the canvas is never momentarily empty.
       frame();
