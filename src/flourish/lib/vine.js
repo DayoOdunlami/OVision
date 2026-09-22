@@ -120,19 +120,68 @@ function curl(x, y, heading, len, dir, em) {
   return pts;
 }
 
-// Turn a list of points (px) into a stem.
+// Turn a list of points (px) into a stem: arc lengths and normals.
 function stem(pts, extra) {
-  const s = [0];
-  for (let i = 1; i < pts.length; i++) s.push(s[i - 1] + dist(pts[i - 1], pts[i]));
-  return { pts, s, len: s[s.length - 1], baked: 0, ...extra };
+  const n = pts.length;
+  const s = new Float64Array(n);
+  const nx = new Float64Array(n), ny = new Float64Array(n);
+  for (let i = 1; i < n; i++) s[i] = s[i - 1] + dist(pts[i - 1], pts[i]);
+  for (let i = 0; i < n; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    const h = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    nx[i] = -Math.sin(h); ny[i] = Math.cos(h);
+  }
+  return { pts, s, nx, ny, len: s[n - 1], phase: 0, ...extra };
 }
 
+const wrap = (d) => {
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+};
+const headingAt = (st, i, j) => Math.atan2(st.pts[j][1] - st.pts[i][1], st.pts[j][0] - st.pts[i][0]);
+// Signed bend at sample i (radians per px): + turns clockwise on screen.
+function bendAt(st, i, k = 4) {
+  const n = st.pts.length;
+  const a = Math.max(0, i - k), b = Math.min(n - 1, i + k);
+  if (i - a < 1 || b - i < 1) return 0;
+  const d = wrap(headingAt(st, i, b) - headingAt(st, a, i));
+  return d / Math.max(1e-3, st.s[b] - st.s[a]);
+}
+
+// When growth reaches each sample. Not a constant speed: a shoot eases
+// out of its start, slows through tight curves, and surges and rests a
+// little along the way — so it reads as growing, not as being drawn.
+function timeStem(st, t0, v, em, rand) {
+  const n = st.pts.length;
+  const tt = new Float64Array(n);
+  tt[0] = t0;
+  const ph = rand() * Math.PI * 2;
+  const wave = 3.2 + rand() * 1.6;
+  for (let i = 1; i < n; i++) {
+    const ds = st.s[i] - st.s[i - 1];
+    const bend = Math.exp(-Math.abs(bendAt(st, i)) * em * 0.045);
+    const sprout = Math.min(1, 0.3 + st.s[i] / (em * 0.3));
+    const pulse = 0.78 + 0.22 * Math.sin((st.s[i] / em) * wave + ph);
+    tt[i] = tt[i - 1] + ds / (v * (0.5 + 0.5 * bend) * pulse * sprout);
+  }
+  st.t0 = t0;
+  st.tt = tt;
+  st.tEnd = tt[n - 1];
+  st.phase = ph;
+}
+
+// Leaves: deep at the base of the leaf, lighter to the tip; tones range
+// from blue-green through leaf green to olive.
 const LEAF_TONES = [
   ['#2d6a52', '#4f9469'],
   ['#3a7443', '#65a458'],
-  ['#295d4d', '#478b72'],
+  ['#295d56', '#4a8b7f'],
   ['#44803f', '#7bb561'],
+  ['#56772d', '#8cab48'],
 ];
+
+export const MATURE_S = 5;   // seconds for fresh growth to darken
 
 // ── Build ─────────────────────────────────────────────────────────
 // `box` is where the word should sit, in CSS px.
@@ -169,9 +218,9 @@ export function buildVine(word, box) {
   const oy = box.y + (box.h - bh * sc) / 2 - minY * sc;
   const toPx = (p) => [ox + p[0] * sc, oy + p[1] * sc];
   const em = 1000 * sc;
-  const base = Math.max(2, Math.min(15, em * 0.02));   // stem width
-  const speed = em * 0.95;                              // px per second
-  const step = STEP * sc;
+  // Stems a touch heavier than before, so the letters lead the leaves.
+  const base = Math.max(2.4, Math.min(16, em * 0.024));
+  const speed = em * 0.62;                              // px per second, before easing
 
   // Stems, timed. The first starts at once. A later stem that begins
   // near stem already grown sprouts from it when growth passes that
@@ -185,93 +234,158 @@ export function buildVine(word, box) {
     if (stems.length) {
       let best = Infinity, bt = 0;
       for (const o of stems) {
-        if (o.tendril) continue;
         for (let i = 0; i < o.pts.length; i += 3) {
           const d = dist(o.pts[i], pts[0]);
-          if (d < best) { best = d; bt = o.t0 + o.s[i] / speed; }
+          if (d < best) { best = d; bt = o.tt[i]; }
         }
       }
-      const prev = stems.filter((o) => !o.tendril).pop();
-      if (best < em * 0.35) { t0 = bt + 0.15; branch = true; }
-      else t0 = prev.t0 + prev.len / speed;
+      if (best < em * 0.35) { t0 = bt + 0.3; branch = true; }
+      else t0 = stems[stems.length - 1].tEnd;
     }
-    const w0 = branch ? base * 0.78 : base;
-    stems.push(stem(pts, { t0, w0, w1: w0 * 0.55, branch }));
+    const w0 = branch ? base * 0.8 : base;
+    const st = stem(pts, { w0, w1: w0 * 0.55, branch });
+    timeStem(st, t0, speed, em, rand);
+    stems.push(st);
   }
   const mains = stems.slice();
 
-  // Tendrils: off the very start of the word (curling back), off each
-  // long stem's end, and a few along the way.
-  const heading = (st, i, j) => Math.atan2(st.pts[j][1] - st.pts[i][1], st.pts[j][0] - st.pts[i][0]);
-  const turn = (st, from) => {
-    // Which way the stem was bending as it finished — the curl follows.
-    const a = heading(st, Math.max(0, from - 12), Math.max(1, from - 6));
-    const b = heading(st, Math.max(0, from - 6), from);
-    let d = b - a;
-    while (d > Math.PI) d -= 2 * Math.PI;
-    while (d < -Math.PI) d += 2 * Math.PI;
-    return Math.abs(d) < 0.02 ? (rand() < 0.5 ? -1 : 1) : Math.sign(d);
+  // Tendrils: one off the very start of the word, curling back, and one
+  // off each long stem's end. None mid-word: they read as extra letters.
+  // A curl that would wind into another stroke (inside an o, say) tries
+  // the other way, and is left out if that's no better.
+  const roomy = (pts) => {
+    const reach = base * 2.2;
+    for (let k = Math.floor(pts.length * 0.3); k < pts.length; k += 2) {
+      const p = pts[k];
+      for (const o of stems) {
+        for (let i = 0; i < o.pts.length; i += 2) {
+          const q = o.pts[i];
+          if (Math.abs(p[0] - q[0]) < reach && Math.abs(p[1] - q[1]) < reach && dist(p, q) < reach) return false;
+        }
+      }
+    }
+    return true;
   };
   const addTendril = (x, y, h, len, dir, t0, w) => {
-    stems.push(stem(curl(x, y, h, len, dir, em), { t0, w0: w, w1: w * 0.35, tendril: true }));
+    for (const d of [dir, -dir]) {
+      const pts = curl(x, y, h, len, d, em);
+      if (!roomy(pts)) continue;
+      const st = stem(pts, { w0: w, w1: w * 0.3, tendril: true });
+      timeStem(st, t0, speed * 0.55, em, rand);
+      stems.push(st);
+      return;
+    }
   };
   const first = mains[0];
   if (first.pts.length > 8) {
-    addTendril(first.pts[0][0], first.pts[0][1], heading(first, 6, 0), em * 0.3, rand() < 0.5 ? -1 : 1, 0, base * 0.5);
+    addTendril(first.pts[0][0], first.pts[0][1], headingAt(first, 6, 0), em * 0.3, rand() < 0.5 ? -1 : 1, 0.4, base * 0.5);
   }
   for (const st of mains) {
     const n = st.pts.length;
     if (st.len > em * 0.6 && n > 14) {
-      addTendril(st.pts[n - 1][0], st.pts[n - 1][1], heading(st, n - 6, n - 1), em * r(0.28, 0.4), turn(st, n - 1),
-        st.t0 + st.len / speed, st.w1);
+      const b = bendAt(st, n - 8, 6);
+      const dir = Math.abs(b) < 1e-4 ? (rand() < 0.5 ? -1 : 1) : Math.sign(b);
+      addTendril(st.pts[n - 1][0], st.pts[n - 1][1], headingAt(st, n - 6, n - 1), em * r(0.26, 0.36), dir,
+        st.tEnd, st.w1);
     }
   }
-  const longest = [...mains].sort((a, b) => b.len - a.len)[0];
-  const midCount = Math.min(4, Math.max(1, Math.round(longest.len / (em * 1.6))));
-  for (let k = 0; k < midCount; k++) {
-    const i = Math.floor(longest.pts.length * r(0.15, 0.85));
-    const h = heading(longest, Math.max(0, i - 3), Math.min(longest.pts.length - 1, i + 3));
-    const side = rand() < 0.5 ? -1 : 1;
-    addTendril(longest.pts[i][0], longest.pts[i][1], h + side * 0.9, em * r(0.14, 0.22), side,
-      longest.t0 + longest.s[i] / speed + 0.3, base * 0.4);
-  }
 
-  // Leaves along the stems (not the tendrils), alternating sides,
-  // leaning forward the way the vine grows.
+  // Leaves. Kept small and off the letters: each sits on the outside of
+  // the curve where it can (so the insides of o, e, a stay open), and a
+  // leaf that would lie across another stroke, or on another leaf, is
+  // moved to the other side or left out.
+  const clear = (st, si, x0, y0, ang, L, W, pl, placed) => {
+    const cx = Math.cos(ang), cy = Math.sin(ang);
+    const probes = [0.3, 0.6, 0.95].map((f) => [x0 + cx * (pl + f * L), y0 + cy * (pl + f * L)]);
+    const reach = W * 0.9 + base * 0.6;
+    for (const o of stems) {
+      // Skip whole stems nowhere near the leaf.
+      if (!o.box) {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const q of o.pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
+        o.box = [x0, y0, x1, y1];
+      }
+      const [bx0, by0, bx1, by1] = o.box;
+      if (probes.every((p) => p[0] < bx0 - reach || p[0] > bx1 + reach || p[1] < by0 - reach || p[1] > by1 + reach)) continue;
+      for (let i = 0; i < o.pts.length; i += 2) {
+        if (o === st && Math.abs(o.s[i] - st.s[si]) < (pl + L) * 1.4) continue;
+        const q = o.pts[i];
+        for (const p of probes) {
+          if (Math.abs(p[0] - q[0]) < reach && Math.abs(p[1] - q[1]) < reach && dist(p, q) < reach) return false;
+        }
+      }
+    }
+    for (const lf of placed) if (dist(probes[1], lf.mid) < (L + lf.L) * 0.45) return false;
+    return true;
+  };
   const leaves = [];
   for (const st of mains) {
     let side = rand() < 0.5 ? -1 : 1;
-    let s = em * r(0.08, 0.16);
-    while (s < st.len - em * 0.04) {
-      const i = Math.min(st.pts.length - 1, Math.round(s / step));
+    let s = em * r(0.1, 0.18);
+    let i = 0;
+    while (s < st.len - em * 0.05) {
+      while (i < st.pts.length - 1 && st.s[i] < s) i++;
       side = -side;
-      if (rand() > 0.12) {
-        const th = heading(st, Math.max(0, i - 2), Math.min(st.pts.length - 1, i + 2));
-        const small = st.branch ? 0.75 : 1;
-        const L = em * r(0.12, 0.19) * small;
-        leaves.push({
-          x: st.pts[i][0], y: st.pts[i][1],
-          th, ang: th + side * r(0.75, 1.25),
-          L, W: L * r(0.2, 0.26), pl: L * r(0.12, 0.22),
-          curl: r(-1, 1), flip: side > 0,
-          tone: LEAF_TONES[Math.floor(rand() * LEAF_TONES.length)],
-          t0: st.t0 + s / speed + 0.25,
-          phase: r(0, Math.PI * 2),
-          off: 0, av: 0,
-        });
+      const b = bendAt(st, i, 8);
+      // On a real bend, prefer the outside of it.
+      let pref = side;
+      if (Math.abs(b) * em > 2.5 && rand() < 0.85) pref = b > 0 ? -1 : 1;
+      if (rand() > 0.1) {
+        const th = headingAt(st, Math.max(0, i - 2), Math.min(st.pts.length - 1, i + 2));
+        const L = em * r(0.075, 0.115) * (st.branch ? 0.85 : 1);
+        const W = L * r(0.26, 0.32), pl = L * r(0.14, 0.24);
+        const lean = r(0.7, 1.15);
+        for (const sd of [pref, -pref]) {
+          const ang = th + sd * lean;
+          if (!clear(st, i, st.pts[i][0], st.pts[i][1], ang, L, W, pl, leaves)) continue;
+          leaves.push({
+            x: st.pts[i][0], y: st.pts[i][1],
+            th, ang, L, W, pl,
+            mid: [st.pts[i][0] + Math.cos(ang) * (pl + L * 0.6), st.pts[i][1] + Math.sin(ang) * (pl + L * 0.6)],
+            curl: r(-1, 1), flip: sd > 0,
+            tone: LEAF_TONES[Math.floor(rand() * LEAF_TONES.length)],
+            t0: st.tt[i] + r(0.35, 0.8),
+            dur: r(2.2, 3.2),
+            phase: r(0, Math.PI * 2),
+            off: 0, av: 0,
+          });
+          side = sd;
+          break;
+        }
       }
-      s += em * r(0.19, 0.3);
+      s += em * r(0.13, 0.22);
     }
   }
 
-  const grownAt = Math.max(...stems.map((st) => st.t0 + st.len / speed));
+  const grownAt = Math.max(...stems.map((st) => st.tEnd));
 
   // Blossoms: the dots of the word; and if it has none, one at the end.
-  const dots = dotsU.length ? dotsU.map(toPx) : [mains[mains.length - 1].pts[mains[mains.length - 1].pts.length - 1]];
+  const lastMain = mains[mains.length - 1];
+  const dots = dotsU.length ? dotsU.map(toPx) : [lastMain.pts[lastMain.pts.length - 1]];
   const blossoms = dots.map(([x, y], k) => ({
-    x, y, r: em * 0.09, rot: r(0, Math.PI), t0: grownAt + 0.2 + k * 0.5, phase: r(0, 6),
+    x, y, r: em * 0.085, rot: r(0, Math.PI), t0: grownAt + 0.4 + k * 0.6, phase: r(0, 6),
   }));
 
-  const doneAt = Math.max(grownAt, ...leaves.map((l) => l.t0 + 1.6), ...blossoms.map((b) => b.t0 + 2.4));
-  return { stems, leaves, blossoms, em, base, speed, step, grownAt, doneAt, bottom: oy + maxY * sc, top: oy + minY * sc };
+  const doneAt = Math.max(grownAt, ...leaves.map((l) => l.t0 + l.dur), ...blossoms.map((b) => b.t0 + 3));
+  return {
+    stems, leaves, blossoms, em, base, grownAt, doneAt,
+    // Fresh growth is lime and darkens as it matures; after this nothing
+    // about the stems changes, so they can be drawn once and kept.
+    matureAt: grownAt + MATURE_S + 0.5,
+    bottom: oy + maxY * sc, top: oy + minY * sc,
+  };
+}
+
+// How far along a stem growth has reached at time t (px of arc).
+export function grownLength(st, t) {
+  if (t <= st.t0) return 0;
+  if (t >= st.tEnd) return st.len;
+  const tt = st.tt;
+  let lo = 0, hi = tt.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (tt[mid] <= t) lo = mid; else hi = mid;
+  }
+  const f = (t - tt[lo]) / Math.max(1e-6, tt[hi] - tt[lo]);
+  return st.s[lo] + f * (st.s[hi] - st.s[lo]);
 }

@@ -1,33 +1,21 @@
 import { useEffect, useRef } from 'react';
-import { buildVine } from '../lib/vine.js';
-import { strokeStem, drawLeaf, drawBlossom } from '../lib/draw.js';
+import { buildVine, grownLength } from '../lib/vine.js';
+import { drawStem, bakeStem, drawLeaf, drawBlossom } from '../lib/draw.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // WordVine — a word written by a growing vine.
 //
-// The stem grows along the letters at a walking pace; leaves unfold
-// behind the growing tip; tendrils curl off the ends; the dot of an i
+// The stem grows along the letters, easing out of each start, slowing
+// through curves, its tip swaying as it feels its way; fresh growth is
+// lime and darkens as it matures; leaves unfold behind the tip; tendrils curl off the ends; the dot of an i
 // opens last as a blossom. Then it stays alive: leaves sway in a slow
 // breeze, a hand passing through ruffles them, and the whole thing
 // wavers in a still-water reflection below — the pond's edge.
 //
-// Grown stem is drawn once, into its own canvas, as it grows; each
-// frame only redraws leaves, blossoms and the growing tips. With
-// reduced motion it simply appears, fully grown and still.
+// Each stretch of stem, once grown and matured, is drawn once into its
+// own canvas and kept; each frame redraws only young growth, leaves and
+// blossoms. With reduced motion it simply appears, grown and still.
 // ═══════════════════════════════════════════════════════════════════
-
-// The last sample at or before arc length `s` (stems and tendrils are
-// sampled at different spacings, so search rather than divide).
-function indexAt(st, s) {
-  if (s <= 0) return 0;
-  let lo = 0, hi = st.s.length - 1;
-  if (s >= st.s[hi]) return hi;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (st.s[mid] <= s) lo = mid; else hi = mid;
-  }
-  return lo;
-}
 
 export default function WordVine({ word, playKey, onGrown, onDone }) {
   const wrapRef = useRef(null);
@@ -71,29 +59,20 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
     const frame = (dt) => {
       if (!vine) return;
       t += dt;
-      const { stems, leaves, blossoms, speed, base, step, em } = vine;
-      const taper = base * 3.5;
-      const back = Math.ceil(base / (step * 0.5)) + 2;
+      const { stems, leaves, blossoms, base, em } = vine;
+      const taper = base * 4;
 
-      // Stems: bake what's fully grown, keep the tips live.
-      const tips = [];
-      for (const st of stems) {
-        const grown = Math.max(0, Math.min(st.len, (t - st.t0) * speed));
-        if (grown <= 0) continue;
-        const gi = indexAt(st, grown);
-        const bakeTo = grown >= st.len ? st.pts.length - 1 : indexAt(st, grown - taper);
-        if (bakeTo > st.baked) {
-          strokeStem(bctx, st, Math.max(1, st.baked + 1 - back), bakeTo, st.len, taper);
-          st.baked = bakeTo;
-        }
-        if (gi > st.baked) tips.push([st, gi, grown]);
-      }
-
+      // Stems: pieces that have finished growing and darkening go into
+      // the keep canvas once; only young growth is redrawn each frame.
+      const live = stems.map((st) => {
+        const g = grownLength(st, t);
+        return [st, g, g > 0 ? bakeStem(bctx, st, g, t, taper) : 0];
+      });
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(bake, 0, 0);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      for (const [st, gi, grown] of tips) strokeStem(ctx, st, Math.max(1, st.baked + 1 - back), gi, grown, taper);
+      for (const [st, g, from] of live) if (g > 0 && !st.bakedAll) drawStem(ctx, st, g, t, taper, from);
 
       // Leaves: unfold, then sway — a slow breeze that rolls across the
       // word in gusts — and ruffle where a hand passes.
@@ -101,7 +80,7 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
       const pAge = t - pointer.at;
       const pv = pAge < 0.12 ? 1 : 0;
       for (const lf of leaves) {
-        const p = (t - lf.t0) / 1.6;
+        const p = (t - lf.t0) / lf.dur;
         if (p <= 0) continue;
         if (!still) {
           const mx = lf.x + Math.cos(lf.ang) * lf.L * 0.6;
@@ -118,9 +97,9 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
         const settle = still ? 0 : Math.min(1, Math.max(0, p - 1));
         const gust = Math.pow(0.5 + 0.5 * Math.sin(t * 0.33 - (lf.x / em) * 0.8), 3);
         const sway = settle * (0.045 * Math.sin(t * 1.2 + lf.phase) + 0.08 * gust * Math.sin(t * 2.3 + lf.phase * 1.3));
-        drawLeaf(ctx, lf, p, sway + lf.off, base);
+        drawLeaf(ctx, lf, p, sway + lf.off, base, t);
       }
-      for (const b of blossoms) drawBlossom(ctx, b, (t - b.t0) / 2.4, still ? 0 : t);
+      for (const b of blossoms) drawBlossom(ctx, b, (t - b.t0) / 3, still ? 0 : t);
 
       // Reflection: the scene, flipped about the waterline, in thin
       // bands each pushed sideways by a slow ripple and fading with depth.
