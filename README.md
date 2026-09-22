@@ -1,11 +1,12 @@
-# Vision Board — Pond & Prayer
+# Vision Board — Pond, Flourish & Prayer
 
-Two surfaces that share one deploy and one `localStorage`.
+Three surfaces that share one deploy and one `localStorage`.
 
 | Route    | Surface | Character |
 |----------|---------|-----------|
 | `/`      | **Pond** — the living identity board | Ambient, peripheral, always-on. Lives on a fridge tablet, meant to be glanced at. |
 | `/pray/` | **Prayer** — the family prayer rota | Focal, sequential, one line at a time. Meant to be *used*, then closed. |
+| `/flourish/` | **Flourish** — a word written by a growing vine | "I am the vine; you are the branches." A quiet page to watch grow. |
 
 They are deliberately **not** the same page. The pond is animated koi; the
 prayer surface is still type on paper. Putting koi behind prayer text would
@@ -141,6 +142,28 @@ any published translation, which keeps the file distributable without permission
 clearances. The `spoken` and `explain` layers were always original. Using a
 specific translation throughout is a licensing question, not a technical one.
 
+## Flourish surface
+
+`flourish/index.html` → `src/flourish/`. A word is written in a single-stroke
+script (EMS Allure, SIL OFL — `lib/allure.js`), so each letter is one pen line:
+joined strokes become one stem, detached strokes (the cross of an A) sprout as
+branches when growth passes them, and the dot of an i opens as a blossom.
+Leaves, tendrils and blossoms are placed by a generator seeded from the word, so
+a word always grows the same vine.
+
+```
+src/flourish/
+  FlourishApp.jsx          page: nav, verse, "Grow again", try-a-word (?w=…)
+  components/WordVine.jsx  canvas loop: grow, sway, ruffle, reflection
+  lib/vine.js              geometry + timing (pure; testable in node)
+  lib/draw.js              stem, leaf and blossom drawing
+  lib/allure.js            glyph data
+```
+
+Grown stem is drawn once into its own canvas; each frame redraws only leaves,
+blossoms and growing tips. Reduced motion shows it fully grown and still.
+In development, `window.__vineStep(frames)` steps the animation by hand.
+
 ## Develop
 
 ```bash
@@ -148,7 +171,8 @@ npm install
 npm run dev
 ```
 
-Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`.
+Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`,
+flourish at `http://localhost:5173/flourish/`.
 
 ## Deploy
 

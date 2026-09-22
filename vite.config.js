@@ -20,6 +20,7 @@ import react from '@vitejs/plugin-react';
 //
 //   index.html       → /        the Pond
 //   pray/index.html  → /pray/   the Prayer surface
+//   flourish/index.html → /flourish/  the Vine (a word grown by a vine)
 //
 // They're separate documents on purpose (the prayer page must never
 // carry the animated pond), but they share an origin — and therefore
@@ -42,6 +43,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         pray: resolve(__dirname, 'pray/index.html'),
+        flourish: resolve(__dirname, 'flourish/index.html'),
       },
     },
   },

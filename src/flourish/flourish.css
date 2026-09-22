@@ -1,0 +1,135 @@
+/* ── Flourish ──────────────────────────────────────────────────────
+   Warm paper, like the prayer surface, so the green reads as living
+   against it. Everything is quiet except the vine. */
+
+.fl-app {
+  --paper: #F7F3EA;
+  --ink: #2F3A2C;
+  --muted: #7A8070;
+  --line: rgba(47, 58, 44, 0.14);
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Source Sans 3', system-ui, sans-serif;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 42%, #FCFAF4 0%, rgba(252, 250, 244, 0) 70%),
+    var(--paper);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.fl-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
+}
+.fl-pill {
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.fl-pill:hover { color: var(--ink); }
+.fl-pill.is-here {
+  color: var(--ink);
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.fl-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+.fl-vine {
+  width: 100%;
+  max-width: 1500px;
+  flex: 1;
+  min-height: 260px;
+  /* On a tall phone the word is limited by width, so don't let the
+     stage stretch far below it and strand the verse at the bottom. */
+  max-height: max(260px, 82vw);
+  position: relative;
+}
+.fl-vine canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  touch-action: pan-y;
+}
+
+.fl-verse {
+  margin: 0 0 1.2rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 2.2s ease, transform 2.2s ease;
+}
+.fl-verse.is-shown { opacity: 1; transform: none; }
+.fl-verse-text {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.35rem, 0.9rem + 1.6vw, 2.5rem);
+  line-height: 1.25;
+}
+.fl-verse-ref {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: clamp(0.72rem, 0.62rem + 0.3vw, 0.92rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fl-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0 16px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.fl-try { display: flex; gap: 0.4rem; }
+.fl-try input {
+  width: 9.5rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+.fl-try input:focus { outline: 2px solid #9CB93A; outline-offset: 1px; }
+.fl-btn {
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  min-height: 42px;
+  cursor: pointer;
+}
+.fl-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.7); }
+.fl-btn:disabled { opacity: 0.45; cursor: default; }
+.fl-btn:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
