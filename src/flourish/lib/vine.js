@@ -183,49 +183,120 @@ const LEAF_TONES = [
 
 export const MATURE_S = 5;   // seconds for fresh growth to darken
 
+// ── Lines ─────────────────────────────────────────────────────────
+// A phrase is broken onto one to four lines — whichever lets it
+// be written largest in the space it has — at spaces only, and each
+// line is centred. Returns strokes in font units plus where the last
+// line starts, so the reflection can mirror just that line.
+const LINE = 1160;                 // font units from one baseline to the next
+
+function lineStrokes(text) {
+  const strokes = letter(text);
+  let x0 = Infinity, x1 = -Infinity;
+  for (const s of strokes) for (const p of s) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); }
+  return { strokes, x0, x1: Math.max(x1, x0 + 1) };
+}
+
+function layoutText(text, box) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const measured = new Map();
+  const measure = (t) => {
+    if (!measured.has(t)) measured.set(t, lineStrokes(t));
+    return measured.get(t);
+  };
+  // Every way to cut the words into n consecutive lines.
+  const cuts = (n, from = 1) => {
+    if (n === 1) return [[]];
+    const out = [];
+    for (let c = from; c <= words.length - n + 1; c++) for (const rest of cuts(n - 1, c + 1)) out.push([c, ...rest]);
+    return out;
+  };
+  let best = null;
+  for (let n = 1; n <= Math.min(4, words.length); n++) {
+    for (const cs of cuts(n)) {
+      const bounds = [0, ...cs, words.length];
+      const lines = [];
+      for (let k = 0; k < n; k++) lines.push(measure(words.slice(bounds[k], bounds[k + 1]).join(' ')));
+      const wU = Math.max(...lines.map((l) => l.x1 - l.x0));
+      const hU = (n - 1) * LINE + 1000;
+      // How big it could be written, a little against extra lines.
+      const score = Math.min(box.w / wU, box.h / hU) * (1 - 0.05 * (n - 1));
+      if (!best || score > best.score) best = { score, lines, wU };
+    }
+  }
+  const strokes = [];
+  let lastStart = 0;
+  best.lines.forEach((l, k) => {
+    const dx = (best.wU - (l.x1 - l.x0)) / 2 - l.x0;
+    if (k === best.lines.length - 1) lastStart = strokes.length;
+    for (const s of l.strokes) strokes.push(s.map(([x, y]) => [x + dx, y + k * LINE]));
+  });
+  return { strokes, lastStart, lines: best.lines.length };
+}
+
 // ── Build ─────────────────────────────────────────────────────────
-// `box` is where the word should sit, in CSS px.
-export function buildVine(word, box) {
+// `box` is the space to fill, in CSS px. Options:
+//   pace     speed multiplier (1 = gentle)
+//   bloom    'blossom' | 'jasmine' | 'grapes' | 'mixed'
+//   amount   'few' | 'some' | 'many' | 'prayer'
+//   prayerDays   days prayed this week (for amount 'prayer')
+//   family   [{ label, count }] — a branch for each person, with a
+//            flower or cluster for each time they've been prayed for
+export function buildVine(word, box, opts = {}) {
   const rand = seeded(word.toLowerCase());
   const r = (a, b) => a + rand() * (b - a);
+  const pace = opts.pace || 1;
+  const family = Array.isArray(opts.family) && opts.family.length ? opts.family : null;
+
+  // With family branches, the word takes the upper part and the
+  // branches hang down to the names below it.
+  const wordBox = family ? { x: box.x, y: box.y, w: box.w, h: box.h * 0.56 } : box;
+  const fill = box.w < 600 ? 0.92 : 0.86;
+  const layout = layoutText(word, { w: wordBox.w * fill, h: wordBox.h * 0.86 });
 
   // Letters → stems and dots.
   const raw = [];
   const dotsU = [];
-  for (const s of letter(word)) {
+  let lastRaw = 0;
+  layout.strokes.forEach((s, k) => {
+    if (k === layout.lastStart) lastRaw = raw.length;
     if (s.length <= 3 && polyLen(s) < 80) {
       dotsU.push([s.reduce((m, p) => m + p[0], 0) / s.length, s.reduce((m, p) => m + p[1], 0) / s.length]);
-      continue;
+      return;
     }
     const last = raw[raw.length - 1];
     // Strokes that pick up where the last one ended are one stem.
     if (last && dist(last[last.length - 1], s[0]) < 30) last.push(...s.slice(1));
     else raw.push(s.slice());
-  }
+  });
   if (!raw.length) return null;
 
-  // Fit the word to the box.
+  // Fit to the box.
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const p of [...raw.flat(), ...dotsU]) {
     minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
     minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
   }
+  let lastMinY = Infinity;
+  for (const s of raw.slice(lastRaw)) for (const p of s) lastMinY = Math.min(lastMinY, p[1]);
   const bw = maxX - minX, bh = maxY - minY;
-  // A little more of the width on a phone, where width is what's short.
-  const fill = box.w < 600 ? 0.92 : 0.86;
-  const sc = Math.min((box.w * fill) / bw, (box.h * 0.86) / bh);
-  const ox = box.x + (box.w - bw * sc) / 2 - minX * sc;
-  const oy = box.y + (box.h - bh * sc) / 2 - minY * sc;
+  const sc = Math.min((wordBox.w * fill) / bw, (wordBox.h * 0.86) / bh);
+  const ox = wordBox.x + (wordBox.w - bw * sc) / 2 - minX * sc;
+  const oy = wordBox.y + (wordBox.h - bh * sc) / 2 - minY * sc;
   const toPx = (p) => [ox + p[0] * sc, oy + p[1] * sc];
   const em = 1000 * sc;
-  // Stems a touch heavier than before, so the letters lead the leaves.
+  // Stems a touch heavier than the leaves' stalks, so the letters lead.
   const base = Math.max(2.4, Math.min(16, em * 0.024));
-  const speed = em * 0.62;                              // px per second, before easing
+  // A long phrase grows faster, so it still finishes in about half a
+  // minute rather than one and a half.
+  const lengthEm = raw.reduce((m, s) => m + polyLen(s), 0) / 1000;
+  const speed = em * 0.62 * pace * Math.max(1, (lengthEm / 14) ** 0.95);
 
   // Stems, timed. The first starts at once. A later stem that begins
   // near stem already grown sprouts from it when growth passes that
-  // point — so the A's crossbar branches off the A — otherwise it
-  // waits its turn.
+  // point — so the A's crossbar branches off the A. Otherwise (the next
+  // word, the next line) it starts as the one before is finishing, so a
+  // phrase flows on rather than waiting letter by letter.
   const stems = [];
   for (const rs of raw) {
     const pts = smooth(rs).map(toPx);
@@ -239,8 +310,9 @@ export function buildVine(word, box) {
           if (d < best) { best = d; bt = o.tt[i]; }
         }
       }
+      const prev = stems[stems.length - 1];
       if (best < em * 0.35) { t0 = bt + 0.3; branch = true; }
-      else t0 = stems[stems.length - 1].tEnd;
+      else t0 = prev.t0 + (prev.tEnd - prev.t0) * 0.75;
     }
     const w0 = branch ? base * 0.8 : base;
     const st = stem(pts, { w0, w1: w0 * 0.55, branch });
@@ -248,22 +320,24 @@ export function buildVine(word, box) {
     stems.push(st);
   }
   const mains = stems.slice();
+  const wordGrown = Math.max(...mains.map((st) => st.tEnd));
 
-  // Tendrils: one off the very start of the word, curling back, and one
-  // off each long stem's end. None mid-word: they read as extra letters.
-  // A curl that would wind into another stroke (inside an o, say) tries
-  // the other way, and is left out if that's no better.
-  const roomy = (pts) => {
-    const reach = base * 2.2;
-    for (let k = Math.floor(pts.length * 0.3); k < pts.length; k += 2) {
-      const p = pts[k];
-      for (const o of stems) {
-        for (let i = 0; i < o.pts.length; i += 2) {
-          const q = o.pts[i];
-          if (Math.abs(p[0] - q[0]) < reach && Math.abs(p[1] - q[1]) < reach && dist(p, q) < reach) return false;
-        }
+  // Tendrils: one off the very start, curling back, and one off each
+  // long stem's end. None mid-word: they read as extra letters. A curl
+  // that would wind into another stroke (inside an o, say) tries the
+  // other way, and is left out if that's no better.
+  const near = (p, reach, skip) => {
+    for (const o of stems) {
+      if (o === skip) continue;
+      for (let i = 0; i < o.pts.length; i += 2) {
+        const q = o.pts[i];
+        if (Math.abs(p[0] - q[0]) < reach && Math.abs(p[1] - q[1]) < reach && dist(p, q) < reach) return true;
       }
     }
+    return false;
+  };
+  const roomy = (pts) => {
+    for (let k = Math.floor(pts.length * 0.3); k < pts.length; k += 2) if (near(pts[k], base * 2.2)) return false;
     return true;
   };
   const addTendril = (x, y, h, len, dir, t0, w) => {
@@ -288,6 +362,85 @@ export function buildVine(word, box) {
       addTendril(st.pts[n - 1][0], st.pts[n - 1][1], headingAt(st, n - 6, n - 1), em * r(0.26, 0.36), dir,
         st.tEnd, st.w1);
     }
+  }
+
+  // Family branches: "you are the branches". Once the word has grown,
+  // a branch for each person sprouts from the lowest nearby stem and
+  // curves down to their name.
+  const branches = [];
+  const labels = [];
+  const blooms = [];
+  const kinds = opts.bloom === 'mixed' ? ['blossom', 'jasmine', 'grapes'] : [opts.bloom || 'blossom'];
+  const pickKind = () => kinds[Math.floor(rand() * kinds.length)];
+  if (family) {
+    const n = family.length;
+    const labelY = box.y + box.h * 0.95;
+    const labelSize = Math.max(15, Math.min(34, em * 0.12));
+    const fruitR = em * 0.07;
+    // Branch ends high enough for a hanging cluster to clear the name.
+    const endY = labelY - labelSize * 1.15 - fruitR * 2.9;
+    const wordBottom = oy + maxY * sc;
+    const all = [];
+    for (const st of mains) for (let i = 0; i < st.pts.length; i += 2) all.push([st, i]);
+    family.forEach((person, k) => {
+      const tx = box.x + box.w * (0.08 + (0.84 * (k + 0.5)) / n);
+      // Where to sprout from: close in x, and low on the word.
+      let bestA = null, bestScore = Infinity;
+      for (const [st, i] of all) {
+        const [x, y] = st.pts[i];
+        const score = Math.abs(x - tx) + (wordBottom - y) * 1.4;
+        if (score < bestScore) { bestScore = score; bestA = [st, i]; }
+      }
+      const [ast, ai] = bestA;
+      const A = ast.pts[ai];
+      const E = [tx, endY];
+      const sway = (rand() - 0.5) * em * 0.5;
+      const c1 = [A[0] + sway, A[1] + (E[1] - A[1]) * 0.55];
+      const c2 = [E[0] - sway * 0.6, E[1] - (E[1] - A[1]) * 0.45];
+      const pts = [];
+      const steps = Math.max(12, Math.round(dist(A, E) / 2.5));
+      for (let j = 0; j <= steps; j++) {
+        const u = j / steps, v = 1 - u;
+        pts.push([
+          v * v * v * A[0] + 3 * v * v * u * c1[0] + 3 * v * u * u * c2[0] + u * u * u * E[0],
+          v * v * v * A[1] + 3 * v * v * u * c1[1] + 3 * v * u * u * c2[1] + u * u * u * E[1],
+        ]);
+      }
+      const st = stem(pts, { w0: base * 0.7, w1: base * 0.42, branch: true, person: k });
+      timeStem(st, Math.max(wordGrown, ast.tt[ai]) + 0.5 + k * 0.8, speed * 0.8, em, rand);
+      stems.push(st);
+      branches.push(st);
+      labels.push({ text: person.label, x: tx, y: labelY, size: labelSize, t0: st.tEnd + 0.4 });
+
+      // A bloom for each time this person has been prayed for this
+      // week, spaced up the lower part of the branch; none yet, a bud.
+      const count = Math.max(0, Math.min(7, person.count | 0));
+      const at = (f) => {
+        const i = Math.min(pts.length - 1, Math.round((pts.length - 1) * f));
+        return { i, p: pts[i] };
+      };
+      if (!count) {
+        const { i, p } = at(1);
+        blooms.push({ kind: 'bud', x: p[0], y: p[1], r: em * 0.06, rot: r(-0.4, 0.4), t0: st.tt[i] + 0.8, phase: r(0, 6) });
+      }
+      // Spaced up the branch from its end, and hung to alternate sides
+      // on short stalks, so clusters don't pile up.
+      const gap = Math.min(0.2, Math.max(fruitR * 2.6 / st.len, 0.62 / Math.max(1, count)));
+      for (let j = 0; j < count; j++) {
+        const { i, p } = at(1 - j * gap);
+        const sx = j ? (j % 2 ? 1 : -1) * fruitR * 1.15 : 0;
+        const kind = pickKind();
+        const side = j % 2 ? 1 : -1;
+        const nx = st.nx[i] * side, ny = st.ny[i] * side;
+        const rr = kind === 'grapes' ? fruitR * (j ? 0.85 : 1) : em * 0.065;
+        blooms.push({
+          kind,
+          x: kind === 'grapes' ? p[0] : p[0] + nx * rr * 0.7,
+          y: kind === 'grapes' ? p[1] : p[1] + ny * rr * 0.7,
+          r: rr, sx, rot: r(0, Math.PI), t0: st.tEnd + 0.6 + j * 0.5, phase: r(0, 6),
+        });
+      }
+    });
   }
 
   // Leaves. Kept small and off the letters: each sits on the outside of
@@ -316,14 +469,16 @@ export function buildVine(word, box) {
       }
     }
     for (const lf of placed) if (dist(probes[1], lf.mid) < (L + lf.L) * 0.45) return false;
+    for (const b of blooms) if (dist(probes[1], [b.x, b.y]) < b.r * 1.6 + L * 0.4) return false;
     return true;
   };
   const leaves = [];
-  for (const st of mains) {
+  for (const st of [...mains, ...branches]) {
     let side = rand() < 0.5 ? -1 : 1;
     let s = em * r(0.1, 0.18);
     let i = 0;
-    while (s < st.len - em * 0.05) {
+    const stop = st.person !== undefined ? st.len * 0.5 : st.len - em * 0.05;   // keep branch ends for blooms
+    while (s < stop) {
       while (i < st.pts.length - 1 && st.s[i] < s) i++;
       side = -side;
       const b = bendAt(st, i, 8);
@@ -357,22 +512,57 @@ export function buildVine(word, box) {
     }
   }
 
+  // Blooms on the word itself: the dots of i and j always; then more
+  // along the stems — a few, some, many, or one for each day the family
+  // has prayed this week. Each opens as growth passes its place.
+  const dotKind = opts.bloom === 'jasmine' ? 'jasmine' : 'blossom';
+  dotsU.map(toPx).forEach(([x, y], k) => {
+    blooms.push({ kind: dotKind, x, y, r: em * 0.085, rot: r(0, Math.PI), t0: wordGrown + 0.4 + k * 0.6, phase: r(0, 6) });
+  });
+  const totalLen = mains.reduce((m, st) => m + st.len, 0);
+  const amount = opts.amount || 'some';
+  const want = amount === 'prayer' ? Math.max(0, Math.min(7, opts.prayerDays | 0))
+    : Math.round(totalLen / (em * ({ few: 4.5, some: 2.4, many: 1.2 }[amount] || 2.4)));
+  const extra = [];
+  for (let tries = 0; extra.length < want && tries < want * 40 + 40; tries++) {
+    // Pick a place, weighted by stem length.
+    let pick = rand() * totalLen, st = mains[0];
+    for (const m of mains) { if (pick < m.len) { st = m; break; } pick -= m.len; }
+    const i = Math.min(st.pts.length - 1, Math.max(0, Math.round(pick / Math.max(1e-6, st.len) * (st.pts.length - 1))));
+    const kind = pickKind();
+    const rr = em * (kind === 'grapes' ? 0.068 : 0.066);
+    const p = st.pts[i];
+    let x = p[0], y = p[1];
+    if (kind !== 'grapes') {
+      // Sit just off the stem, on the outside of its curve.
+      const b = bendAt(st, i, 8);
+      const sd = Math.abs(b) * em > 1 ? (b > 0 ? -1 : 1) : (rand() < 0.5 ? -1 : 1);
+      x += st.nx[i] * sd * rr * 0.75; y += st.ny[i] * sd * rr * 0.75;
+    }
+    // Grapes hang: their cluster is below the stem. Keep all of it clear
+    // of the letters, so fruit never sits across a stroke.
+    const cy = kind === 'grapes' ? y + rr * 1.4 : y;
+    const probes = kind === 'grapes'
+      ? [[x, y + rr * 1.1], [x, y + rr * 2.2], [x - rr * 0.75, y + rr * 1.2], [x + rr * 0.75, y + rr * 1.2]]
+      : [[x, y]];
+    if (probes.some((q) => near(q, rr * (kind === 'grapes' ? 0.5 : 0.85), kind === 'grapes' ? null : st))) continue;
+    if ([...blooms, ...extra].some((o) => dist([o.x, o.y], [x, y]) < (o.r + rr) * 1.3)) continue;
+    if (leaves.some((lf) => dist(lf.mid, [x, cy]) < rr + lf.L * 0.35)) continue;
+    extra.push({ kind, x, y, r: rr, rot: r(0, Math.PI), t0: st.tt[i] + r(1.2, 2.4), phase: r(0, 6) });
+  }
+  blooms.push(...extra);
+  if (!blooms.length && !family) {
+    const lastMain = mains[mains.length - 1];
+    const [x, y] = lastMain.pts[lastMain.pts.length - 1];
+    blooms.push({ kind: dotKind, x, y, r: em * 0.085, rot: r(0, Math.PI), t0: wordGrown + 0.4, phase: r(0, 6) });
+  }
+
   const grownAt = Math.max(...stems.map((st) => st.tEnd));
-
-  // Blossoms: the dots of the word; and if it has none, one at the end.
-  const lastMain = mains[mains.length - 1];
-  const dots = dotsU.length ? dotsU.map(toPx) : [lastMain.pts[lastMain.pts.length - 1]];
-  const blossoms = dots.map(([x, y], k) => ({
-    x, y, r: em * 0.085, rot: r(0, Math.PI), t0: grownAt + 0.4 + k * 0.6, phase: r(0, 6),
-  }));
-
-  const doneAt = Math.max(grownAt, ...leaves.map((l) => l.t0 + l.dur), ...blossoms.map((b) => b.t0 + 3));
+  const doneAt = Math.max(grownAt, ...leaves.map((l) => l.t0 + l.dur), ...blooms.map((b) => b.t0 + 3),
+    ...labels.map((l) => l.t0 + 1.5));
   return {
-    stems, leaves, blossoms, em, base, grownAt, doneAt,
-    // Fresh growth is lime and darkens as it matures; after this nothing
-    // about the stems changes, so they can be drawn once and kept.
-    matureAt: grownAt + MATURE_S + 0.5,
-    bottom: oy + maxY * sc, top: oy + minY * sc,
+    stems, leaves, blossoms: blooms, labels, em, base, grownAt, doneAt, wordGrown,
+    bottom: oy + maxY * sc, top: oy + minY * sc, lastTop: oy + lastMinY * sc,
   };
 }
 

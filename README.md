@@ -160,7 +160,16 @@ src/flourish/
   lib/allure.js            glyph data
 ```
 
-Grown stem is drawn once into its own canvas; each frame redraws only leaves,
+Up to 40 characters, wrapped onto one to four lines (whichever writes it
+largest). **Options** (per device, `flourish.options`): pace; flowers
+(blossom, jasmine, grapes that ripen, or mixed); how many (few, some, many, or
+one per day prayed this week); reflection; and **family branches** — a branch
+per person hanging to their name, bearing a flower or cluster for each time
+they were prayed for this week (from `prayedForThisWeek()` in
+`src/data/prayerLink.js`), or a closed bud if none yet. "Family (sample)" shows
+made-up counts for devices with no prayer data.
+
+Finished stretches of stem are drawn once into their own canvas; each frame redraws only leaves,
 blossoms and growing tips. Reduced motion shows it fully grown and still.
 In development, `window.__vineStep(frames)` steps the animation by hand.
 

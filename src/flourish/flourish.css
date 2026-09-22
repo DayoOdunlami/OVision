@@ -61,7 +61,7 @@
   min-height: 260px;
   /* On a tall phone the word is limited by width, so don't let the
      stage stretch far below it and strand the verse at the bottom. */
-  max-height: max(260px, 82vw);
+  max-height: max(260px, 110vw);
   position: relative;
 }
 .fl-vine canvas {
@@ -106,7 +106,7 @@
 }
 .fl-try { display: flex; gap: 0.4rem; }
 .fl-try input {
-  width: 9.5rem;
+  width: 12rem;
   font: inherit;
   font-size: 0.95rem;
   color: var(--ink);
@@ -133,3 +133,71 @@
 .fl-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.7); }
 .fl-btn:disabled { opacity: 0.45; cursor: default; }
 .fl-btn:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
+
+.fl-btn.is-on { background: rgba(255, 255, 255, 0.85); border-color: rgba(47, 58, 44, 0.3); }
+
+/* ── Options ───────────────────────────────────────────────────────── */
+.fl-panel {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 140px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1rem 1.1rem 0.9rem;
+  background: rgba(252, 250, 244, 0.97);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(47, 58, 44, 0.16);
+  z-index: 10;
+}
+.fl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem 0;
+}
+.fl-row-label {
+  flex: 0 0 6.2rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.fl-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.fl-seg button {
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.38rem 0.8rem;
+  min-height: 36px;
+  cursor: pointer;
+}
+.fl-seg button:hover { background: rgba(255, 255, 255, 0.8); }
+.fl-seg button.is-on {
+  background: #4f7a2c;
+  border-color: #4f7a2c;
+  color: #fff;
+}
+.fl-seg button:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
+.fl-panel-note {
+  margin: 0.6rem 0 0.2rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.fl-panel-done { margin-top: 0.5rem; }
+@media (max-width: 520px) {
+  .fl-row { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+  .fl-row-label { flex: none; }
+  .fl-try input { width: 11rem; }
+}

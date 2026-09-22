@@ -155,3 +155,28 @@ export function todayKoi(state = readPrayerState()) {
 }
 
 export const PRAY_URL = '/pray/';
+
+// How many times each person has been prayed for so far this rota week
+// (Mon–Sat are pairs, Sunday is everyone), and how many days the family
+// prayed. Feeds the Flourish page's family branches. Null when the
+// prayer surface has never been used on this device.
+export function prayedForThisWeek() {
+  let s;
+  try {
+    s = JSON.parse(window.localStorage?.getItem(STORAGE_KEY) || 'null');
+  } catch {
+    return null;
+  }
+  if (!s || typeof s !== 'object' || !Array.isArray(s.weekPairs)) return null;
+  const prayed = (s.prayed && typeof s.prayed === 'object') ? s.prayed : {};
+  const counts = Object.fromEntries(FAMILY.map((p) => [p.name, 0]));
+  const week = weekDatesSoFar();
+  let days = 0;
+  week.forEach((date, i) => {
+    if (!prayed[date]) return;
+    days++;
+    const who = i === 6 ? FAMILY : (s.weekPairs[i] || []).map((j) => FAMILY[j]).filter(Boolean);
+    for (const p of who) counts[p.name]++;
+  });
+  return { counts, days };
+}

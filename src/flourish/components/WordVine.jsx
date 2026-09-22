@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { buildVine, grownLength } from '../lib/vine.js';
-import { drawStem, bakeStem, drawLeaf, drawBlossom } from '../lib/draw.js';
+import { drawStem, bakeStem, drawLeaf, drawBloom } from '../lib/draw.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // WordVine — a word written by a growing vine.
@@ -17,7 +17,10 @@ import { drawStem, bakeStem, drawLeaf, drawBlossom } from '../lib/draw.js';
 // blossoms. With reduced motion it simply appears, grown and still.
 // ═══════════════════════════════════════════════════════════════════
 
-export default function WordVine({ word, playKey, onGrown, onDone }) {
+// `options`: pace, bloom, amount, prayerDays, family, reflection — see
+// buildVine. Changing any of them regrows the vine.
+export default function WordVine({ word, options = {}, playKey, onGrown, onDone }) {
+  const optKey = JSON.stringify(options);
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const cbRef = useRef({ onGrown, onDone });
@@ -32,7 +35,7 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
     const bctx = bake.getContext('2d');
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    let W = 0, H = 0, dpr = 1, vine = null, axis = 0;
+    let W = 0, H = 0, dpr = 1, vine = null, axis = 0, reflect = true;
     let t = still ? 1e6 : 0;
     let grownSent = false, doneSent = false;
     const pointer = { x: -1e4, y: -1e4, vx: 0, vy: 0, at: 0 };
@@ -49,9 +52,12 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
       }
       canvas.style.width = W + 'px';
       canvas.style.height = H + 'px';
-      // The word sits in the upper part; its reflection below.
-      const wordH = H * 0.72;
-      vine = buildVine(word, { x: 0, y: 0, w: W, h: wordH });
+      // The word sits in the upper part, its reflection below — unless
+      // the family's branches hang there instead.
+      const opts = JSON.parse(optKey);
+      reflect = opts.reflection !== false && !(opts.family && opts.family.length);
+      const boxH = opts.family && opts.family.length ? H : reflect ? H * 0.72 : H * 0.9;
+      vine = buildVine(word, { x: 0, y: 0, w: W, h: boxH }, opts);
       axis = vine ? vine.bottom + vine.em * 0.03 : H;
       bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
@@ -59,7 +65,7 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
     const frame = (dt) => {
       if (!vine) return;
       t += dt;
-      const { stems, leaves, blossoms, base, em } = vine;
+      const { stems, leaves, blossoms, labels, base, em } = vine;
       const taper = base * 4;
 
       // Stems: pieces that have finished growing and darkening go into
@@ -99,11 +105,25 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
         const sway = settle * (0.045 * Math.sin(t * 1.2 + lf.phase) + 0.08 * gust * Math.sin(t * 2.3 + lf.phase * 1.3));
         drawLeaf(ctx, lf, p, sway + lf.off, base, t);
       }
-      for (const b of blossoms) drawBlossom(ctx, b, (t - b.t0) / 3, still ? 0 : t);
+      for (const b of blossoms) drawBloom(ctx, b, (t - b.t0) / 3, still ? 0 : t);
+
+      // Names at the foot of the family's branches.
+      for (const l of labels) {
+        const a = Math.min(1, Math.max(0, (t - l.t0) / 1.5));
+        if (a <= 0) continue;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#2F3A2C';
+        ctx.font = `italic 500 ${l.size}px "Cormorant Garamond", Georgia, serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(l.text, l.x, l.y);
+        ctx.globalAlpha = 1;
+      }
 
       // Reflection: the scene, flipped about the waterline, in thin
       // bands each pushed sideways by a slow ripple and fading with depth.
-      const depth = Math.min(H - axis, (axis - vine.top) * 0.7);
+      // Only the last line is mirrored, so lines above don't pile up in it.
+      const depth = reflect ? Math.min(H - axis, (axis - vine.lastTop) * 0.7) : 0;
       if (depth > 4) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         const band = 2;
@@ -173,7 +193,7 @@ export default function WordVine({ word, playKey, onGrown, onDone }) {
       canvas.removeEventListener('pointerleave', onLeave);
       if (import.meta.env.DEV) delete window.__vineStep;
     };
-  }, [word, playKey]);
+  }, [word, playKey, optKey]);
 
   return (
     <div ref={wrapRef} className="fl-vine">
