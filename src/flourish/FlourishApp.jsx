@@ -117,6 +117,7 @@ export default function FlourishApp() {
       <nav className="fl-nav" aria-label="Surfaces">
         <a href="/" className="fl-pill">Pond</a>
         <span className="fl-pill is-here" aria-current="page">Flourish</span>
+        <a href="/flourish/abide/" className="fl-pill">Abide</a>
         <a href="/pray/" className="fl-pill">Pray</a>
       </nav>
 

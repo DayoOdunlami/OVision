@@ -121,7 +121,7 @@ function curl(x, y, heading, len, dir, em) {
 }
 
 // Turn a list of points (px) into a stem: arc lengths and normals.
-function stem(pts, extra) {
+export function stem(pts, extra) {
   const n = pts.length;
   const s = new Float64Array(n);
   const nx = new Float64Array(n), ny = new Float64Array(n);
@@ -152,7 +152,7 @@ function bendAt(st, i, k = 4) {
 // When growth reaches each sample. Not a constant speed: a shoot eases
 // out of its start, slows through tight curves, and surges and rests a
 // little along the way — so it reads as growing, not as being drawn.
-function timeStem(st, t0, v, em, rand) {
+export function timeStem(st, t0, v, em, rand) {
   const n = st.pts.length;
   const tt = new Float64Array(n);
   tt[0] = t0;

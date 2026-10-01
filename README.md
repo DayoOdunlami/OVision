@@ -173,6 +173,29 @@ Finished stretches of stem are drawn once into their own canvas; each frame redr
 blossoms and growing tips. Reduced motion shows it fully grown and still.
 In development, `window.__vineStep(frames)` steps the animation by hand.
 
+## Abide (a second Flourish mode)
+
+`flourish/abide/index.html` → `/flourish/abide/` → `src/flourish/abide/`. The
+original Flourish page is untouched; a switch at the top of each moves between
+"Abide" and "Free write".
+
+The practice, for one outcome — *take in one word today, and see over time what's
+taking root*:
+
+1. **Sow** — this week's word (from the prayer rota, via `wordForRef` in
+   `abide/words.js`; any of the 14 can be chosen) falls as a seed into the soil.
+2. **Abide** — a shoot rises and writes the word. It grows only while the page is
+   open, paced to slow breathing (in 4s, out 6s); the verse appears a line at a
+   time and a question halfway.
+3. **Gather** — the finished vine is drawn back onto the vineyard.
+4. **Vineyard** — one long vine: a section per word (consecutive days with the same
+   word are one section) with a grape cluster per day abided. Stored per device
+   under `flourish.vineyard`.
+
+The sky follows the real clock (sun by day; moon and stars by night; warm dawn and
+dusk). Preview another hour with `?h=21`. In development,
+`window.__abideStep(frames)` steps the animation.
+
 ## Develop
 
 ```bash

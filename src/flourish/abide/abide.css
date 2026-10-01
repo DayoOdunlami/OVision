@@ -1,0 +1,237 @@
+/* ── Abide ────────────────────────────────────────────────────────
+   The canvas fills the screen (sky, soil, vine); everything else is a
+   quiet layer on top. Colours flip to light at night. */
+
+.ab-app {
+  --ink: #2F3A2C;
+  --muted: #6f7566;
+  --line: rgba(47, 58, 44, 0.16);
+  --btn-bg: rgba(255, 255, 255, 0.55);
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Source Sans 3', system-ui, sans-serif;
+  --soil: clamp(70px, 16dvh, 160px);
+  --text-block: clamp(150px, 26dvh, 260px);
+
+  position: fixed;
+  inset: 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: color 1.5s ease;
+}
+.ab-app.is-night {
+  --ink: #f1ebdc;
+  --muted: #c7c3b4;
+  --line: rgba(241, 235, 220, 0.25);
+  --btn-bg: rgba(255, 255, 255, 0.1);
+}
+
+.ab-scene { position: absolute; inset: 0; }
+.ab-scene canvas { display: block; }
+
+.ab-nav {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
+  z-index: 2;
+}
+.ab-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--btn-bg);
+}
+.ab-pill {
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+}
+.ab-pill:hover { color: var(--ink); }
+.ab-pill.is-here { color: var(--ink); background: rgba(255, 255, 255, 0.7); }
+.is-night .ab-pill.is-here { background: rgba(255, 255, 255, 0.18); }
+
+/* Intro: centred in the sky. */
+.ab-intro {
+  position: absolute;
+  left: 16px; right: 16px;
+  top: 0;
+  bottom: var(--soil);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 1;
+  animation: ab-rise 1.2s ease both;
+}
+.ab-eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ab-word {
+  margin: 0.2rem 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(3.4rem, 2rem + 6vw, 7rem);
+  line-height: 1;
+}
+.ab-ref {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ab-how {
+  max-width: 24rem;
+  margin: 1.4rem 0 1.4rem;
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 0.9rem + 0.6vw, 1.4rem);
+  line-height: 1.4;
+}
+.ab-choose {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 1.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.ab-choose select {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--btn-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+}
+.is-night .ab-choose select option { color: #2F3A2C; }
+
+.ab-btn {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--btn-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  min-height: 46px;
+  cursor: pointer;
+}
+.ab-btn:hover { background: rgba(255, 255, 255, 0.8); }
+.ab-btn-primary {
+  background: #4f7a2c;
+  border-color: #4f7a2c;
+  color: #fff;
+  min-width: 9rem;
+}
+.ab-btn-primary:hover { background: #45692a; }
+.ab-btn:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
+
+/* The verse, a line at a time, just above the soil. */
+.ab-verse {
+  position: absolute;
+  left: 16px; right: 16px;
+  bottom: calc(var(--soil) + 10px);
+  height: var(--text-block);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+}
+.ab-line, .ab-verse-ref, .ab-question, .ab-breath {
+  display: block;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 2.4s ease, transform 2.4s ease;
+}
+.is-shown { opacity: 1; transform: none; }
+.ab-line {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.25rem, 0.85rem + 1.5vw, 2.2rem);
+  line-height: 1.22;
+}
+.ab-verse-ref {
+  margin-top: 0.3rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ab-question {
+  margin-top: 0.7rem;
+  font-size: clamp(0.95rem, 0.85rem + 0.3vw, 1.15rem);
+  color: var(--muted);
+}
+.ab-breath {
+  margin-top: 0.6rem;
+  min-height: 1.2em;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
+  color: var(--muted);
+  transition-duration: 1.6s;
+}
+.ab-gather {
+  margin-top: 0.8rem;
+  pointer-events: auto;
+  animation: ab-rise 1.4s ease both;
+}
+
+/* Vineyard footer, on the soil. */
+.ab-foot {
+  position: absolute;
+  left: 16px; right: 16px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  z-index: 1;
+  color: #f4ead8;
+  animation: ab-rise 1.2s ease both;
+}
+.ab-summary {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
+}
+.ab-foot .ab-btn {
+  color: #f4ead8;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(244, 234, 216, 0.35);
+}
+.ab-foot .ab-btn:hover { background: rgba(255, 255, 255, 0.22); }
+
+@keyframes ab-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ab-intro, .ab-gather, .ab-foot { animation: none; }
+}
