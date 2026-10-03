@@ -1,5 +1,5 @@
 import { seeded } from '../lib/vine.js';
-import { drawWeed } from './ground.js';
+import { SPECIES, makeThorn, drawThorn, drawSeedHead } from './weeds.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // The field, before sowing — the parable of the sower, to clear by hand.
@@ -46,7 +46,6 @@ const FAST = 1500;        // px/s — a pull this quick shatters the head
 const SHAKE = 1250;       // px/s — carrying this fast sheds seed
 const WARN = 800;         // px/s — the head starts to tremble
 const MAX_SPROUTS = 5;    // new weeds a session can grow, at most
-const TYPES = ['grass', 'thistle', 'bramble'];
 
 export class Field {
   constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, seed, onNote }) {
@@ -160,28 +159,18 @@ export class Field {
     this.hidden = weeds - spots.length;
   }
 
-  addWeed(x, word, size, grow) {
+  addWeed(x, word, size, grow, species) {
     const rand = this.rand;
     const r = (a, b) => a + rand() * (b - a);
-    const type = TYPES[Math.floor(rand() * 3)];
-    const s = this.S * r(0.9, 1.15) * size;
-    const nb = type === 'grass' ? 6 + Math.floor(rand() * 3) : type === 'thistle' ? 5 : 3;
-    const blades = [];
-    for (let k = 0; k < nb; k++) {
-      const f = nb === 1 ? 0.5 : k / (nb - 1);
-      blades.push({
-        lean: (f - 0.5) * r(1.2, 1.8) + r(-0.15, 0.15),
-        len: (type === 'grass' ? r(18, 30) : type === 'thistle' ? r(12, 20) : r(22, 34)) * s,
-        w: (type === 'grass' ? r(2.4, 3.6) : r(5, 7)) * s,
-        bend: r(-0.4, 0.4),
-        c: rand(),
-      });
-    }
+    // One of each in turn, starting somewhere different each day.
+    if (this.made === undefined) { this.made = 0; this.first = Math.floor(rand() * SPECIES.length); }
+    // (Seed breeds true: a sprout is its parent's plant.)
+    const type = species || SPECIES[(this.first + this.made++) % SPECIES.length];
+    const s = this.S * r(0.9, 1.12) * size;
+    const thorn = makeThorn(type, s, rand);
     const w = {
-      kind: 'weed', type, x, y: this.edge(x), s, blades, phase: r(0, 6),
-      stalk: 0,   // drawWeed's own thistle head is replaced by the seed head
-      stalkH: r(40, 54) * s,
-      roots: Array.from({ length: 4 }, () => [r(-0.9, 0.9), r(10, 20) * s]),
+      kind: 'weed', type, thorn, x, y: this.edge(x), s, phase: r(0, 6),
+      stalkH: thorn.stalkH,
       state: 'in', pull: 0, lean: 0, rot: 0, a: 1, free: false,
       word, seeds: 14, quiver: 0, grow: grow ? 1 : 0, vx: 0, vy: 0, t: 0,
     };
@@ -304,8 +293,9 @@ export class Field {
     for (const sd of this.seeds) {
       sd.t += dt;
       if (!sd.landed) {
-        sd.vy = Math.min(sd.vy + 0.05 * k, 1.4);
-        sd.x += (sd.vx + Math.sin(sd.t * 4 + sd.ph) * 0.6) * k;
+        // Down and parachutes drift; grain and berries drop.
+        sd.vy = sd.heavy ? Math.min(sd.vy + 0.25 * k, 6) : Math.min(sd.vy + 0.05 * k, 1.4);
+        sd.x += (sd.vx * (sd.heavy ? 0.5 : 1) + (sd.heavy ? 0 : Math.sin(sd.t * 4 + sd.ph) * 0.6)) * k;
         sd.y += sd.vy * k;
         sd.vx *= 0.98;
         const floor = this.edge(sd.x);
@@ -314,7 +304,7 @@ export class Field {
         sd.willSprout = false;
         sd.done = true;
         if (sd.x > 10 && sd.x < this.W - 10) {
-          this.addWeed(sd.x, sd.word, 0.72, 0);
+          this.addWeed(sd.x, sd.word, 0.72, 0, sd.kind);
         }
       } else if (!sd.willSprout && this.t - sd.landed > 0.6) sd.done = true;
     }
@@ -332,6 +322,7 @@ export class Field {
       this.seeds.push({
         x, y, vx: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 2.5) * w.s, vy: -Math.random() * 1.2,
         t: 0, ph: Math.random() * 6, word: w.word, willSprout: grows, landed: 0,
+        kind: w.type, heavy: w.type === 'foxtail' || w.type === 'bramble',
       });
     }
     if (lost) navigator.vibrate?.(12);
@@ -350,7 +341,7 @@ export class Field {
   }
 
   headOf(w) {
-    const g = w.grow ** 0.8;
+    const g = w.grow;
     const stretch = 1 + Math.max(0, w.pull) * 0.28;
     const h = w.stalkH * g * stretch;
     const a = w.rot + w.lean * 0.4 + (w.free ? 0 : Math.sin(this.t * 1.3 + w.phase) * 0.05);
@@ -562,11 +553,14 @@ export class Field {
         ctx.scale(g, g);
         ctx.translate(-w.x, -w.y);
       }
-      const save = w.a;
-      w.a = 1;
-      drawWeed(ctx, w, reduced ? 0 : this.t, night);
-      w.a = save;
-      this.drawHead(ctx, w, night, ink);
+      const t = reduced ? 0 : this.t;
+      ctx.save();
+      ctx.translate(w.x, w.y - (w.free ? 0 : Math.max(0, w.pull) * 6 * w.s));
+      ctx.rotate(w.rot + w.lean * 0.4);
+      const hd = drawThorn(ctx, w, t, night);
+      drawSeedHead(ctx, w, hd.x, hd.y, night, this.t);
+      ctx.restore();
+      this.drawLabel(ctx, w, night, ink);
       ctx.restore();
     }
 
@@ -574,66 +568,36 @@ export class Field {
     for (const sd of this.seeds) {
       ctx.save();
       ctx.translate(sd.x, sd.y);
-      ctx.strokeStyle = night > 0.5 ? 'rgba(240,236,224,0.85)' : 'rgba(250,248,240,0.95)';
-      ctx.lineWidth = 0.8;
-      for (let k = 0; k < 5; k++) {
-        const a = -Math.PI / 2 + (k - 2) * 0.35;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(a) * 5, Math.sin(a) * 5);
-        ctx.stroke();
+      if (sd.kind === 'bramble') {
+        ctx.fillStyle = '#4a1630';
+        ctx.beginPath(); ctx.arc(0, 0, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.arc(-0.8, -0.8, 0.8, 0, Math.PI * 2); ctx.fill();
+      } else if (sd.kind === 'foxtail') {
+        ctx.fillStyle = '#b8ae68';
+        ctx.beginPath(); ctx.ellipse(0, 0, 1.8, 1.2, sd.ph, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.strokeStyle = night > 0.5 ? 'rgba(240,236,224,0.85)' : 'rgba(250,248,240,0.95)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -5); ctx.stroke();
+        for (let k = 0; k < 5; k++) {
+          const a = -Math.PI / 2 + (k - 2) * 0.35;
+          ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(Math.cos(a) * 4, -5 + Math.sin(a) * 4); ctx.stroke();
+        }
+        ctx.fillStyle = sd.kind === 'thistle' ? '#7a5a3a' : '#6b5a3a';
+        ctx.beginPath(); ctx.arc(0, 0, 1.3, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.fillStyle = '#6b5a3a';
-      ctx.beginPath();
-      ctx.arc(0, 0, 1.4, 0, Math.PI * 2);
-      ctx.fill();
       ctx.restore();
     }
   }
 
-  drawHead(ctx, w, night, ink) {
+  drawLabel(ctx, w, night, ink) {
     const hd = this.headOf(w);
     const g = w.grow;
     if (g < 0.35) return;
-    // Stalk.
-    ctx.strokeStyle = night > 0.5 ? 'rgb(74,92,58)' : 'rgb(96,116,66)';
-    ctx.lineWidth = Math.max(1, 1.5 * w.s);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(hd.base.x, hd.base.y);
-    ctx.quadraticCurveTo(hd.base.x + Math.sin(hd.a) * hd.h * 0.2, hd.base.y - hd.h * 0.55, hd.x, hd.y);
-    ctx.stroke();
-    // The seed head: a clock of seeds, thinner as it sheds. It trembles
-    // when handled too fast — the warning before it scatters.
     const q = w.quiver;
     const jx = q ? Math.sin(this.t * 60) * q * 2.4 : 0;
-    const R = 9 * w.s * (0.5 + 0.5 * clamp01(w.seeds / 14));
-    ctx.save();
-    ctx.translate(hd.x + jx, hd.y);
-    if (w.seeds > 0) {
-      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 1.3);
-      glow.addColorStop(0, `rgba(255,252,240,${0.5 + q * 0.3})`);
-      glow.addColorStop(1, 'rgba(255,252,240,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(0, 0, R * 1.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = night > 0.5 ? 'rgba(236,232,220,0.8)' : 'rgba(255,253,246,0.95)';
-      ctx.lineWidth = 0.7;
-      for (let k = 0; k < w.seeds; k++) {
-        const a = (k / 14) * Math.PI * 2 + w.phase;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
-        ctx.stroke();
-      }
-    }
-    ctx.fillStyle = '#8a7348';
-    ctx.beginPath();
-    ctx.arc(0, 0, 2 * w.s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
+    const R = 12 * w.s;
     // Its word, faint until you take hold of it — and left off a young
     // sprout whose word would sit on top of another's.
     const held = w.state === 'carried' || this.grab?.w === w || w.state === 'auto';
