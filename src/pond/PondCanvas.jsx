@@ -360,6 +360,7 @@ export default function PondCanvas({
       // deep koi actually passes *behind* a shallow one and the pond
       // reads as a volume rather than a flat plane.
       const bowl = s.bowl;
+      if (import.meta.env.DEV) window.__pondBowl = { bowl, fish: s.fish };
       bowl.scale = Math.max(0.8, Math.min(1.3, W / 1000));
       bowl.update(s.fish);
       const cur = bowl.cursor(s.cur);

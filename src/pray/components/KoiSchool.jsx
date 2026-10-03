@@ -423,7 +423,7 @@ export default function KoiSchool({ people, stay, onGone }) {
           }
           const up = surfaced(k) >= 0.95;
           const pointer = up ? bowl.cursor(cur) : far;
-          steer(k);
+          if (!(up && bowl.wants(k.fish))) steer(k);
           k.fish.update(W, H, pointer, up && bowl.active ? { food: bowl.foodFor(k.fish), onBreak: bowl.onBreak } : env);
         }
 

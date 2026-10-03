@@ -139,8 +139,8 @@ export default function AbideApp() {
           <p className="ab-left">
             {left > 0 ? `${left} left · drag a weed up, or tap it` : 'Ready'}
           </p>
-          <p className="ab-cite">“…the cares of this world … choke the word.” Mark 4:19</p>
-          <button type="button" className="ab-link" onClick={() => setPhase('intro')}>Skip</button>
+          <p className="ab-cite">“…the cares of this world … choke the word.” <span className="ab-nowrap">Mark 4:19</span></p>
+          {left > 0 && <button type="button" className="ab-link" onClick={() => setPhase('intro')}>Skip</button>}
         </section>
       )}
 
@@ -294,8 +294,8 @@ function SectionCard({ grp, learned, famDays, weekKey, night, onClose, onAbide }
             {ripeOn !== undefined
               ? `Ripe: learned by heart${ripeOn ? ` on ${prettyDate(ripeOn)}` : ''}`
               : grp.key === weekKey
-                ? <>Still green: it ripens when you learn this prayer by heart. <a href="/pray/">Learn it in Pray →</a></>
-                : 'Still green: it ripens when you learn this prayer by heart in Pray, the week it comes round.'}
+                ? <span>Still green: it ripens when you learn this prayer by heart. <a href="/pray/">Learn it in Pray →</a></span>
+                : <span>Still green: it ripens when you learn this prayer by heart in Pray, the week it comes round.</span>}
           </li>
           {fam > 0 && <li><span className="ab-dot is-family" />The family prayed on {fam} of these days</li>}
         </ul>
@@ -311,7 +311,7 @@ function SectionCard({ grp, learned, famDays, weekKey, night, onClose, onAbide }
         )}
         {w && (
           <button type="button" className="ab-btn ab-btn-primary" onClick={() => onAbide(w)}>
-            Abide with {grp.word} again
+            Abide with this word again
           </button>
         )}
       </div>

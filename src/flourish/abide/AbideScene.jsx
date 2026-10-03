@@ -118,7 +118,7 @@ export function groupEntries(entries) {
 // Fruit on a section: ripe once learned by heart; until then green,
 // blushing a little more with each day abided.
 export function ripeness(grp, learned) {
-  return learned && learned[grp.key] !== undefined ? 4 : 1 + 0.2 * Math.min(4, grp.days.length);
+  return learned && learned[grp.key] !== undefined ? 4 : 1 + 0.07 * Math.min(4, grp.days.length);
 }
 
 // Days the family prayed within a section's span of dates.
@@ -568,7 +568,7 @@ export default function AbideScene({
       if (!reduced) air.step(dt, rt);
 
       const sky = skyAt(P.hour, season);
-      const wantVy = mode === 'vineyard' ? 1 : mode === 'intro' || mode === 'ground' ? 0.35 : mode === 'gather' ? smooth(0.15, 0.7, gT / GATHER_S) : 0;
+      const wantVy = mode === 'vineyard' ? 1 : mode === 'intro' ? 0.35 : mode === 'ground' ? (W < 640 ? 0.16 : 0.26) : mode === 'gather' ? smooth(0.15, 0.7, gT / GATHER_S) : 0;
       vyAlpha += (wantVy - vyAlpha) * (mode === 'gather' ? 1 : Math.min(1, dt * 2));
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

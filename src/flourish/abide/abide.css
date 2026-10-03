@@ -275,6 +275,7 @@
   color: var(--muted);
   opacity: 0.85;
 }
+.ab-nowrap { white-space: nowrap; }
 .ab-link {
   pointer-events: auto;
   margin-top: 0.9rem;

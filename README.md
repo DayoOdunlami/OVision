@@ -7,6 +7,7 @@ Three surfaces that share one deploy and one `localStorage`.
 | `/`      | **Pond** — the living identity board | Ambient, peripheral, always-on. Lives on a fridge tablet, meant to be glanced at. |
 | `/pray/` | **Prayer** — the family prayer rota | Focal, sequential, one line at a time. Meant to be *used*, then closed. |
 | `/flourish/` | **Flourish** — a word written by a growing vine | "I am the vine; you are the branches." A quiet page to watch grow. |
+| `/flourish/abide/` | **Abide** — a daily practice | Clear the ground → sow the week's word → abide while it grows at the pace of breath → answer → gather into the vineyard. |
 
 They are deliberately **not** the same page. The pond is animated koi; the
 prayer surface is still type on paper. Putting koi behind prayer text would
@@ -33,6 +34,22 @@ What crosses over:
 
 Both integrations are toggleable under **Pond settings → Concepts**, so they can
 be judged against the pond without them.
+
+## Abide
+
+`src/flourish/abide/`. About three minutes a day:
+
+1. **Clear** weeds and stones (`ground.js`); more weeds the longer you've been away. Drag a weed up or tap it.
+2. **Sow** this week's word (from the prayer rota) or another.
+3. **Abide**: it grows only while the page is open, paced by breath. Hold anywhere (or Space) to breathe in, let go to breathe out; otherwise a guided 4s/6s breath.
+4. **Respond**: one optional line, kept with the day.
+5. **Gather** into the vineyard. Tap a section for its verse, days and notes. Fruit stays green until that prayer is learned by heart in the Pray puzzle (`familyPrayer.learned`); gold berries are days the family prayed. Seasons follow the calendar (`season.js`).
+
+Previews: `?h=21` (time of day), `?season=winter`.
+
+## Feeding the koi
+
+Pond and Pray (the koi that stay after Amen): double-tap the water, or press and hold while a ring fills. A pinch of food floats, drifts and slowly sinks (~40s). Each koi has to *notice* it: nearby and curious koi first, others when they see one eating (`src/shared/koiFood.js`).
 
 ## Pond surface
 

@@ -59,7 +59,7 @@ export class FoodBowl {
         y: y + Math.sin(a) * d * 0.8,
         vx: Math.cos(a) * rand(0.05, 0.22) * s,
         vy: Math.sin(a) * rand(0.05, 0.18) * s,
-        r: rand(2.3, 3.3) * s,
+        r: rand(3, 4.2) * s,
         tone: Math.random(),
         rot: Math.random() * Math.PI,
         age: -i * 4,              // they land one after another
@@ -71,6 +71,13 @@ export class FoodBowl {
     // Hold the cursor's sway over the fish for a moment: the hand that
     // fed them shouldn't frighten them off the food.
     this.calm = { x, y, until: this.t + 360 };
+  }
+
+  // Whether this fish is on its way to food (so a host's own steering
+  // should leave it be).
+  wants(f) {
+    for (const p of this.pellets) if (p.age >= 0 && p.seen.has(f)) return true;
+    return false;
   }
 
   get active() {
@@ -91,7 +98,7 @@ export class FoodBowl {
       p.vy = p.vy * 0.985 + Math.cos(this.t * 0.003 + p.tone * 5) * 0.0012;
       p.rot += p.vx * 0.05;
       if (p.eaten) continue;
-      const scent = (110 + 300 * Math.min(1, p.age / SCENT_FRAMES)) * Math.max(0.7, this.scale);
+      const scent = (110 + 300 * Math.min(1, p.age / SCENT_FRAMES) + 400 * Math.min(1, p.age / 1500)) * Math.max(0.7, this.scale);
       // A pellet that's sinking is harder to spot.
       const sinking = this.sink(p);
       for (const f of fish) {
@@ -99,7 +106,10 @@ export class FoodBowl {
         const d = Math.hypot(f.mouth.x - p.x, f.mouth.y - p.y);
         if (d > scent) continue;
         const mood = f.variety?.personality === 'curious' ? 1.8 : f.variety?.personality === 'skittish' ? 0.55 : 1;
-        let chance = 0.006 * mood * (1 - d / scent) * (1 - sinking * 0.6);
+        // Food left alone gets noticed more and more: hunger, and a
+        // wider drift of scent.
+        const wait = 1 + Math.min(3, p.age / 600);
+        let chance = 0.006 * mood * wait * (1 - d / scent) * (1 - sinking * 0.6);
         // Seeing another koi eat close by is the strongest cue of all.
         for (const o of feeding) {
           if (o !== f && Math.hypot(o.mouth.x - p.x, o.mouth.y - p.y) < 160 * this.scale + 60) { chance += 0.03; break; }
@@ -108,6 +118,24 @@ export class FoodBowl {
       }
     }
     this.pellets = this.pellets.filter((p) => !p.eaten && p.age < LIFE);
+    // A koi that has noticed food out of its reach swims over to it.
+    // (SpineFish only goes for food within ~340px; past that it would
+    // just keep wandering.)
+    for (const f of fish) {
+      if (!f.mouth || !f.target || f.feedTarget || f.fleeCooldown > 0 || f.fedCooldown > 0) continue;
+      let best = null, bd = Infinity;
+      for (const p of this.pellets) {
+        if (p.age < 0 || !p.seen.has(f)) continue;
+        const d = Math.hypot(p.x - f.mouth.x, p.y - f.mouth.y);
+        if (d < bd) { bd = d; best = p; }
+      }
+      if (best && bd >= 300) {
+        f.target.x = best.x;
+        f.target.y = best.y;
+        f.isIdle = false;
+        f.energy = Math.max(f.energy, 0.55);
+      }
+    }
     for (const r of this.rings) r.age++;
     this.rings = this.rings.filter((r) => r.age < r.life);
   }
