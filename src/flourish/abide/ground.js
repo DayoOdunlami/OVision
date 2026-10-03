@@ -226,8 +226,8 @@ function drawStone(ctx, it, night) {
   ctx.restore();
 }
 
-function drawWeed(ctx, it, rt, night) {
-  const out = it.state === 'out';
+export function drawWeed(ctx, it, rt, night) {
+  const out = it.state === 'out' || it.free;
   const pull = Math.max(0, it.pull);
   ctx.save();
   ctx.globalAlpha = it.a;

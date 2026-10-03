@@ -39,7 +39,7 @@ be judged against the pond without them.
 
 `src/flourish/abide/`. About three minutes a day:
 
-1. **Clear** weeds and stones (`ground.js`); more weeds the longer you've been away. Drag a weed up or tap it.
+1. **Prepare the ground**, the parable of the sower by hand (`field.js`). A heap of engraved river stones (Selfishness, Greed, Insecurity, Distraction, Laziness, Pride, Busyness, Doubt) sits on the seed's spot. They're Matter.js bodies like the puzzle's words: drag or fling one past the dotted line, or it's drawn back to the heap. Then the thorns, each with a faint word on its seed head (money, worry, fear, more…): pull one up slowly and carry it off the edge. Yank it, shake it, or drop it on the field and it sheds seed that sprouts new thorns; the head trembles first as a warning. More thorns the longer you've been away. A tap does any of it gently; Skip clears the lot.
 2. **Sow** this week's word (from the prayer rota) or another.
 3. **Abide**: it grows only while the page is open, paced by breath. Hold anywhere (or Space) to breathe in, let go to breathe out; otherwise a guided 4s/6s breath.
 4. **Respond**: one optional line, kept with the day.

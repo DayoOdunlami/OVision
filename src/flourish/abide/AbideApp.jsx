@@ -14,9 +14,11 @@ import { readPrayerState } from '../../data/prayerLink.js';
 //
 // A daily practice of about three minutes, in five movements:
 //
-//   1 Clear   weeds and a stone or two on the ground (more if you've
-//             been away). Pull them up: setting aside what crowds the
-//             mind, before receiving anything. Mark 4:19.
+//   1 Clear   the parable of the sower, by hand: a pile of engraved
+//             stones to drag off the seed's spot, and thorns to pull up
+//             gently and carry away (or they seed). More thorns if you've
+//             been away. Setting aside what crowds the mind, before
+//             receiving anything. Mark 4:5–7, 18–19.
 //   2 Sow     this week's word (the one the family is praying), or
 //             another.
 //   3 Abide   it grows only while you stay, at the pace of breath —
@@ -60,6 +62,14 @@ export default function AbideApp() {
   const [breath, setBreath] = useState({ b: '', led: false });
   const [grown, setGrown] = useState(false);
   const [left, setLeft] = useState(ground.weeds + ground.stones);
+  // A passing word from the field ("too quick: it scattered seed").
+  const [fieldLine, setNoteLine] = useState('');
+  const noteTimer = useRef(0);
+  const fieldNote = (t) => {
+    setNoteLine(t);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setNoteLine(''), 3800);
+  };
   const [note, setNote] = useState('');
   const [slots, setSlots] = useState([]);
   const [open, setOpen] = useState(-1);
@@ -116,6 +126,7 @@ export default function AbideApp() {
         onGrown={() => setGrown(true)}
         onGathered={() => setPhase('vineyard')}
         onClearLeft={setLeft}
+        onNote={fieldNote}
         onCleared={() => setPhase((p) => (p === 'ground' ? 'intro' : p))}
         onSlots={setSlots}
       />
@@ -132,14 +143,16 @@ export default function AbideApp() {
       {phase === 'ground' && (
         <section className="ab-ground" aria-live="polite">
           <p className="ab-eyebrow">{awayLine}</p>
-          <h1 className="ab-title">Clear the ground</h1>
+          <h1 className="ab-title">Prepare the ground</h1>
           <p className="ab-how">
-            Pull up the weeds and set the stones aside: whatever is crowding your mind.
+            Drag the stones away from where the seed will fall. Then pull up the thorns, slowly, and carry each one right off the field.
           </p>
-          <p className="ab-left">
-            {left > 0 ? `${left} left · drag a weed up, or tap it` : 'Ready'}
+          <p className={`ab-left${fieldLine ? ' is-note' : ''}`}>
+            {fieldLine || (left > 0 ? `${left} left` : 'Ready')}
           </p>
-          <p className="ab-cite">“…the cares of this world … choke the word.” <span className="ab-nowrap">Mark 4:19</span></p>
+          <p className="ab-cite">
+            “Some fell on rocky ground … some among thorns, and the thorns grew up and choked it.” <span className="ab-nowrap">Mark 4:5–7</span>
+          </p>
           {left > 0 && <button type="button" className="ab-link" onClick={() => setPhase('intro')}>Skip</button>}
         </section>
       )}

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { buildVine, grownLength, stem, timeStem, seeded } from '../lib/vine.js';
 import { drawStem, bakeStem, drawLeaf, drawBloom } from '../lib/draw.js';
-import { makeGround, hitItem, uproot, stepGround, remaining, drawStonesUnder, drawGroundOver } from './ground.js';
+import { Field } from './field.js';
 import { seasonLeaves, SeasonAir } from './season.js';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -11,7 +11,9 @@ import { seasonLeaves, SeasonAir } from './season.js';
 //             night, warm at dawn and dusk (Psalm 1: "day and night");
 //             and the season, by the calendar (season.js)
 //   soil      along the foot of the screen
-//   ground    before sowing: weeds and stones to clear (ground.js)
+//   ground    before sowing, the parable of the sower to clear by hand:
+//             a pile of engraved stones on the seed's spot, and thorns
+//             that seed if handled roughly (field.js)
 //   sow       a seed falls, settles into the soil, puts down roots
 //   abide     a shoot rises and writes the word. It grows only while
 //             you stay, paced by breath: by your own if you hold to
@@ -133,12 +135,12 @@ const thumbs = new Map();
 
 export default function AbideScene({
   phase, entry, entries, hour, season = 'summer', ground, learned, famDays,
-  onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots,
+  onNote, onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots,
 }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const live = useRef(null);
-  live.current = { phase, entries, hour, ground, learned, famDays, onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots };
+  live.current = { phase, entries, hour, ground, learned, famDays, onNote, onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots };
 
   useEffect(() => {
     const wrap = wrapRef.current, canvas = canvasRef.current;
@@ -159,7 +161,7 @@ export default function AbideScene({
     let mode = null, rt = 0, sowT = 0, growT = 0, g = 0, rate = 1, gT = 0;
     let vyAlpha = 0, breath = '', breathLed = false, lastP = -1, grownSent = false, gatheredSent = false;
     let target = null;
-    let grd = null, clearLeft = -1, clearedAt = -1, clearedSent = false;
+    let grd = null, grdLoading = false, dead = false, clearLeft = -1, clearedAt = -1, clearedSent = false;
     // Your own breath: held = breathing in.
     let held = false, lastUser = -1e9;
     const edge = (x) => soilY + Math.sin(x * 0.013) * 3 + Math.sin(x * 0.041 + 1) * 1.6;
@@ -446,15 +448,23 @@ export default function AbideScene({
         } else target = crop;
         gT = 0;
       }
-      if (m === 'ground' && !grd && live.current.ground) {
+      if (m === 'ground' && !grd && !grdLoading && live.current.ground) {
+        // The physics engine is the puzzle's; fetched only when needed.
+        grdLoading = true;
         const gr = live.current.ground;
-        grd = makeGround({ W, soilY, edge, weeds: gr.weeds, stones: gr.stones, seed: gr.seed || 'ground' });
+        import('matter-js').then(({ default: Matter }) => {
+          if (dead) return;
+          grd = new Field({
+            Matter, W, H, soilY, edge, pileX: seedX,
+            stones: gr.stones, weeds: gr.weeds, seed: gr.seed || 'ground',
+            onNote: (t) => live.current.onNote?.(t),
+          });
+          if (mode !== 'ground') grd.clearAll();
+        });
       }
       if (mode === 'ground' && m !== 'ground' && grd) {
-        // Leaving with some still there (Skip): clear the rest, quickly.
-        grd.items.filter((it) => it.state === 'in' || it.state === 'held').forEach((it, k) => {
-          if (it.kind === 'weed') { it.state = 'auto'; it.pull = -k * 0.35; } else setTimeout(() => uproot(grd, it, 0), k * 110);
-        });
+        // Leaving with some still there (Skip): clear the rest, gently.
+        grd.clearAll();
       }
       if (m === 'sow') { sowT = 0; growT = 0; g = 0; grownSent = false; lastP = -1; }
       if (m === 'vineyard' && mode === 'gather' && !gatheredSent) { gatheredSent = true; }
@@ -462,7 +472,6 @@ export default function AbideScene({
     };
 
     // ── Input: clearing the ground, and breathing ────────────────────
-    let grab = null;   // { it, x0, y0, t0, id }
     const local = (e) => {
       const r = canvas.getBoundingClientRect();
       return [e.clientX - r.left, e.clientY - r.top];
@@ -471,42 +480,23 @@ export default function AbideScene({
       if (e.target instanceof Element && e.target.closest(INTERACTIVE)) return;
       if (mode === 'ground' && grd) {
         const [x, y] = local(e);
-        const it = hitItem(grd, x, y);
-        if (!it) return;
-        grab = { it, x0: x, y0: y, t0: performance.now(), id: e.pointerId };
-        if (it.kind === 'weed') it.state = 'held';
+        if (grd.down(x, y, e.pointerId)) wrap.style.cursor = 'grabbing';
         return;
       }
       if (mode === 'sow') { held = true; lastUser = rt; }
     };
     const onMove = (e) => {
-      if (mode === 'ground' && grd) {
+      if (grd) {
         const [x, y] = local(e);
-        if (grab && e.pointerId === grab.id) {
-          const it = grab.it;
-          if (it.kind === 'weed') {
-            it.pull = clamp01((grab.y0 - y) / (58 * it.s));
-            it.lean = Math.max(-1, Math.min(1, (x - grab.x0) / 80));
-            if (it.pull >= 1) { uproot(grd, it, x - grab.x0); grab = null; navigator.vibrate?.(6); }
-          } else if (Math.hypot(x - grab.x0, y - grab.y0) > 18) {
-            uproot(grd, it, x - grab.x0);
-            grab = null;
-          }
-          return;
-        }
-        wrap.style.cursor = hitItem(grd, x, y) ? 'grab' : '';
+        if (grd.grab) { grd.move(x, y, e.pointerId); return; }
+        if (mode === 'ground') wrap.style.cursor = grd.hover(x, y) ? 'grab' : '';
       }
     };
     const onUp = (e) => {
-      if (grab && e.pointerId === grab.id) {
-        const it = grab.it;
+      if (grd?.grab) {
         const [x, y] = local(e);
-        const tap = Math.hypot(x - grab.x0, y - grab.y0) < 10 && performance.now() - grab.t0 < 450;
-        if (tap) {
-          // A tap pulls it out for you.
-          if (it.kind === 'weed') { it.state = 'auto'; it.autoDir = 0; } else uproot(grd, it, 0);
-        } else if (it.state === 'held') it.state = 'in';   // springs back
-        grab = null;
+        grd.up(x, y, e.pointerId);
+        wrap.style.cursor = '';
       }
       if (held) { held = false; lastUser = rt; }
     };
@@ -557,9 +547,9 @@ export default function AbideScene({
         if (gT >= GATHER_S && !gatheredSent) { gatheredSent = true; P.onGathered?.(); }
       }
       if (grd) {
-        stepGround(grd, dt, edge, W);
+        grd.step(dt);
         if (mode === 'ground') {
-          const left = remaining(grd);
+          const left = grd.remaining();
           if (left !== clearLeft) { clearLeft = left; P.onClearLeft?.(left); }
           if (left === 0 && clearedAt < 0) clearedAt = rt;
           if (clearedAt >= 0 && !clearedSent && rt - clearedAt > 0.9) { clearedSent = true; P.onCleared?.(); }
@@ -627,7 +617,6 @@ export default function AbideScene({
       drawVineyard(vyAlpha, lastA, sky.night);
 
       // Stones half in the soil, then the soil, darker by night.
-      if (grd) drawStonesUnder(ctx, grd, sky.night);
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.drawImage(soilC, 0, 0);
@@ -636,7 +625,7 @@ export default function AbideScene({
         ctx.fillStyle = `rgba(16,20,36,${0.38 * sky.night})`;
         ctx.fill(soilPath);
       }
-      if (grd) drawGroundOver(ctx, grd, reduced ? 0 : rt, sky.night);
+      if (grd) grd.draw(ctx, sky.night, reduced);
 
       if (mode === 'sow') {
         const sx = seedX;
@@ -708,10 +697,11 @@ export default function AbideScene({
     });
     ro.observe(wrap);
     if (import.meta.env.DEV) {
-      window.__abideStep = (n = 60) => { for (let i = 0; i < n; i++) frame(1 / 60); return { mode, g: +g.toFixed(2), total: +total.toFixed(2), left: grd ? remaining(grd) : 0 }; };
-      window.__abideGround = () => grd?.items.filter((it) => it.state === 'in').map((it) => ({ kind: it.kind, x: it.x, y: it.y - (it.kind === 'weed' ? 12 : 0) }));
+      window.__abideStep = (n = 60) => { for (let i = 0; i < n; i++) frame(1 / 60); return { mode, g: +g.toFixed(2), total: +total.toFixed(2), left: grd ? grd.remaining() : 0 }; };
+      window.__abideField = () => grd;
     }
     return () => {
+      dead = true;
       cancelAnimationFrame(raf);
       clearTimeout(rtm);
       ro.disconnect();
@@ -721,7 +711,7 @@ export default function AbideScene({
       window.removeEventListener('pointercancel', onUp);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
-      if (import.meta.env.DEV) { delete window.__abideStep; delete window.__abideGround; }
+      if (import.meta.env.DEV) { delete window.__abideStep; delete window.__abideField; }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.word, season]);

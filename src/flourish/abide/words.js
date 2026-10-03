@@ -113,14 +113,14 @@ export function daysAway(entries) {
   return Math.max(0, daysBetween(entries[entries.length - 1].date, todayIso()) - 1);
 }
 
-// The ground before sowing: weeds grow back while you're away — one
-// even after a single day, because the cares of the day always crowd
-// in — and a stone or two.
+// The ground before sowing: the pile of stones is there every day;
+// the thorns grow back while you're away — two even after a single
+// day, because the cares of the day always crowd in.
 export function groundFor(entries) {
   const away = daysAway(entries);
   return {
-    weeds: away === null ? 2 : 1 + Math.min(3, away),
-    stones: away === null ? 2 : away >= 3 ? 2 : 1,
+    weeds: away === null ? 3 : 2 + Math.min(3, away),
+    stones: 6,
     away,
   };
 }
