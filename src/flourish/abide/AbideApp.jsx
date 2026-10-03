@@ -38,6 +38,16 @@ import { readPrayerState } from '../../data/prayerLink.js';
 // untouched; the switch at the top moves between them.
 // ═══════════════════════════════════════════════════════════════════
 
+// How forgiving the field is with a hurried hand. Per device.
+const PATIENCE_KEY = 'abide.patience';
+const PATIENCE_OPTS = [['forgiving', 'Forgiving'], ['balanced', 'Balanced'], ['exacting', 'Exacting']];
+function readPatience() {
+  try {
+    const v = localStorage.getItem(PATIENCE_KEY);
+    return PATIENCE_OPTS.some(([k]) => k === v) ? v : 'balanced';
+  } catch { return 'balanced'; }
+}
+
 function hourNow() {
   try {
     const q = new URLSearchParams(location.search).get('h');   // ?h=21 to preview night
@@ -64,6 +74,11 @@ export default function AbideApp() {
   const [left, setLeft] = useState(ground.weeds + ground.stones);
   // A passing word from the field ("too quick: it scattered seed").
   const [fieldLine, setNoteLine] = useState('');
+  const [patience, setPatienceRaw] = useState(readPatience);
+  const setPatience = (v) => {
+    setPatienceRaw(v);
+    try { localStorage.setItem(PATIENCE_KEY, v); } catch { /* ignore */ }
+  };
   const noteTimer = useRef(0);
   const fieldNote = (t) => {
     setNoteLine(t);
@@ -127,6 +142,7 @@ export default function AbideApp() {
         onGathered={() => setPhase('vineyard')}
         onClearLeft={setLeft}
         onNote={fieldNote}
+        patience={patience}
         onCleared={() => setPhase((p) => (p === 'ground' ? 'intro' : p))}
         onSlots={setSlots}
       />
@@ -153,6 +169,21 @@ export default function AbideApp() {
           <p className="ab-cite">
             “Some fell on rocky ground … some among thorns, and the thorns grew up and choked it.” <span className="ab-nowrap">Mark 4:5–7</span>
           </p>
+          <div className="ab-patience" role="radiogroup" aria-label="Patience: how forgiving the field is with a hurried hand">
+            <span className="ab-patience-label">Patience</span>
+            {PATIENCE_OPTS.map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={patience === k}
+                className={`ab-patience-opt${patience === k ? ' is-on' : ''}`}
+                onClick={() => setPatience(k)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {left > 0 && <button type="button" className="ab-link" onClick={() => setPhase('intro')}>Skip</button>}
         </section>
       )}

@@ -135,12 +135,12 @@ const thumbs = new Map();
 
 export default function AbideScene({
   phase, entry, entries, hour, season = 'summer', ground, learned, famDays,
-  onNote, onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots,
+  onNote, patience = 'balanced', onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots,
 }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const live = useRef(null);
-  live.current = { phase, entries, hour, ground, learned, famDays, onNote, onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots };
+  live.current = { phase, entries, hour, ground, learned, famDays, onNote, patience, onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onSlots };
 
   useEffect(() => {
     const wrap = wrapRef.current, canvas = canvasRef.current;
@@ -458,6 +458,7 @@ export default function AbideScene({
             Matter, W, H, soilY, edge, pileX: seedX,
             stones: gr.stones, weeds: gr.weeds, seed: gr.seed || 'ground',
             onNote: (t) => live.current.onNote?.(t),
+            patience: live.current.patience,
           });
           if (mode !== 'ground') grd.clearAll();
         });
@@ -480,7 +481,7 @@ export default function AbideScene({
       if (e.target instanceof Element && e.target.closest(INTERACTIVE)) return;
       if (mode === 'ground' && grd) {
         const [x, y] = local(e);
-        if (grd.down(x, y, e.pointerId)) wrap.style.cursor = 'grabbing';
+        if (grd.down(x, y, e.pointerId, e.pointerType === 'touch')) wrap.style.cursor = 'grabbing';
         return;
       }
       if (mode === 'sow') { held = true; lastUser = rt; }
@@ -547,6 +548,7 @@ export default function AbideScene({
         if (gT >= GATHER_S && !gatheredSent) { gatheredSent = true; P.onGathered?.(); }
       }
       if (grd) {
+        if (grd.patience !== P.patience) grd.setPatience(P.patience);
         grd.step(dt);
         if (mode === 'ground') {
           const left = grd.remaining();

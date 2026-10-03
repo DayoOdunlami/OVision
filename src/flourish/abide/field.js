@@ -42,13 +42,23 @@ export const THORN_WORDS = ['money', 'worry', 'fear', 'more', 'hurry', 'approval
 
 const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const STEP = 1000 / 60;
-const FAST = 1500;        // px/s — a pull this quick shatters the head
-const SHAKE = 1250;       // px/s — carrying this fast sheds seed
-const WARN = 800;         // px/s — the head starts to tremble
+// Speeds (px/s) at patience "balanced"; the setting scales them.
+const FAST = 1500;        // a pull this quick shatters the head
+const SHAKE = 1250;       // carrying this fast sheds seed
+const WARN = 800;         // the head starts to tremble
+const LOOSEN_S = 1.1;     // steady tension it takes for roots to let go
 const MAX_SPROUTS = 5;    // new weeds a session can grow, at most
 
+// How forgiving the field is. Faster thresholds, quicker roots and a
+// firmer grip on the stones when forgiving; the reverse when exacting.
+export const PATIENCE = {
+  forgiving: { speed: 1.6, loosen: 0.55, grip: 1.5 },
+  balanced: { speed: 1, loosen: 1, grip: 1 },
+  exacting: { speed: 0.72, loosen: 1.45, grip: 0.75 },
+};
+
 export class Field {
-  constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, seed, onNote }) {
+  constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, seed, onNote, patience = 'balanced' }) {
     this.M = Matter;
     this.W = W; this.H = H; this.soilY = soilY; this.edge = edge;
     this.onNote = onNote || (() => {});
@@ -64,12 +74,22 @@ export class Field {
     this.sprouted = 0;
     this.grab = null;
     this.dragStone = null;
+    this.setPatience(patience);
 
     // ── Stones ──────────────────────────────────────────────────────
     const { Engine, Bodies, Body, Composite, Vertices } = Matter;
     this.engine = Engine.create({ enableSleeping: true });
     this.floor = Bodies.rectangle(W / 2, soilY + 2 + 50, W * 6, 100, { isStatic: true, friction: 0.5 });
-    Composite.add(this.engine.world, this.floor);
+    // Walls at the screen's edges: a stone flung hard bounces back rather
+    // than leaving — the quick swipe doesn't work. Cleared stones pass
+    // through them (they become sensors).
+    const T = 200;
+    Composite.add(this.engine.world, [
+      this.floor,
+      Bodies.rectangle(-T / 2, soilY - H, T, H * 4, { isStatic: true, friction: 0.2 }),
+      Bodies.rectangle(W + T / 2, soilY - H, T, H * 4, { isStatic: true, friction: 0.2 }),
+      Bodies.rectangle(W / 2, -T / 2 - 60, W * 4, T, { isStatic: true }),
+    ]);
     const words = [...STONE_WORDS];
     for (let i = words.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [words[i], words[j]] = [words[j], words[i]]; }
     // The first five are the ones named in the brief; keep them in the
@@ -132,7 +152,17 @@ export class Field {
     Composite.add(this.engine.world, this.stones.map((s) => s.body));
     // The line to drag a stone past: clear of the heap on either side.
     const half = Math.max(...this.stones.map((st) => Math.abs(st.body.position.x - this.pileX) + st.hw));
+    this.heapHalf = half;
     this.clearR = half + Math.max(80, W * 0.08);
+    // The lines themselves, kept on screen (a phone has little room).
+    this.lineL = Math.max(this.pileX - this.clearR, -1e6);
+    // Leave room past each line for the widest stone to rest beyond it.
+    const room = Math.max(...this.stones.map((st) => st.hw)) + 14;
+    const heapR = this.pileX + half, heapL = this.pileX - half;
+    this.lineR = Math.min(this.pileX + this.clearR, Math.max(heapR + 26, W - room));
+    this.lineL = Math.max(this.pileX - this.clearR, Math.min(heapL - 26, room));
+    if (this.lineL < 30) this.lineL = -1e6;     // no room on that side
+    if (this.lineR > W - 30) this.lineR = 1e6;
     // Let the pile settle before anyone sees it.
     for (let k = 0; k < 140; k++) this.physics();
 
@@ -172,7 +202,7 @@ export class Field {
       kind: 'weed', type, thorn, x, y: this.edge(x), s, phase: r(0, 6),
       stalkH: thorn.stalkH,
       state: 'in', pull: 0, lean: 0, rot: 0, a: 1, free: false,
-      word, seeds: 14, quiver: 0, grow: grow ? 1 : 0, vx: 0, vy: 0, t: 0,
+      word, seeds: 14, quiver: 0, grow: grow ? 1 : 0, vx: 0, vy: 0, t: 0, loose: 0,
     };
     this.weeds.push(w);
     return w;
@@ -185,28 +215,62 @@ export class Field {
       + this.seeds.filter((sd) => sd.willSprout).length;
   }
 
+  setPatience(p) {
+    this.patience = PATIENCE[p] ? p : 'balanced';
+    this.P = PATIENCE[this.patience];
+  }
+
   physics() {
-    const { Engine, Body } = this.M;
+    const { Engine, Body, Sleeping } = this.M;
+    const g = this.grab;
     for (const st of this.stones) {
-      if (st.cleared || st === this.dragStone) continue;
+      if (st.cleared) continue;
       const b = st.body;
-      const dx = b.position.x - this.pileX;
-      if (Math.abs(dx) < this.clearR) {
-        // The heap's own pull: a little, toward the middle. (A resting
-        // body sleeps and ignores forces, so one left out of the heap is
-        // kept awake until it's back.)
-        if (Math.abs(dx) > 50) {
-          if (b.isSleeping) this.M.Sleeping.set(b, false);
-          // Slide it home, unhurried; faster the further out it is.
-          const want = -Math.sign(dx) * Math.min(2.2, (Math.abs(dx) - 40) * 0.014) * this.S;
-          Body.setVelocity(b, { x: b.velocity.x * 0.9 + want * 0.1, y: b.velocity.y });
-        }
-      } else {
-        this.clearStone(st, Math.sign(dx));
+      if (st === this.dragStone && g) {
+        // Carried by the hand, but still a body: it shoves and tumbles the
+        // others. Moved by velocity toward the finger, so a quick hand
+        // leaves it behind — and past a point, it slips.
+        const tx = g.px - g.off.x, ty = Math.min(g.py - g.off.y, this.soilY - st.hh);
+        const ex = tx - b.position.x, ey = ty - b.position.y;
+        const cap = 16 * this.S;
+        Body.setVelocity(b, { x: Math.max(-cap, Math.min(cap, ex * 0.28)), y: Math.max(-cap, Math.min(cap, ey * 0.28)) });
+        Body.setAngularVelocity(b, b.angularVelocity * 0.8);
+        if (Math.hypot(ex, ey) > 95 * this.S * this.P.grip) this.slip(st);
+        continue;
       }
-      if (b.position.y > this.H + 200) st.gone = true;
+      const dx = b.position.x - this.pileX;
+      // Past a line — or, where there's no room past it, set down against
+      // the edge of the field away from the heap.
+      const wall = Math.abs(dx) > this.heapHalf * 0.9 &&
+        ((b.position.x + st.hw >= this.W - 8 && dx > 0) || (b.position.x - st.hw <= 8 && dx < 0 && this.lineL < -1e5));
+      const out = b.position.x > this.lineR || b.position.x < this.lineL || wall;
+      if (!out) {
+        // The heap's pull: slight, but enough that a stone half moved, or
+        // knocked loose, creeps back to the others.
+        if (Math.abs(dx) > this.heapHalf * 0.55) {
+          if (b.isSleeping) Sleeping.set(b, false);
+          const want = -Math.sign(dx) * Math.min(1.3, (Math.abs(dx) - this.heapHalf * 0.5) * 0.01) * this.S;
+          Body.setVelocity(b, { x: b.velocity.x * 0.94 + want * 0.06, y: b.velocity.y });
+        }
+        st.rest = 0;
+      } else {
+        // Past the line: set aside once it has come to rest there.
+        const still = Math.hypot(b.velocity.x, b.velocity.y) < 0.35 && Math.abs(b.angularVelocity) < 0.02;
+        st.rest = still ? (st.rest || 0) + STEP : 0;
+        if (st.rest > 450) this.clearStone(st, Math.sign(dx));
+      }
     }
     Engine.update(this.engine, STEP);
+  }
+
+  slip(st) {
+    const { Body } = this.M;
+    const b = st.body;
+    Body.setVelocity(b, { x: b.velocity.x * 0.35, y: b.velocity.y * 0.35 });
+    this.dragStone = null;
+    this.grab = null;
+    navigator.vibrate?.(10);
+    this.onNote('It slipped. One stone at a time, steadily.');
   }
 
   clearStone(st, dir) {
@@ -214,9 +278,10 @@ export class Field {
     const { Body, Sleeping } = this.M;
     st.cleared = true;
     st.dir = dir || (st.body.position.x < this.pileX ? -1 : 1);
+    st.body.isSensor = true;   // through the wall and away
     Sleeping.set(st.body, false);
-    Body.setVelocity(st.body, { x: st.dir * 5 * this.S, y: -2 });
-    Body.setAngularVelocity(st.body, st.dir * 0.12);
+    Body.setVelocity(st.body, { x: st.dir * 3.5 * this.S, y: -1.5 });
+    Body.setAngularVelocity(st.body, st.dir * 0.08);
     this.wake();
   }
 
@@ -255,8 +320,20 @@ export class Field {
     }
 
     const k = dt * 60;
+    // Holding a weed: steady tension loosens its roots; a hand moving too
+    // fast doesn't (it just shakes the plant).
+    const gw = this.grab?.w;
+    if (gw && gw.state === 'in') {
+      const g = this.grab;
+      g.speed *= 1 - Math.min(1, dt * 6);   // a still finger is a calm one
+      if ((g.lift || 0) > 0.12 && g.speed < WARN * this.P.speed) {
+        gw.loose = Math.min(1, gw.loose + dt / (LOOSEN_S * this.P.loosen));
+      }
+      this.rootPull(gw, g, false);
+    }
     for (const w of this.weeds) {
       w.quiver *= 1 - Math.min(1, dt * 4);
+      if (w.state === 'in' && w !== gw) w.loose = Math.max(0, w.loose - dt * 0.25);   // roots resettle
       if (w.grow < 1) w.grow = Math.min(1, w.grow + dt / 1.4);
       if (w.state === 'in' && w.pull > 0 && this.grab?.w !== w) {
         w.pull = Math.max(0, w.pull - dt * 5);
@@ -381,17 +458,15 @@ export class Field {
     return Boolean(this.hitStone(x, y) || this.hitWeed(x, y));
   }
 
-  down(x, y, id) {
+  down(x, y, id, touch = false) {
+    this.touch = touch;
     if (this.grab) return false;
     const st = this.hitStone(x, y);
     if (st) {
-      const { Body } = this.M;
       const b = st.body;
-      Body.setStatic(b, true);
-      b.isSensor = true;
       this.dragStone = st;
       this.wake();
-      this.grab = { st, id, off: { x: x - b.position.x, y: y - b.position.y }, x0: x, y0: y, t0: performance.now(), last: { x, y, t: performance.now() }, vx: 0, vy: 0, moved: 0 };
+      this.grab = { st, id, off: { x: x - b.position.x, y: y - b.position.y }, px: x, py: y, x0: x, y0: y, t0: performance.now(), last: { x, y, t: performance.now() }, moved: 0 };
       return true;
     }
     const w = this.hitWeed(x, y);
@@ -412,35 +487,20 @@ export class Field {
     g.last = { x, y, t: now };
 
     if (g.st) {
-      const { Body } = this.M;
-      g.vx = g.vx * 0.5 + (vx / 1000) * STEP * 0.5;
-      g.vy = g.vy * 0.5 + (vy / 1000) * STEP * 0.5;
-      const b = g.st.body;
-      const px = x - g.off.x;
-      const py = Math.min(y - g.off.y, this.soilY - g.st.hh);
-      Body.setPosition(b, { x: px, y: py });
-      Body.setAngle(b, b.angle * 0.85);
+      g.px = x; g.py = y;   // physics() moves the stone toward this
       return;
     }
 
     const w = g.w;
     g.speed = g.speed * 0.6 + Math.hypot(vx, vy) * 0.4;
+    g.px = x; g.py = y;
     if (w.state === 'in') {
-      w.pull = clamp01((g.y0 - y) / (70 * Math.min(1.2, w.s)));
+      // How far the hand has lifted — but the roots only give as they
+      // loosen, which takes steady tension over time (see step()).
+      g.lift = clamp01((g.y0 - y) / (70 * Math.min(1.2, w.s)));
       w.lean = Math.max(-1, Math.min(1, (x - g.x0) / 90));
-      w.quiver = Math.max(w.quiver, clamp01((g.speed - WARN) / (FAST - WARN)));
-      if (w.pull >= 1) {
-        w.free = true;
-        w.state = 'carried';
-        w.pull = 1;
-        const hd = this.headOf(w);
-        if (g.speed > FAST) {
-          // Yanked: the head bursts and seed scatters.
-          this.shed(w, 3, hd.x, hd.y);
-          this.onNote('Too quick: it scattered seed. Gently does it.');
-        } else navigator.vibrate?.(6);
-        g.hold = { dx: w.x - x, dy: w.y - y };
-      }
+      w.quiver = Math.max(w.quiver, clamp01((g.speed - WARN * this.P.speed) / ((FAST - WARN) * this.P.speed)));
+      this.rootPull(w, g, g.speed > FAST * this.P.speed && g.lift > 0.5);
       return;
     }
     if (w.state === 'carried') {
@@ -448,8 +508,8 @@ export class Field {
       w.x = x + g.hold.dx;
       w.y = y + g.hold.dy;
       w.lean += (Math.max(-1, Math.min(1, -vx / 1400)) - w.lean) * 0.3;
-      w.quiver = Math.max(w.quiver, clamp01((g.speed - WARN) / (SHAKE - WARN)));
-      if (g.speed > SHAKE && now - g.shedAt > 380 && w.seeds > 0) {
+      w.quiver = Math.max(w.quiver, clamp01((g.speed - WARN * this.P.speed) / ((SHAKE - WARN) * this.P.speed)));
+      if (g.speed > SHAKE * this.P.speed && now - g.shedAt > 380 && w.seeds > 0) {
         g.shedAt = now;
         const hd = this.headOf(w);
         this.shed(w, 1, hd.x, hd.y);
@@ -457,6 +517,26 @@ export class Field {
       }
       if (x < -10 || x > this.W + 10 || y < 0) this.carryOff(w, x < this.W / 2 ? -1 : 1);
     }
+  }
+
+  // Where a rooted weed is, given the hand and how loose its roots are.
+  // It comes free when both agree — or at once, ruined, if yanked.
+  rootPull(w, g, yanked) {
+    w.pull = yanked ? 1 : Math.min(g.lift || 0, 0.3 + 0.7 * w.loose);
+    if (w.pull < 1) return;
+    w.free = true;
+    w.state = 'carried';
+    w.pull = 1;
+    const hd = this.headOf(w);
+    if (yanked) {
+      // Yanked: the head bursts and seed scatters.
+      this.shed(w, 3, hd.x, hd.y);
+      this.onNote('Too quick: it scattered seed. Gently does it.');
+    } else {
+      navigator.vibrate?.(6);
+      if (!this.praised) { this.praised = true; this.onNote('Out, roots and all. Now carry it off the field.'); }
+    }
+    g.hold = { dx: w.x - g.px, dy: w.y - g.py };
   }
 
   carryOff(w, dir) {
@@ -473,23 +553,12 @@ export class Field {
     const tap = g.moved < 10 && performance.now() - g.t0 < 450;
 
     if (g.st) {
-      const { Body } = this.M;
       const st = g.st;
-      const b = st.body;
       this.dragStone = null;
-      b.isSensor = false;
-      Body.setStatic(b, false);
-      if (tap) {
-        // A tap rolls it away from the pile.
-        this.clearStone(st, b.position.x < this.pileX ? -1 : 1);
-        return;
-      }
-      const cap = 18;
-      Body.setVelocity(b, { x: Math.max(-cap, Math.min(cap, g.vx)), y: Math.max(-cap, Math.min(cap, g.vy)) });
-      const dx = b.position.x - this.pileX;
-      // Thrown hard enough, outward, and it goes.
-      if (Math.abs(g.vx) > 9 && Math.sign(g.vx) === Math.sign(dx)) this.clearStone(st, Math.sign(dx));
-      if (b.position.x < -st.hw || b.position.x > this.W + st.hw) this.clearStone(st, Math.sign(dx));
+      // A tap sets it aside for you (the accessible way).
+      if (tap) this.clearStone(st, st.body.position.x < this.pileX ? -1 : 1);
+      // Otherwise it keeps whatever momentum the hand gave it, and the
+      // physics decides: past the line and at rest, it's cleared.
       this.wake();
       return;
     }
@@ -522,9 +591,9 @@ export class Field {
     // While a stone is held: the line it must cross, on the soil.
     if (this.dragStone) {
       for (const dir of [-1, 1]) {
-        const x = this.pileX + dir * this.clearR;
+        const x = dir < 0 ? this.lineL : this.lineR;
         if (x < 0 || x > this.W) continue;
-        const y = this.edge(x);
+        const y = this.edge(x);   // (an off-screen line isn't drawn)
         ctx.save();
         ctx.strokeStyle = night > 0.5 ? 'rgba(239,232,216,0.55)' : 'rgba(90,70,50,0.5)';
         ctx.setLineDash([3, 5]);
@@ -561,6 +630,32 @@ export class Field {
       drawSeedHead(ctx, w, hd.x, hd.y, night, this.t);
       ctx.restore();
       this.drawLabel(ctx, w, night, ink);
+      ctx.restore();
+    }
+
+    // The hand on a weed: a small ring at the finger. While it's rooted
+    // the ring fills as the roots loosen; its colour is the hand's speed —
+    // calm green, then amber, then red as it nears tearing or shedding.
+    const g = this.grab;
+    if (g?.w && g.px !== undefined && (g.w.state === 'in' || g.w.state === 'carried')) {
+      const w = g.w;
+      const limit = (w.state === 'in' ? FAST : SHAKE) * this.P.speed;
+      const r = clamp01((g.speed - WARN * this.P.speed * 0.5) / (limit - WARN * this.P.speed * 0.5));
+      const col = r < 0.5
+        ? [156 + (230 - 156) * r * 2, 185 + (176 - 185) * r * 2, 58 + (70 - 58) * r * 2]
+        : [230 + (214 - 230) * (r - 0.5) * 2, 176 + (84 - 176) * (r - 0.5) * 2, 70 + (64 - 70) * (r - 0.5) * 2];
+      const R = 24;
+      // Under a fingertip it would be hidden: lift it just above.
+      const cy = this.touch ? g.py - 64 : g.py;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = night > 0.5 ? 'rgba(255,255,255,0.18)' : 'rgba(47,58,44,0.14)';
+      ctx.beginPath(); ctx.arc(g.px, cy, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = `rgb(${col.map((v) => v | 0)})`;
+      const fill = w.state === 'in' ? Math.max(0.04, w.loose) : 1;
+      ctx.globalAlpha = w.state === 'in' ? 1 : 0.35 + 0.65 * r;
+      ctx.beginPath(); ctx.arc(g.px, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * fill); ctx.stroke();
       ctx.restore();
     }
 

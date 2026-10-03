@@ -277,6 +277,40 @@
   opacity: 0.85;
 }
 .ab-nowrap { white-space: nowrap; }
+.ab-patience {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 1.1rem;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--btn-bg);
+  font-size: 0.78rem;
+}
+.ab-patience-label {
+  padding: 0 0.6rem 0 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.ab-patience-opt {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  min-height: 32px;
+  cursor: pointer;
+}
+.ab-patience-opt:hover { color: var(--ink); }
+.ab-patience-opt.is-on { color: var(--ink); background: rgba(255, 255, 255, 0.75); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.is-night .ab-patience-opt.is-on { background: rgba(255, 255, 255, 0.18); }
+.ab-patience-opt:focus-visible { outline: 2px solid #9CB93A; outline-offset: 1px; }
+@media (max-width: 380px) { .ab-patience-label { display: none; } }
 .ab-link {
   pointer-events: auto;
   margin-top: 0.9rem;

@@ -101,6 +101,13 @@ function lobedLeaf(ctx, L, W, lobes, col, night, spines, soft) {
   for (let j = dn.length - 1; j >= 0; j--) ctx.lineTo(dn[j][0], dn[j][1]);
   ctx.closePath();
   ctx.fill();
+  // Rim light along the upper edge.
+  ctx.strokeStyle = css([255, 252, 226], night > 0.5 ? 0.12 : 0.28);
+  ctx.lineWidth = Math.max(0.5, W * 0.08);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  for (const [x, y] of up) ctx.lineTo(x, y);
+  ctx.stroke();
   // A darker underside, so the leaf has a fold.
   ctx.fillStyle = css(tint(lift(col, -38), night), 0.35);
   ctx.beginPath();
@@ -229,6 +236,34 @@ export function drawThorn(ctx, w, t, night) {
   const breeze = out ? 0 : Math.sin(t * 1.3 + w.phase) * 0.05 * (1 - pull);
   const s = w.s;
 
+  // Resting on the soil: a soft contact shadow, and as the roots loosen
+  // the soil around the crown cracks and lifts.
+  if (!out) {
+    ctx.fillStyle = `rgba(40,28,18,${0.24 * (1 - pull * 0.6)})`;
+    ctx.beginPath();
+    ctx.ellipse(0, 2 * s, 17 * s, 3.6 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const lo = w.loose || 0;
+    if (lo > 0.02) {
+      ctx.strokeStyle = `rgba(52,34,22,${0.65 * lo})`;
+      ctx.lineWidth = Math.max(0.6, 0.9 * s);
+      ctx.lineCap = 'round';
+      for (let k = 0; k < 6; k++) {
+        const a = Math.PI * (0.05 + (0.9 * k) / 5);
+        const L = (6 + (k % 3) * 3) * s * lo;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 3 * s, 3 * s + Math.sin(a) * 1.2 * s);
+        ctx.lineTo(Math.cos(a) * (3 * s + L), 3 * s + Math.sin(a) * (1.2 * s + L * 0.35));
+        ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(150,116,82,${0.9 * lo})`;
+      for (let k = 0; k < 7; k++) {
+        const x = ((k * 53) % 21 - 10) * s, y = 1 * s - ((k * 31) % 5) * s * lo * 0.6;
+        ctx.beginPath(); ctx.arc(x, y, (0.8 + (k % 3) * 0.4) * s, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
   // Roots, showing as it comes free.
   const rootK = out ? 1 : Math.max(0, Math.min(1, (pull - 0.55) / 0.45));
   if (rootK > 0) {
@@ -260,16 +295,18 @@ export function drawThorn(ctx, w, t, night) {
     // Back leaves first (the ones lying flatter), so the rosette has depth.
     const order = [...T.leaves].sort((a, b) => Math.abs(b.ang + Math.PI / 2) - Math.abs(a.ang + Math.PI / 2));
     for (const lf of order) {
+      const sway = out ? 0 : Math.sin(t * 1.1 + lf.tone * 9) * 0.035;
       ctx.save();
-      ctx.rotate(lf.ang + Math.PI / 2 + breeze * 0.6 + lf.bend * 0.3);
+      ctx.rotate(lf.ang + Math.PI / 2 + breeze * 0.6 + lf.bend * 0.3 + sway);
       ctx.rotate(-Math.PI / 2);
       lobedLeaf(ctx, lf.len, lf.wid, lf.lobes, lift(base, (lf.tone - 0.5) * 30), night, T.type === 'thistle', lf.soft);
       ctx.restore();
     }
   } else if (T.type === 'foxtail') {
     for (const lf of T.leaves) {
+      const sway = out ? 0 : Math.sin(t * 1.4 + lf.tone * 9) * 0.05;
       ctx.save();
-      ctx.rotate(lf.ang + breeze);
+      ctx.rotate(lf.ang + breeze + sway);
       blade(ctx, lf.len, lf.wid, lf.droop, lift([88, 132, 58], (lf.tone - 0.5) * 34), night);
       ctx.restore();
     }
