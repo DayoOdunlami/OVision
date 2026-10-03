@@ -81,13 +81,94 @@ export function readVineyard() {
   }
 }
 
-// One entry per day: abiding again today replaces today's.
-export function gatherToday(entry) {
+// One entry per day: abiding again today replaces today's (keeping
+// today's note if this time there isn't one).
+export function gatherToday(entry, note = '') {
   const date = todayIso();
-  const list = readVineyard().filter((e) => e.date !== date);
-  list.push({ date, word: entry.word, ref: entry.ref, key: entry.key });
+  const all = readVineyard();
+  const before = all.find((e) => e.date === date);
+  const list = all.filter((e) => e.date !== date);
+  const kept = String(note || '').trim().slice(0, 160) || (before?.key === entry.key ? before.note : '');
+  list.push({ date, word: entry.word, ref: entry.ref, key: entry.key, ...(kept ? { note: kept } : {}) });
   list.sort((a, b) => (a.date < b.date ? -1 : 1));
-  const kept = list.slice(-120);
-  try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch { /* ignore */ }
-  return kept;
+  const out = list.slice(-120);
+  try { localStorage.setItem(KEY, JSON.stringify(out)); } catch { /* ignore */ }
+  return out;
+}
+
+export function wordByKey(key) {
+  return WORDS.find((w) => w.key === key) || null;
+}
+
+// Whole days between two ISO dates (b − a).
+export function daysBetween(a, b) {
+  const t = (d) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  return Math.round((t(b) - t(a)) / 86400000);
+}
+
+// How long since the last time you abided: 0 = yesterday or today,
+// null = never.
+export function daysAway(entries) {
+  if (!entries.length) return null;
+  return Math.max(0, daysBetween(entries[entries.length - 1].date, todayIso()) - 1);
+}
+
+// The ground before sowing: weeds grow back while you're away — one
+// even after a single day, because the cares of the day always crowd
+// in — and a stone or two.
+export function groundFor(entries) {
+  const away = daysAway(entries);
+  return {
+    weeds: away === null ? 2 : 1 + Math.min(3, away),
+    stones: away === null ? 2 : away >= 3 ? 2 : 1,
+    away,
+  };
+}
+
+// ── From the prayer surface (read only) ──────────────────────────
+function prayerStore() {
+  try {
+    const s = JSON.parse(localStorage.getItem('familyPrayer') || 'null');
+    return s && typeof s === 'object' ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+// Words whose prayer has been rebuilt from memory in the puzzle:
+// { [key]: 'YYYY-MM-DD' }. Their fruit is ripe.
+export function learnedWords() {
+  const s = prayerStore();
+  const out = {};
+  if (s && s.learned && typeof s.learned === 'object') {
+    for (const [ref, date] of Object.entries(s.learned)) {
+      const key = String(ref).split(':')[0].trim();
+      if (WORDS.some((w) => w.key === key)) out[key] = typeof date === 'string' ? date : '';
+    }
+  }
+  return out;
+}
+
+// Days the family prayed together (from the prayer surface).
+export function familyDays() {
+  const s = prayerStore();
+  const p = s && s.prayed && typeof s.prayed === 'object' ? s.prayed : {};
+  return Object.keys(p).filter((d) => p[d]).sort();
+}
+
+// ── Seasons ───────────────────────────────────────────────────────
+// Northern hemisphere, by month. ?season=winter to preview.
+export const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+export function seasonNow(d = new Date()) {
+  try {
+    const q = new URLSearchParams(location.search).get('season');
+    if (SEASONS.includes(q)) return q;
+  } catch { /* ignore */ }
+  const m = d.getMonth();
+  return m >= 2 && m <= 4 ? 'spring' : m >= 5 && m <= 7 ? 'summer' : m >= 8 && m <= 10 ? 'autumn' : 'winter';
+}
+
+export function prettyDate(iso, opts = { day: 'numeric', month: 'short' }) {
+  const d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+  return d.toLocaleDateString(undefined, opts);
 }

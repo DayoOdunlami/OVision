@@ -816,6 +816,7 @@ button.dock-side:hover { background: var(--paper-2); color: var(--ink); }
   position: fixed;
   inset: 0;
   z-index: 60;
+  touch-action: manipulation;   /* double-tap feeds the koi, not zoom */
   display: flex;
   flex-direction: column;
   background: var(--paper);

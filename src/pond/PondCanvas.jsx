@@ -20,6 +20,7 @@ import {
   Blossom,
   Ripple,
 } from './pads.js';
+import { FoodBowl, feedGesture, wantsFeedHint, markFed, drawFeedHint } from '../shared/koiFood.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PondCanvas — one fixed full-viewport canvas behind the whole board.
@@ -58,8 +59,9 @@ import {
 //     element is actually measurable, then no loop.
 //
 // Interaction: pointer moves influence koi via the `cur` ref; a tap
-// drops a ripple. Feeding (`env.food`) is wired but unused here — the
-// identity board doesn't need the play-with-the-fish affordance.
+// drops a ripple; a double-tap or a press-and-hold scatters food (see
+// shared/koiFood.js), which the koi notice in their own time and come
+// up to eat. A one-line hint shows until the koi have been fed once.
 // ═══════════════════════════════════════════════════════════════════
 
 export default function PondCanvas({
@@ -116,6 +118,8 @@ export default function PondCanvas({
     // Subset of `fish` that carry a personName, kept so the label pass
     // and the pairing nudge don't have to re-scan every fish.
     namedFish: [],
+    bowl: new FoodBowl(),
+    hint: wantsFeedHint() ? 0 : -1,   // frames shown; -1 = never again
   });
 
   useEffect(() => {
@@ -355,8 +359,12 @@ export default function PondCanvas({
       // consequence. Splitting the passes lets us sort by depth, so a
       // deep koi actually passes *behind* a shallow one and the pond
       // reads as a volume rather than a flat plane.
+      const bowl = s.bowl;
+      bowl.scale = Math.max(0.8, Math.min(1.3, W / 1000));
+      bowl.update(s.fish);
+      const cur = bowl.cursor(s.cur);
       for (const f of s.fish) {
-        f.update(W, H, s.cur, { food: [], onBreak: () => {} });
+        f.update(W, H, cur, { food: bowl.foodFor(f), onBreak: bowl.onBreak });
       }
 
       // ── CONCEPT: pair today's two named koi ───────────────────
@@ -533,6 +541,9 @@ export default function PondCanvas({
         ctx.restore();
       }
 
+      // Food floats on the surface, above the koi.
+      bowl.draw(ctx);
+
       // Ripples
       s.ripples = s.ripples.filter((r) => !r.isDead());
       s.ripples.forEach((r) => {
@@ -559,6 +570,14 @@ export default function PondCanvas({
 
       paintVignette(ctx, W, H, palette);
       paintShimmer(ctx, W, H, ts, palette);
+
+      // First visits: say once, quietly, that the koi can be fed.
+      if (interactive && s.hint >= 0) {
+        s.hint++;
+        const a = Math.min(1, Math.max(0, (s.hint - 360) / 90)) * Math.min(1, Math.max(0, (2200 - s.hint) / 120));
+        if (s.hint > 2200) s.hint = -1;
+        drawFeedHint(ctx, W / 2, H - 78, a);
+      }
       return true;
     };
 
@@ -626,6 +645,19 @@ export default function PondCanvas({
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('pointerleave', onLeave);
     window.addEventListener('click', onTap);
+    const offFeed = interactive && !reduced
+      ? feedGesture({
+          bowl: stateRef.current.bowl,
+          toLocal: (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+          },
+          onFeed: () => {
+            if (stateRef.current.hint >= 0) stateRef.current.hint = Math.max(stateRef.current.hint, 2080);
+            markFed();
+          },
+        })
+      : () => {};
 
     return () => {
       disposed = true;
@@ -634,6 +666,7 @@ export default function PondCanvas({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerleave', onLeave);
       window.removeEventListener('click', onTap);
+      offFeed();
     };
     // `mix` is intentionally included so that changing the admin
     // panel's per-variety counts tears down and rebuilds the pond

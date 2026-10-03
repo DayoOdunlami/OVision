@@ -416,6 +416,7 @@ function PondSettingsMenu({
     <div
       ref={rootRef}
       className="no-print"
+      data-no-feed
       style={{
         position: 'fixed',
         right: 14,

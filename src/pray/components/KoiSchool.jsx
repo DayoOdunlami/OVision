@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FoodBowl, feedGesture, wantsFeedHint, markFed, drawFeedHint } from '../../shared/koiFood.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // KoiSchool — koi beneath the paper.
@@ -33,6 +34,10 @@ import { useEffect, useRef, useState } from 'react';
 // uses to let them push the Amen card's words about like lily pads.
 // Every so often a koi chooses to visit one of those words, so the
 // meeting actually happens rather than being left to chance.
+//
+// Once they've stayed, they can be fed: double-tap the paper below the
+// verse, or press and hold, and a pinch of food lands there. Each koi
+// notices it in its own time (shared/koiFood.js) and comes up to eat.
 //
 // Rendered as the first child of a full-screen overlay (the puzzle or
 // Pray it) on a canvas behind everything else in it, so moving on never
@@ -172,6 +177,8 @@ export default function KoiSchool({ people, stay, onGone }) {
       const ripples = [];          // { x, y, age }
       const cur = { x: -9999, y: -9999 };
       let t = 0;
+      const bowl = new FoodBowl({ scale: Math.max(0.85, Math.min(1.4, size)) });
+      let hint = stay && wantsFeedHint() ? 0 : -1;
 
       // How far through its rise a fish is, 0 → 1.
       const surfaced = (k) => (stay ? ease(k.risen) : 1);
@@ -261,7 +268,23 @@ export default function KoiSchool({ people, stay, onGone }) {
         window.addEventListener('pointerdown', onMove, { passive: true });
         window.addEventListener('pointerup', onLeave, { passive: true });
         window.addEventListener('pointercancel', onLeave, { passive: true });
+        const offFeed = feedGesture({
+          bowl,
+          // Only where the koi may swim, and not on the words themselves.
+          toLocal: (e) => {
+            const r = canvas.getBoundingClientRect();
+            const y = e.clientY - r.top;
+            if (y < band.top - 30 || y > band.bottom + 60) return null;
+            return { x: Math.min(W - 30, Math.max(30, e.clientX - r.left)), y: Math.min(band.bottom, Math.max(band.top, y)) };
+          },
+          canStart: (e) => !(e.target instanceof Element && e.target.closest('.nudge, .pz-piece, .pz-verse')),
+          onFeed: () => {
+            if (hint >= 0) hint = Math.max(hint, 980);
+            markFed();
+          },
+        });
         offPointer = () => {
+          offFeed();
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerdown', onMove);
           window.removeEventListener('pointerup', onLeave);
@@ -389,6 +412,8 @@ export default function KoiSchool({ people, stay, onGone }) {
         t++;
 
         const active = school.filter((k) => frames > k.delay);
+        // Only koi that have come up can find the food.
+        bowl.update(active.filter((k) => surfaced(k) >= 0.95).map((k) => k.fish));
         for (const k of active) {
           if (stay && k.risen < 1) k.risen = Math.min(1, k.risen + 1 / k.riseFrames);
           // The rings go out as the fish breaks the surface.
@@ -396,9 +421,10 @@ export default function KoiSchool({ people, stay, onGone }) {
             k.rippled = true;
             ripples.push({ x: k.fish.head.x, y: k.fish.head.y, age: 0 });
           }
-          const pointer = surfaced(k) >= 0.95 ? cur : far;
+          const up = surfaced(k) >= 0.95;
+          const pointer = up ? bowl.cursor(cur) : far;
           steer(k);
-          k.fish.update(W, H, pointer, env);
+          k.fish.update(W, H, pointer, up && bowl.active ? { food: bowl.foodFor(k.fish), onBreak: bowl.onBreak } : env);
         }
 
         ctx.clearRect(0, 0, W, H);
@@ -425,6 +451,15 @@ export default function KoiSchool({ people, stay, onGone }) {
         for (const k of active) {
           const dn = surfaced(k) >= 1 ? deepness(k) : 0;
           drawLabel(k, Math.max(0, (surfaced(k) - 0.7) / 0.3) * (1 - 0.35 * dn));
+        }
+
+        // Food floats on top; then, the first few times, the hint.
+        bowl.draw(ctx);
+        if (hint >= 0 && active.length && active.every((k) => surfaced(k) >= 1)) {
+          hint++;
+          const a = Math.min(1, Math.max(0, (hint - 240) / 60)) * Math.min(1, Math.max(0, (1100 - hint) / 90));
+          if (hint > 1100) hint = -1;
+          drawFeedHint(ctx, W / 2, Math.min(H - 40, band.bottom + 30), a, { dark: true });
         }
 
         publish(active);

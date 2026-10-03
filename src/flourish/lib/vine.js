@@ -546,7 +546,18 @@ export function buildVine(word, box, opts = {}) {
       ? [[x, y + rr * 1.1], [x, y + rr * 2.2], [x - rr * 0.75, y + rr * 1.2], [x + rr * 0.75, y + rr * 1.2]]
       : [[x, y]];
     if (probes.some((q) => near(q, rr * (kind === 'grapes' ? 0.5 : 0.85), kind === 'grapes' ? null : st))) continue;
-    if ([...blooms, ...extra].some((o) => dist([o.x, o.y], [x, y]) < (o.r + rr) * 1.3)) continue;
+    // Grape clusters hang about two radii wide and two and a half deep
+    // below their stalk, so two are compared by their hanging centres —
+    // comparing stalk points let clusters on a short word pile up.
+    const crowded = (o) => {
+      if (o.kind === 'grapes' && kind === 'grapes') {
+        const dx = o.x - x, dy = (o.y - y) * 0.82;
+        return Math.hypot(dx, dy) < (o.r + rr) * 1.02;
+      }
+      const oc = o.kind === 'grapes' ? [o.x, o.y + o.r * 1.4] : [o.x, o.y];
+      return dist(oc, [x, cy]) < (o.r + rr) * 1.3;
+    };
+    if ([...blooms, ...extra].some(crowded)) continue;
     if (leaves.some((lf) => dist(lf.mid, [x, cy]) < rr + lf.L * 0.35)) continue;
     extra.push({ kind, x, y, r: rr, rot: r(0, Math.PI), t0: st.tt[i] + r(1.2, 2.4), phase: r(0, 6) });
   }

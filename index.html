@@ -34,6 +34,12 @@
       * {
         -webkit-tap-highlight-color: transparent;
       }
+      /* Double-tap feeds the koi rather than zooming; pinch still zooms.
+         No long-press callout over the water either. */
+      html {
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+      }
     </style>
   </head>
   <body>
