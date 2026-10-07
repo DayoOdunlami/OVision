@@ -72,27 +72,75 @@ export function todayIso(d = new Date()) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// Each entry is one session: a day, a word, and who abided together.
+// Older entries (before names) have no `who`; they read as [] and
+// belong to the whole family.
 export function readVineyard() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return Array.isArray(v) ? v.filter((e) => e && typeof e.word === 'string' && typeof e.date === 'string') : [];
+    if (!Array.isArray(v)) return [];
+    return v
+      .filter((e) => e && typeof e.word === 'string' && typeof e.date === 'string')
+      .map((e) => ({ ...e, who: Array.isArray(e.who) ? e.who.filter((p) => typeof p === 'string') : [] }));
   } catch {
     return [];
   }
 }
 
-// One entry per day: abiding again today replaces today's (keeping
-// today's note if this time there isn't one).
-export function gatherToday(entry, note = '') {
+// Gather today's session for this group. A person abides once a day:
+// earlier sessions today that this group fully covers are replaced
+// (keeping a note if this time there isn't one); others are kept.
+export function gatherToday(entry, note = '', who = [], extra = {}) {
   const date = todayIso();
   const all = readVineyard();
-  const before = all.find((e) => e.date === date);
-  const list = all.filter((e) => e.date !== date);
-  const kept = String(note || '').trim().slice(0, 160) || (before?.key === entry.key ? before.note : '');
-  list.push({ date, word: entry.word, ref: entry.ref, key: entry.key, ...(kept ? { note: kept } : {}) });
-  list.sort((a, b) => (a.date < b.date ? -1 : 1));
-  const out = list.slice(-120);
+  const covered = (e) => e.date === date && (who.length ? e.who.length > 0 && e.who.every((p) => who.includes(p)) : !e.who.length);
+  const before = all.find((e) => covered(e) && e.key === entry.key && e.note);
+  const list = all.filter((e) => !covered(e));
+  const kept = String(note || '').trim().slice(0, 160) || before?.note || '';
+  list.push({
+    date, word: entry.word, ref: entry.ref, key: entry.key, who: [...who],
+    ...(kept ? { note: kept } : {}),
+    ...(extra.soil ? { soil: extra.soil } : {}),
+  });
+  list.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const out = list.slice(-600);
   try { localStorage.setItem(KEY, JSON.stringify(out)); } catch { /* ignore */ }
+  return out;
+}
+
+// Sessions that include this person (or, for no one, the family's).
+export function sessionsOf(entries, person) {
+  return entries.filter((e) => (person ? e.who.includes(person) : !e.who.length));
+}
+
+// Has everyone in this group abided today?
+export function doneTodayFor(entries, who) {
+  const today = todayIso();
+  if (!who.length) return entries.some((e) => e.date === today);
+  return who.every((p) => entries.some((e) => e.date === today && e.who.includes(p)));
+}
+
+// ── The family's field: the wall and the compost ─────────────────
+// Every stone carried to the wall and every weed put on the compost,
+// across all the days, by anyone. They build the vineyard's wall and
+// heap (Isaiah 5:2: "he cleared it of stones and planted it…").
+const FIELD_KEY = 'flourish.field';
+export function readField() {
+  try {
+    const v = JSON.parse(localStorage.getItem(FIELD_KEY) || '{}');
+    return {
+      wall: Number.isFinite(v.wall) ? v.wall : 0,
+      compost: Number.isFinite(v.compost) ? v.compost : 0,
+      seen: typeof v.seen === 'string' ? v.seen : '',
+    };
+  } catch {
+    return { wall: 0, compost: 0, seen: '' };
+  }
+}
+export function addToField(delta) {
+  const f = readField();
+  const out = { ...f, ...Object.fromEntries(Object.entries(delta).map(([k, v]) => [k, typeof v === 'number' ? (f[k] || 0) + v : v])) };
+  try { localStorage.setItem(FIELD_KEY, JSON.stringify(out)); } catch { /* ignore */ }
   return out;
 }
 
@@ -108,16 +156,17 @@ export function daysBetween(a, b) {
 
 // How long since the last time you abided: 0 = yesterday or today,
 // null = never.
-export function daysAway(entries) {
-  if (!entries.length) return null;
-  return Math.max(0, daysBetween(entries[entries.length - 1].date, todayIso()) - 1);
+export function daysAway(entries, who = []) {
+  const mine = who.length ? entries.filter((e) => !e.who.length || e.who.some((p) => who.includes(p))) : entries;
+  if (!mine.length) return null;
+  return Math.max(0, daysBetween(mine[mine.length - 1].date, todayIso()) - 1);
 }
 
 // The ground before sowing: the pile of stones is there every day;
 // the thorns grow back while you're away — two even after a single
 // day, because the cares of the day always crowd in.
-export function groundFor(entries) {
-  const away = daysAway(entries);
+export function groundFor(entries, who = []) {
+  const away = daysAway(entries, who);
   return {
     weeds: away === null ? 3 : 2 + Math.min(3, away),
     stones: 6,

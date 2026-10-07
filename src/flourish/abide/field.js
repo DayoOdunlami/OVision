@@ -2,28 +2,35 @@ import { seeded } from '../lib/vine.js';
 import { SPECIES, makeThorn, drawThorn, drawSeedHead } from './weeds.js';
 
 // ═══════════════════════════════════════════════════════════════════
-// The field, before sowing — the parable of the sower, to clear by hand.
+// The field, before sowing — the parable of the sower, cleared by hand.
 //
 //   "Some fell on rocky ground … some fell among thorns, and the thorns
 //    grew up and choked it." — Mark 4
+//   "He dug it up and cleared it of stones and planted it with the
+//    choicest vines." — Isaiah 5:2
 //
-// ROCKY GROUND. A pile of stones sits right where the seed must go,
-// each engraved: Selfishness, Greed, Insecurity, Distraction… They're
-// real bodies (Matter.js, the engine behind the verse puzzle): drag one,
-// or fling it. Near the pile a gentle pull draws a stone back to the
-// heap; take it past the line marked on the soil (or off the screen)
-// and it rolls away for good.
+// ROCKY GROUND. A heap sits on the seed's spot: engraved stones
+// (Selfishness, Greed, Distraction…) and unnamed rubble — not everything
+// has a name. They're real bodies (Matter.js, the verse puzzle's
+// engine): held, a stone shoves and tumbles the others. The heap pulls
+// loose pieces back to itself — rubble most of all. Named stones are
+// heavy: they lag behind the finger and slip from a hurried hand. Each
+// one goes to THE WALL at the far edge of the field, where it's set into
+// a drystone wall that the family builds over the days (rubble fills
+// its heart, as in a real drystone wall).
 //
 // THORNS. Weeds with seed heads, each carrying a faint word — money,
-// worry, fear, more… Pull one up slowly and it comes free with its
-// roots; then carry it right off the edge of the screen. Care matters:
+// worry, fear… Hold steady tension and the roots loosen; lift it out;
+// carry it to THE COMPOST BASKET in the corner. Care matters:
 //   · yank it out, or shake it while carrying, and it drops seed
 //   · let go of it on the field and it falls, drops seed, and re-roots
-// Dropped seed sprouts into new little weeds a moment later. The head
-// trembles first, as a warning, so carefulness can be learned.
+// Dropped seed sprouts into new little weeds. But care is rewarded,
+// and more visibly: a weed taken whole to the compost leaves rich dark
+// soil where it grew, and a field cleared without dropping a seed is
+// "good soil" — today's vine grows fuller for it (Mark 4:20).
 //
-// A tap does it all gently for you (and Skip clears the lot), so no one
-// is ever stuck.
+// A tap only shows how; Skip (in the page) clears the lot for anyone
+// who needs it.
 // ═══════════════════════════════════════════════════════════════════
 
 export const STONE_WORDS = ['Selfishness', 'Greed', 'Insecurity', 'Distraction', 'Laziness', 'Pride', 'Busyness', 'Doubt'];
@@ -40,6 +47,7 @@ const STONE_LOOKS = [
 
 export const THORN_WORDS = ['money', 'worry', 'fear', 'more', 'hurry', 'approval', 'comparison', 'screens', 'envy', 'success'];
 
+
 const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const STEP = 1000 / 60;
 // Speeds (px/s) at patience "balanced"; the setting scales them.
@@ -48,6 +56,7 @@ const SHAKE = 1250;       // carrying this fast sheds seed
 const WARN = 800;         // the head starts to tremble
 const LOOSEN_S = 1.1;     // steady tension it takes for roots to let go
 const MAX_SPROUTS = 5;    // new weeds a session can grow, at most
+const WEED_SIZE = 1.35;   // thorns, a little larger than life
 
 // How forgiving the field is. Faster thresholds, quicker roots and a
 // firmer grip on the stones when forgiving; the reverse when exacting.
@@ -57,32 +66,60 @@ export const PATIENCE = {
   exacting: { speed: 0.72, loosen: 1.45, grip: 0.75 },
 };
 
+// How a carried piece follows the hand: named stones are heavy.
+const HEFT = {
+  stone: { follow: 0.12, cap: 9, slip: 85 },
+  rubble: { follow: 0.4, cap: 18, slip: 150 },
+};
+
 export class Field {
-  constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, seed, onNote, patience = 'balanced' }) {
+  constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, seed, onNote, onEvent, patience = 'balanced', wallBase = 0, compostBase = 0 }) {
     this.M = Matter;
     this.W = W; this.H = H; this.soilY = soilY; this.edge = edge;
     this.onNote = onNote || (() => {});
+    this.onEvent = onEvent || (() => {});
     const rand = this.rand = seeded(seed);
     const r = (a, b) => a + rand() * (b - a);
     this.S = Math.max(0.95, Math.min(1.6, W / 760));
-    // On the seed's spot, but with the whole heap on screen.
-    this.pileX = Math.max(Math.min(W * 0.3, 200 * this.S), Math.min(W - 200 * this.S, pileX));
-    this.clearR = Math.max(150, Math.min(320, W * 0.24));
     this.t = 0;
     this.acc = 0;
     this.seeds = [];
     this.sprouted = 0;
+    this.dropped = 0;
+    this.composted = 0;
+    this.careful = 0;
+    this.rich = [];
     this.grab = null;
     this.dragStone = null;
+    this.wallBase = wallBase;
+    this.walledToday = 0;
+    this.compostBase = compostBase;
+    this.said = {};
     this.setPatience(patience);
 
-    // ── Stones ──────────────────────────────────────────────────────
-    const { Engine, Bodies, Body, Composite, Vertices } = Matter;
+    // ── Where things go ─────────────────────────────────────────────
+    // The heap on the seed's spot; the wall at the far edge from it;
+    // the compost basket in the foreground corner on the heap's side.
+    const soilH = H - soilY;
+    this.pileX = Math.max(Math.min(W * 0.3, 200 * this.S), Math.min(W - 200 * this.S, pileX));
+    this.wallSide = this.pileX < W / 2 ? 1 : -1;
+    this.wallW = Math.max(74, Math.min(190, W * 0.15));
+    this.wallX0 = this.wallSide > 0 ? W - this.wallW : 0;
+    this.wallX1 = this.wallX0 + this.wallW;
+    const bw = Math.max(86, Math.min(150, W * 0.17));
+    const bh = bw * 0.5;
+    this.basket = {
+      x: this.wallSide > 0 ? 12 : W - 12 - bw,
+      y: Math.min(H - bh - 10, soilY + Math.max(16, soilH * 0.32)),
+      w: bw, h: bh, hot: 0, puff: 0,
+    };
+
+    // ── Stones and rubble ───────────────────────────────────────────
+    const { Engine, Bodies, Body, Composite } = Matter;
     this.engine = Engine.create({ enableSleeping: true });
     this.floor = Bodies.rectangle(W / 2, soilY + 2 + 50, W * 6, 100, { isStatic: true, friction: 0.5 });
     // Walls at the screen's edges: a stone flung hard bounces back rather
-    // than leaving — the quick swipe doesn't work. Cleared stones pass
-    // through them (they become sensors).
+    // than leaving — the quick swipe doesn't work.
     const T = 200;
     Composite.add(this.engine.world, [
       this.floor,
@@ -92,8 +129,6 @@ export class Field {
     ]);
     const words = [...STONE_WORDS];
     for (let i = words.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [words[i], words[j]] = [words[j], words[i]]; }
-    // The first five are the ones named in the brief; keep them in the
-    // daily pile more often than not.
     const pick = words.slice(0, stones);
     // River stones, carved deep: bold condensed capitals, like the
     // Babson boulders and garden word-stones.
@@ -107,10 +142,39 @@ export class Field {
       const hh = Math.max(this.fs * 1.45, hw * r(0.5, 0.64));
       return { word, tw, hw, hh, look: STONE_LOOKS[Math.floor(rand() * STONE_LOOKS.length)], seed: rand() };
     });
-    // A heap: the biggest at the bottom, rows of 3, 2, 1.
+    const pebble = (o, cx, cy, opts) => {
+      const verts = Array.from({ length: 18 }, (_, k) => {
+        const a = (k / 18) * Math.PI * 2;
+        const c = Math.cos(a), sn = Math.sin(a);
+        const e = 2.6;
+        const px = Math.sign(c) * Math.abs(c) ** (2 / e), py = Math.sign(sn) * Math.abs(sn) ** (2 / e);
+        return { x: px * o.hw * r(0.92, 1.05), y: py * o.hh * r(0.9, 1.05) };
+      });
+      const body = Bodies.fromVertices(cx, cy, [verts], opts);
+      const local = body.vertices.map((v) => ({ x: v.x - body.position.x, y: v.y - body.position.y }));
+      Body.setAngle(body, r(-0.2, 0.2));
+      return { body, local };
+    };
+    // A heap: the biggest at the bottom, rows of 3, 2, 1 — or, where the
+    // field is narrow (a phone), a taller mound of 2, 2, 1, 1, with the
+    // lettering made smaller if even that won't fit beside the wall.
     made.sort((a, b) => b.hw * b.hh - a.hw * a.hh);
-    const rows = [];
-    for (let i = 0, n = 3; i < made.length; n = Math.max(1, n - 1)) { rows.push(made.slice(i, i + n)); i += n; }
+    // (with room to spare: a heap spreads a little as it settles)
+    const avail = (W - this.wallW - 24) * 0.8;
+    const rowsOf = (pattern) => {
+      const out = [];
+      for (let i = 0, k = 0; i < made.length; k++) { const n = pattern[Math.min(k, pattern.length - 1)]; out.push(made.slice(i, i + n)); i += n; }
+      return out;
+    };
+    const widest = (rs) => Math.max(...rs.map((row) => row.reduce((m, o) => m + o.hw * 2, 0) * 0.92));
+    let rows = rowsOf([3, 2, 1]);
+    if (widest(rows) > avail) rows = rowsOf([2, 2, 1, 1]);
+    if (widest(rows) > avail) {
+      const k = avail / widest(rows);
+      for (const o of made) { o.hw *= k; o.hh = Math.max(o.hh * Math.sqrt(k), 14); }
+      this.fs *= k;
+      this.font = `700 ${this.fs}px "Source Sans 3", "Arial Narrow", system-ui, sans-serif`;
+    }
     let yBase = soilY;
     this.stones = [];
     rows.forEach((row, ri) => {
@@ -120,73 +184,67 @@ export class Field {
       row.forEach((o) => {
         const cx = x + o.hw * 0.92 + r(-4, 4);
         x += o.hw * 2 * 0.92;
-        // A pebble: a rounded superellipse, a little uneven.
-        const verts = Array.from({ length: 18 }, (_, k) => {
-          const a = (k / 18) * Math.PI * 2;
-          const c = Math.cos(a), sn = Math.sin(a);
-          const e = 2.6;
-          const px = Math.sign(c) * Math.abs(c) ** (2 / e), py = Math.sign(sn) * Math.abs(sn) ** (2 / e);
-          return { x: px * o.hw * r(0.96, 1.03), y: py * o.hh * r(0.95, 1.03) };
-        });
-        const body = Bodies.fromVertices(cx, yBase - o.hh - 2 - ri * 6, [verts], {
-          friction: 0.5, frictionStatic: 0.6, restitution: 0.05, density: 0.004, frictionAir: 0.03,
-        });
-        const local = body.vertices.map((v) => ({ x: v.x - body.position.x, y: v.y - body.position.y }));
-        Body.setAngle(body, r(-0.14, 0.14));
-        const st = { ...o, body, local, a: 1, cleared: false, gone: false };
+        const { body, local } = pebble(o, cx, yBase - o.hh - 2 - ri * 6,
+          { friction: 0.55, frictionStatic: 0.7, restitution: 0.05, density: 0.006, frictionAir: 0.03 });
+        const st = { ...o, kind: 'stone', body, local, a: 1, cleared: false, gone: false };
         st.img = this.paintStone(st);
         this.stones.push(st);
       });
       yBase -= tallest * 1.55;
     });
-    // Keep the whole heap on screen.
+    // Keep the whole heap on screen, and off the wall.
     {
       const x0 = Math.min(...this.stones.map((st) => st.body.position.x - st.hw));
       const x1 = Math.max(...this.stones.map((st) => st.body.position.x + st.hw));
-      const shift = x0 < 10 ? 10 - x0 : x1 > W - 10 ? W - 10 - x1 : 0;
+      const lo = this.wallSide < 0 ? this.wallX1 + 10 : 10;
+      const hi = this.wallSide > 0 ? this.wallX0 - 10 : W - 10;
+      const shift = x0 < lo ? lo - x0 : x1 > hi ? hi - x1 : 0;
       if (shift) {
         for (const st of this.stones) Body.translate(st.body, { x: shift, y: 0 });
         this.pileX += shift;
       }
     }
-    Composite.add(this.engine.world, this.stones.map((s) => s.body));
-    // The line to drag a stone past: clear of the heap on either side.
     const half = Math.max(...this.stones.map((st) => Math.abs(st.body.position.x - this.pileX) + st.hw));
     this.heapHalf = half;
-    this.clearR = half + Math.max(80, W * 0.08);
-    // The lines themselves, kept on screen (a phone has little room).
-    this.lineL = Math.max(this.pileX - this.clearR, -1e6);
-    // Leave room past each line for the widest stone to rest beyond it.
-    const room = Math.max(...this.stones.map((st) => st.hw)) + 14;
-    const heapR = this.pileX + half, heapL = this.pileX - half;
-    this.lineR = Math.min(this.pileX + this.clearR, Math.max(heapR + 26, W - room));
-    this.lineL = Math.max(this.pileX - this.clearR, Math.min(heapL - 26, room));
-    if (this.lineL < 30) this.lineL = -1e6;     // no room on that side
-    if (this.lineR > W - 30) this.lineR = 1e6;
-    // Let the pile settle before anyone sees it.
-    for (let k = 0; k < 140; k++) this.physics();
+    // Rubble: small unnamed stones, dropped over the heap so they settle
+    // into its gaps and round it into a mound.
+    const nRubble = 7;
+    for (let i = 0; i < nRubble; i++) {
+      const rad = r(7, 12) * this.S * (W < 520 ? 0.8 : 1);
+      const o = { word: '', hw: rad * r(1.1, 1.4), hh: rad, look: STONE_LOOKS[Math.floor(rand() * STONE_LOOKS.length)], seed: rand() };
+      const side = i % 2 ? 1 : -1;
+      const cx = Math.max(30, Math.min(W - this.wallW - 30, this.pileX + side * r(0.15, 0.6) * half));
+      const { body, local } = pebble(o, cx, soilY - r(60, 160) * this.S,
+        { friction: 0.6, frictionStatic: 0.8, restitution: 0.08, density: 0.003, frictionAir: 0.03 });
+      const st = { ...o, kind: 'rubble', body, local, a: 1, cleared: false, gone: false };
+      st.img = this.paintStone(st);
+      this.stones.push(st);
+    }
+    Composite.add(this.engine.world, this.stones.map((s) => s.body));
+    // Let the heap settle before anyone sees it.
+    for (let k = 0; k < 180; k++) this.physics();
 
     // ── Thorns ──────────────────────────────────────────────────────
     const tw = [...THORN_WORDS];
     for (let i = tw.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [tw[i], tw[j]] = [tw[j], tw[i]]; }
     this.thornWords = tw;
     this.weeds = [];
-    // Spread across the field, keeping off the pile.
     const spots = [];
-    const lo = 0.06 * W, hi = 0.94 * W;
     let p0 = Infinity, p1 = -Infinity;
     for (const st of this.stones) { p0 = Math.min(p0, st.body.bounds.min.x); p1 = Math.max(p1, st.body.bounds.max.x); }
+    const lo = (this.wallSide < 0 ? this.wallX1 : 0) + 0.05 * W;
+    const hi = (this.wallSide > 0 ? this.wallX0 : W) - 0.03 * W;
     for (let tries = 0; spots.length < weeds && tries < 600; tries++) {
       const x = lo + rand() * (hi - lo);
-      if (x > p0 - 34 * this.S && x < p1 + 34 * this.S) continue;   // not in the heap
-      if (tries < 300 && Math.abs(x - this.pileX) < this.clearR * 0.55) continue;
-      if (spots.some((o) => Math.abs(o - x) < 70 * this.S)) continue;
+      if (x > p0 - 40 * this.S && x < p1 + 40 * this.S) continue;   // not in the heap
+      if (spots.some((o) => Math.abs(o - x) < 84 * this.S)) continue;
       spots.push(x);
     }
     spots.forEach((x, i) => this.addWeed(x, tw[i % tw.length], 1, 1));
     // On a narrow screen not every thorn fits beside the heap; the rest
     // were under the stones, and come up once they're moved.
     this.hidden = weeds - spots.length;
+    this.initialWeeds = weeds;
   }
 
   addWeed(x, word, size, grow, species) {
@@ -196,10 +254,10 @@ export class Field {
     if (this.made === undefined) { this.made = 0; this.first = Math.floor(rand() * SPECIES.length); }
     // (Seed breeds true: a sprout is its parent's plant.)
     const type = species || SPECIES[(this.first + this.made++) % SPECIES.length];
-    const s = this.S * r(0.9, 1.12) * size;
+    const s = this.S * WEED_SIZE * r(0.9, 1.1) * size;
     const thorn = makeThorn(type, s, rand);
     const w = {
-      kind: 'weed', type, thorn, x, y: this.edge(x), s, phase: r(0, 6),
+      kind: 'weed', type, thorn, x, home: x, y: this.edge(x), s, phase: r(0, 6),
       stalkH: thorn.stalkH,
       state: 'in', pull: 0, lean: 0, rot: 0, a: 1, free: false,
       word, seeds: 14, quiver: 0, grow: grow ? 1 : 0, vx: 0, vy: 0, t: 0, loose: 0,
@@ -208,16 +266,38 @@ export class Field {
     return w;
   }
 
+  note(key, text) {
+    if (this.said[key]) return;
+    this.said[key] = true;
+    this.onNote(text);
+  }
+
   // ── Rules ──────────────────────────────────────────────────────────
   remaining() {
     return this.hidden + this.stones.filter((s) => !s.cleared).length
-      + this.weeds.filter((w) => w.state !== 'gone' && w.state !== 'away').length
+      + this.weeds.filter((w) => w.state !== 'gone' && w.state !== 'away' && w.state !== 'compost').length
       + this.seeds.filter((sd) => sd.willSprout).length;
+  }
+
+  // How the clearing went, for the soil and the vine.
+  result() {
+    const perfect = this.dropped === 0 && !this.skipped && this.composted > 0 && this.stones.every((s) => s.walled);
+    return { composted: this.composted, careful: this.careful, dropped: this.dropped, walled: this.walledToday, perfect };
+  }
+
+  // 0 → 1: how rich the soil has become from careful work.
+  richness() {
+    return Math.min(1, this.careful / Math.max(1, this.initialWeeds));
   }
 
   setPatience(p) {
     this.patience = PATIENCE[p] ? p : 'balanced';
     this.P = PATIENCE[this.patience];
+  }
+
+  inWall(st) {
+    const x = st.body.position.x;
+    return this.wallSide > 0 ? x > this.wallX0 + st.hw * 0.2 : x < this.wallX1 - st.hw * 0.2;
   }
 
   physics() {
@@ -228,61 +308,82 @@ export class Field {
       const b = st.body;
       if (st === this.dragStone && g) {
         // Carried by the hand, but still a body: it shoves and tumbles the
-        // others. Moved by velocity toward the finger, so a quick hand
-        // leaves it behind — and past a point, it slips.
+        // others. Moved by velocity toward the finger — a heavy stone
+        // lags behind a quick hand, and past a point it slips.
+        const H = HEFT[st.kind];
         const tx = g.px - g.off.x, ty = Math.min(g.py - g.off.y, this.soilY - st.hh);
         const ex = tx - b.position.x, ey = ty - b.position.y;
-        const cap = 16 * this.S;
-        Body.setVelocity(b, { x: Math.max(-cap, Math.min(cap, ex * 0.28)), y: Math.max(-cap, Math.min(cap, ey * 0.28)) });
+        const cap = H.cap * this.S;
+        Body.setVelocity(b, { x: Math.max(-cap, Math.min(cap, ex * H.follow)), y: Math.max(-cap, Math.min(cap, ey * H.follow)) });
         Body.setAngularVelocity(b, b.angularVelocity * 0.8);
-        if (Math.hypot(ex, ey) > 95 * this.S * this.P.grip) this.slip(st);
+        if (Math.hypot(ex, ey) > Math.max(90, H.slip * this.S) * this.P.grip) this.slip(st);
         continue;
       }
       const dx = b.position.x - this.pileX;
-      // Past a line — or, where there's no room past it, set down against
-      // the edge of the field away from the heap.
-      const wall = Math.abs(dx) > this.heapHalf * 0.9 &&
-        ((b.position.x + st.hw >= this.W - 8 && dx > 0) || (b.position.x - st.hw <= 8 && dx < 0 && this.lineL < -1e5));
-      const out = b.position.x > this.lineR || b.position.x < this.lineL || wall;
-      if (!out) {
-        // The heap's pull: slight, but enough that a stone half moved, or
-        // knocked loose, creeps back to the others.
-        if (Math.abs(dx) > this.heapHalf * 0.55) {
-          if (b.isSleeping) Sleeping.set(b, false);
-          const want = -Math.sign(dx) * Math.min(1.3, (Math.abs(dx) - this.heapHalf * 0.5) * 0.01) * this.S;
-          Body.setVelocity(b, { x: b.velocity.x * 0.94 + want * 0.06, y: b.velocity.y });
-        }
-        st.rest = 0;
-      } else {
-        // Past the line: set aside once it has come to rest there.
-        const still = Math.hypot(b.velocity.x, b.velocity.y) < 0.35 && Math.abs(b.angularVelocity) < 0.02;
+      if (this.inWall(st)) {
+        // At the wall: set in once it has come to rest there.
+        const still = Math.hypot(b.velocity.x, b.velocity.y) < 0.4;
         st.rest = still ? (st.rest || 0) + STEP : 0;
-        if (st.rest > 450) this.clearStone(st, Math.sign(dx));
+        if (st.rest > 260) this.toWall(st);
+        continue;
+      }
+      st.rest = 0;
+      // The heap's pull: loose pieces creep back to it — rubble most
+      // keenly, as rubble always seems to.
+      const reach = this.heapHalf + this.W * 0.24;
+      const from = st.kind === 'rubble' ? this.heapHalf * 0.3 : this.heapHalf * 0.55;
+      if (Math.abs(dx) > from && Math.abs(dx) < reach) {
+        if (b.isSleeping) Sleeping.set(b, false);
+        const max = st.kind === 'rubble' ? 2.2 : 1.2;
+        const want = -Math.sign(dx) * Math.min(max, (Math.abs(dx) - from) * 0.012) * this.S;
+        Body.setVelocity(b, { x: b.velocity.x * 0.94 + want * 0.06, y: b.velocity.y });
       }
     }
     Engine.update(this.engine, STEP);
   }
 
+  letGo(st) {
+    if (st.density) { this.M.Body.setDensity(st.body, st.density); st.density = 0; }
+  }
+
   slip(st) {
     const { Body } = this.M;
     const b = st.body;
+    this.letGo(st);
     Body.setVelocity(b, { x: b.velocity.x * 0.35, y: b.velocity.y * 0.35 });
     this.dragStone = null;
     this.grab = null;
     navigator.vibrate?.(10);
-    this.onNote('It slipped. One stone at a time, steadily.');
+    this.onNote(st.kind === 'stone' ? 'Too heavy to rush. It slipped. Slowly does it.' : 'It slipped. One at a time.');
   }
 
-  clearStone(st, dir) {
+  // Set a stone into the wall: it leaves the physics and is laid in the
+  // next place along the wall's courses.
+  toWall(st) {
     if (st.cleared) return;
-    const { Body, Sleeping } = this.M;
+    this.letGo(st);
     st.cleared = true;
-    st.dir = dir || (st.body.position.x < this.pileX ? -1 : 1);
-    st.body.isSensor = true;   // through the wall and away
-    Sleeping.set(st.body, false);
-    Body.setVelocity(st.body, { x: st.dir * 3.5 * this.S, y: -1.5 });
-    Body.setAngularVelocity(st.body, st.dir * 0.08);
-    this.wake();
+    st.walled = true;
+    this.M.Composite.remove(this.engine.world, st.body);
+    const n = this.wallBase + this.walledToday;
+    const slot = this.wallSlot(n);
+    this.walledToday++;
+    st.fly = { x0: st.body.position.x, y0: st.body.position.y, a0: st.body.angle, t: 0, slot, n };
+    this.onEvent({ type: 'wall', kind: st.kind });
+    navigator.vibrate?.(8);
+    if (st.kind === 'stone') this.note('wall', 'Set into the wall. The wall stays, and grows, day by day.');
+  }
+
+  // Where the n-th stone of the wall sits on screen (the field shows the
+  // top courses; the vineyard shows the whole wall).
+  wallSlot(n) {
+    const per = Math.max(3, Math.floor(this.wallW / (17 * this.S)));
+    const shown = n % (per * 6);
+    const course = Math.floor(shown / per), k = shown % per;
+    const sw = this.wallW / per;
+    const x = this.wallX0 + sw * (k + 0.5 + (course % 2 ? 0.5 : 0) - (course % 2 && k === per - 1 ? 1 : 0));
+    const y = this.soilY - 5 * this.S - course * 9 * this.S;
+    return { x, y, w: sw * 0.98, h: 10 * this.S };
   }
 
   wake() {
@@ -295,23 +396,27 @@ export class Field {
     this.acc += Math.min(100, dt * 1000);
     let n = 0;
     while (this.acc >= STEP && n < 4) { this.physics(); this.acc -= STEP; n++; }
-    // Cleared stones roll on and fade.
     for (const st of this.stones) {
-      if (!st.cleared || st.gone) continue;
-      const { Body } = this.M;
-      if (Math.abs(st.body.velocity.x) < 3 * this.S) Body.setVelocity(st.body, { x: st.dir * 3 * this.S, y: st.body.velocity.y });
-      const x = st.body.position.x;
-      if (x < -st.hw * 2 || x > this.W + st.hw * 2) st.gone = true;
-      st.a = Math.max(0, st.a - dt * 0.35);
-      if (st.a <= 0) st.gone = true;
-      if (st.gone) this.M.Composite.remove(this.engine.world, st.body);
+      if (st.fly) {
+        st.fly.t = Math.min(1, st.fly.t + dt / 0.7);
+        if (st.fly.t >= 1) st.gone = true;
+      } else if (st.cleared && !st.gone) {
+        // Skipped: fades where it is.
+        st.a = Math.max(0, st.a - dt * 1.5);
+        if (st.a <= 0) { st.gone = true; this.M.Composite.remove(this.engine.world, st.body); }
+      }
     }
+    this.basket.hot *= 1 - Math.min(1, dt * 6);
+    this.basket.puff = Math.max(0, this.basket.puff - dt * 1.4);
+    for (const p of this.rich) p.a = Math.min(1, p.a + dt * 0.8);
 
-    if (this.hidden > 0 && this.stones.every((st) => st.cleared)) {
+    if (this.hidden > 0 && this.stones.every((st) => st.cleared || st.kind === 'rubble')) {
       const taken = this.weeds.map((w) => w.x);
+      const lo = (this.wallSide < 0 ? this.wallX1 : 0) + 0.06 * this.W;
+      const hi = (this.wallSide > 0 ? this.wallX0 : this.W) - 0.04 * this.W;
       for (let tries = 0; this.hidden > 0 && tries < 200; tries++) {
-        const x = this.W * (0.08 + 0.84 * this.rand());
-        if (taken.some((o) => Math.abs(o - x) < 50 * this.S)) continue;
+        const x = lo + (hi - lo) * this.rand();
+        if (taken.some((o) => Math.abs(o - x) < 60 * this.S)) continue;
         taken.push(x);
         this.addWeed(x, this.thornWords[(this.weeds.length + this.hidden) % this.thornWords.length], 1, 0);
         this.hidden--;
@@ -339,7 +444,6 @@ export class Field {
         w.pull = Math.max(0, w.pull - dt * 5);
         w.lean *= 1 - Math.min(1, dt * 8);
       }
-      if (w.state === 'auto') this.autoStep(w, dt);
       if (w.state === 'fallen') {
         w.t += dt;
         w.vy += 0.4 * k * w.s;
@@ -355,14 +459,21 @@ export class Field {
           // It takes root again where it lies.
           if (this.t - w.landed > 0.7) {
             w.rot *= 0.85;
-            if (Math.abs(w.rot) < 0.05) { w.rot = 0; w.state = 'in'; w.free = false; w.pull = 0; w.landed = 0; }
+            if (Math.abs(w.rot) < 0.05) { w.rot = 0; w.state = 'in'; w.free = false; w.pull = 0; w.landed = 0; w.loose = 0; }
           }
         }
       }
-      if (w.state === 'away') {
+      if (w.state === 'compost') {
+        // Laid into the basket: it sinks in.
         w.t += dt;
-        w.x += w.vx * k;
-        w.a = Math.max(0, w.a - dt * 2.5);
+        const b = this.basket;
+        w.x += (b.x + b.w / 2 - w.x) * Math.min(1, dt * 8);
+        w.y += (b.y + b.h * 0.35 - w.y) * Math.min(1, dt * 8);
+        w.a = Math.max(0, 1 - w.t / 0.55);
+        if (w.a <= 0) w.state = 'gone';
+      }
+      if (w.state === 'away') {
+        w.a = Math.max(0, w.a - dt * 2);
         if (w.a <= 0) w.state = 'gone';
       }
     }
@@ -380,9 +491,7 @@ export class Field {
       } else if (sd.willSprout && this.t - sd.landed > 0.9) {
         sd.willSprout = false;
         sd.done = true;
-        if (sd.x > 10 && sd.x < this.W - 10) {
-          this.addWeed(sd.x, sd.word, 0.72, 0, sd.kind);
-        }
+        if (sd.x > 10 && sd.x < this.W - 10) this.addWeed(sd.x, sd.word, 0.72, 0, sd.kind);
       } else if (!sd.willSprout && this.t - sd.landed > 0.6) sd.done = true;
     }
     this.seeds = this.seeds.filter((sd) => !sd.done);
@@ -393,6 +502,7 @@ export class Field {
   shed(w, n, x, y) {
     const lost = Math.min(n, w.seeds);
     w.seeds -= lost;
+    this.dropped += lost;
     for (let i = 0; i < lost; i++) {
       const grows = this.sprouted < MAX_SPROUTS;
       if (grows) this.sprouted++;
@@ -405,18 +515,6 @@ export class Field {
     if (lost) navigator.vibrate?.(12);
   }
 
-  // The careful way, done for you: lift slowly, carry off the nearer edge.
-  autoStep(w, dt) {
-    w.t += dt;
-    if (w.pull < 1) { w.pull = Math.min(1, w.pull + dt / 0.6); return; }
-    w.free = true;
-    const dir = w.x < this.W / 2 ? -1 : 1;
-    w.y += (this.edge(w.x) - w.stalkH * 0.7 - w.y) * Math.min(1, dt * 3);
-    w.x += dir * 380 * dt * this.S;
-    w.lean = -dir * 0.3;
-    if (w.x < -60 || w.x > this.W + 60) w.state = 'gone';
-  }
-
   headOf(w) {
     const g = w.grow;
     const stretch = 1 + Math.max(0, w.pull) * 0.28;
@@ -424,6 +522,11 @@ export class Field {
     const a = w.rot + w.lean * 0.4 + (w.free ? 0 : Math.sin(this.t * 1.3 + w.phase) * 0.05);
     const base = { x: w.x, y: w.y - (w.free ? 0 : Math.max(0, w.pull) * 6 * w.s) };
     return { x: base.x + Math.sin(a) * h, y: base.y - Math.cos(a) * h, base, a, h };
+  }
+
+  overBasket(x, y) {
+    const b = this.basket, pad = 26;
+    return x > b.x - pad && x < b.x + b.w + pad && y > b.y - pad * 2.2 && y < b.y + b.h + pad;
   }
 
   // ── Input ──────────────────────────────────────────────────────────
@@ -435,7 +538,8 @@ export class Field {
       const c = Math.cos(-b.angle), s = Math.sin(-b.angle);
       const dx = x - b.position.x, dy = y - b.position.y;
       const lx = dx * c - dy * s, ly = dx * s + dy * c;
-      const d = Math.hypot(lx / (st.hw + 10), ly / (st.hh + 10));
+      const pad = st.kind === 'rubble' ? 14 : 10;   // small things get a generous target
+      const d = Math.hypot(lx / (st.hw + pad), ly / (st.hh + pad));
       if (d < 1 && d < bd) { bd = d; best = st; }
     }
     return best;
@@ -447,7 +551,7 @@ export class Field {
       if (w.state !== 'in' || w.grow < 0.6) continue;
       const hd = this.headOf(w);
       const top = Math.min(hd.y, w.y - 30 * w.s) - 16;
-      if (x < w.x - 32 * w.s || x > w.x + 32 * w.s || y < top || y > w.y + 18) continue;
+      if (x < w.x - 30 * w.s || x > w.x + 30 * w.s || y < top || y > w.y + 18) continue;
       const d = Math.abs(x - w.x);
       if (d < bd) { bd = d; best = w; }
     }
@@ -465,8 +569,13 @@ export class Field {
     if (st) {
       const b = st.body;
       this.dragStone = st;
+      // In the hand it has heft: it shoulders the others aside rather
+      // than sticking on them (it still lags behind a hurried hand).
+      st.density = b.density;
+      this.M.Body.setDensity(b, b.density * 10);
       this.wake();
       this.grab = { st, id, off: { x: x - b.position.x, y: y - b.position.y }, px: x, py: y, x0: x, y0: y, t0: performance.now(), last: { x, y, t: performance.now() }, moved: 0 };
+      if (st.kind === 'stone') this.note('stone', 'Carry it to the wall, steadily. It’s heavy.');
       return true;
     }
     const w = this.hitWeed(x, y);
@@ -505,17 +614,17 @@ export class Field {
     }
     if (w.state === 'carried') {
       // Carried by the hand, swinging with the motion.
-      w.x = x + g.hold.dx;
+      w.x = Math.max(4, Math.min(this.W - 4, x + g.hold.dx));
       w.y = y + g.hold.dy;
       w.lean += (Math.max(-1, Math.min(1, -vx / 1400)) - w.lean) * 0.3;
       w.quiver = Math.max(w.quiver, clamp01((g.speed - WARN * this.P.speed) / ((SHAKE - WARN) * this.P.speed)));
+      if (this.overBasket(x, y)) this.basket.hot = 1;
       if (g.speed > SHAKE * this.P.speed && now - g.shedAt > 380 && w.seeds > 0) {
         g.shedAt = now;
         const hd = this.headOf(w);
         this.shed(w, 1, hd.x, hd.y);
-        if (!this.warned) { this.warned = true; this.onNote('Shaking it drops seed. Carry it steadily.'); }
+        this.note('shake', 'Shaking it drops seed. Carry it steadily.');
       }
-      if (x < -10 || x > this.W + 10 || y < 0) this.carryOff(w, x < this.W / 2 ? -1 : 1);
     }
   }
 
@@ -534,16 +643,9 @@ export class Field {
       this.onNote('Too quick: it scattered seed. Gently does it.');
     } else {
       navigator.vibrate?.(6);
-      if (!this.praised) { this.praised = true; this.onNote('Out, roots and all. Now carry it off the field.'); }
+      this.note('out', 'Out, roots and all. Lay it in the compost basket.');
     }
     g.hold = { dx: w.x - g.px, dy: w.y - g.py };
-  }
-
-  carryOff(w, dir) {
-    w.state = 'away';
-    w.vx = dir * 6 * this.S;
-    w.t = 0;
-    this.grab = null;
   }
 
   up(x, y, id) {
@@ -553,67 +655,203 @@ export class Field {
     const tap = g.moved < 10 && performance.now() - g.t0 < 450;
 
     if (g.st) {
-      const st = g.st;
       this.dragStone = null;
-      // A tap sets it aside for you (the accessible way).
-      if (tap) this.clearStone(st, st.body.position.x < this.pileX ? -1 : 1);
-      // Otherwise it keeps whatever momentum the hand gave it, and the
-      // physics decides: past the line and at rest, it's cleared.
+      this.letGo(g.st);
+      // A tap only shows how: the work is the point.
+      if (tap) this.onNote(g.st.kind === 'stone' ? 'Hold it and carry it to the wall.' : 'Drag it to the wall.');
       this.wake();
       return;
     }
 
     const w = g.w;
     if (w.state === 'in') {
-      if (tap) { w.state = 'auto'; w.t = 0; }
+      if (tap) this.onNote('Hold it, and lift slowly. The roots let go when they’re ready.');
       return;   // otherwise it springs back
     }
     if (w.state === 'carried') {
-      if (x < 40 || x > this.W - 40) { this.carryOff(w, x < this.W / 2 ? -1 : 1); return; }
+      if (this.overBasket(x, y)) { this.compost(w); return; }
       // Let go on the field: it falls, seeds, and roots again.
       w.state = 'fallen';
       w.vx = 0; w.vy = 0; w.landed = 0; w.t = 0;
-      this.onNote('Dropped on the field: it will root again. Carry it right off the edge.');
+      this.onNote('Dropped on the field: it will root again. Carry it to the basket.');
     }
   }
 
+  compost(w) {
+    w.state = 'compost';
+    w.t = 0;
+    this.composted++;
+    this.basket.puff = 1;
+    const whole = w.seeds >= 14;
+    if (whole) {
+      // Taken whole: rich dark soil where it grew.
+      this.careful++;
+      this.rich.push({ x: w.home, s: w.s, a: 0 });
+      this.note('rich', 'Taken whole. Look: the soil is richer where it grew.');
+    } else {
+      this.note('lost', 'Into the compost, but it dropped seed on the way.');
+    }
+    this.onEvent({ type: 'compost', whole });
+  }
+
   clearAll() {
-    let k = 0;
-    for (const st of this.stones) if (!st.cleared) setTimeout(() => this.clearStone(st, 0), 120 * k++);
-    for (const w of this.weeds) if (w.state === 'in') { w.state = 'auto'; w.t = 0; w.pull = -0.4 * k++; }
+    this.skipped = true;
+    for (const st of this.stones) if (!st.cleared) { st.cleared = true; }
+    for (const w of this.weeds) if (w.state === 'in' || w.state === 'fallen') w.state = 'away';
     for (const sd of this.seeds) sd.willSprout = false;
     this.hidden = 0;
   }
 
   // ── Drawing ────────────────────────────────────────────────────────
-  draw(ctx, night, reduced) {
-    const ink = night > 0.5 ? [239, 232, 216] : [70, 62, 52];
-    // While a stone is held: the line it must cross, on the soil.
-    if (this.dragStone) {
-      for (const dir of [-1, 1]) {
-        const x = dir < 0 ? this.lineL : this.lineR;
-        if (x < 0 || x > this.W) continue;
-        const y = this.edge(x);   // (an off-screen line isn't drawn)
-        ctx.save();
-        ctx.strokeStyle = night > 0.5 ? 'rgba(239,232,216,0.55)' : 'rgba(90,70,50,0.5)';
-        ctx.setLineDash([3, 5]);
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x, y + 14);
-        ctx.lineTo(x, y - 46);
-        ctx.stroke();
-        ctx.restore();
+  // The soil's richness, from careful work: drawn over the soil.
+  drawSoil(ctx, night) {
+    for (const p of this.rich) {
+      const y = this.edge(p.x) + 6 * p.s;
+      const g = ctx.createRadialGradient(p.x, y, 2, p.x, y, 34 * p.s);
+      g.addColorStop(0, `rgba(48,30,16,${0.6 * p.a})`);
+      g.addColorStop(0.7, `rgba(58,38,20,${0.3 * p.a})`);
+      g.addColorStop(1, 'rgba(58,38,20,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(p.x, y, 34 * p.s, 12 * p.s, 0, 0, Math.PI * 2); ctx.fill();
+      // A few glints of good soil.
+      ctx.fillStyle = `rgba(214,186,120,${0.5 * p.a * (night > 0.5 ? 0.5 : 1)})`;
+      for (let k = 0; k < 5; k++) {
+        ctx.beginPath(); ctx.arc(p.x + ((k * 37) % 40 - 20) * p.s, y + ((k * 13) % 7 - 3) * p.s, 0.9 * p.s, 0, Math.PI * 2); ctx.fill();
       }
     }
+  }
+
+  drawWall(ctx, night) {
+    const total = this.wallBase + this.walledToday;
+    const cap = Math.max(3, Math.floor(this.wallW / (17 * this.S))) * 6;   // six courses show here
+    const tint = (c) => c.map((v, i) => v + ([28, 34, 54][i] - v) * 0.42 * night);
+    // The footing, even before there are stones: a shallow trench.
+    ctx.fillStyle = 'rgba(60,40,24,0.35)';
+    ctx.fillRect(this.wallX0 + 4, this.soilY - 2, this.wallW - 8, 6);
+    const landing = new Set(this.stones.filter((st) => st.fly && st.fly.t < 1).map((st) => st.fly.n % cap));
+    const shown = Math.min(total, cap);
+    for (let i = 0; i < shown; i++) {
+      // A full wall keeps its newest stones on top.
+      const n = total > cap ? total - cap + i : i;
+      if (landing.has(n % cap) && n >= total - this.walledToday) continue;   // still on its way
+      const s = this.wallSlot(n);
+      const k = ((n * 7919) % 100) / 100;
+      const c = tint([128 + k * 50, 122 + k * 44, 110 + k * 36]);
+      const g = ctx.createLinearGradient(0, s.y - s.h / 2, 0, s.y + s.h / 2);
+      g.addColorStop(0, `rgb(${c.map((v) => (v + 30) | 0)})`);
+      g.addColorStop(1, `rgb(${c.map((v) => (v - 25) | 0)})`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h, s.h * 0.45);
+      else ctx.rect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+      ctx.fill();
+    }
+    // While a stone is carried: the place it will go, glowing.
+    if (this.dragStone) {
+      const s = this.wallSlot(this.wallBase + this.walledToday);
+      const pulse = 0.5 + 0.5 * Math.sin(this.t * 4);
+      ctx.save();
+      ctx.strokeStyle = `rgba(232,196,110,${0.5 + 0.4 * pulse})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h, s.h * 0.45);
+      else ctx.rect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+      ctx.stroke();
+      const g = ctx.createLinearGradient(this.wallSide > 0 ? this.wallX0 - 40 : this.wallX1 + 40, 0, this.wallSide > 0 ? this.wallX0 + 20 : this.wallX1 - 20, 0);
+      g.addColorStop(0, 'rgba(232,196,110,0)');
+      g.addColorStop(1, `rgba(232,196,110,${0.12 + 0.08 * pulse})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(this.wallSide > 0 ? this.wallX0 - 40 : this.wallX0, this.soilY - 140 * this.S, this.wallW + 40, 140 * this.S);
+      ctx.restore();
+    }
+  }
+
+  drawBasket(ctx, night) {
+    const b = this.basket;
+    const tint = (c, a = 1) => `rgba(${c.map((v, i) => (v + ([28, 34, 54][i] - v) * 0.42 * night) | 0)},${a})`;
+    const cx = b.x + b.w / 2;
+    ctx.save();
+    // Glow when a weed is carried over it.
+    if (b.hot > 0.02 || this.grab?.w?.state === 'carried') {
+      const k = Math.max(b.hot, 0.35);
+      const g = ctx.createRadialGradient(cx, b.y + b.h * 0.3, 4, cx, b.y + b.h * 0.3, b.w * 0.9);
+      g.addColorStop(0, `rgba(240,214,140,${0.45 * k})`);
+      g.addColorStop(1, 'rgba(240,214,140,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(b.x - b.w * 0.4, b.y - b.h, b.w * 1.8, b.h * 2.4);
+    }
+    // Shadow.
+    ctx.fillStyle = 'rgba(30,20,12,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx + 4, b.y + b.h + 2, b.w * 0.46, 5, 0, 0, Math.PI * 2); ctx.fill();
+    // Body: a woven, tapering basket.
+    const top = b.y + b.h * 0.18, bot = b.y + b.h;
+    const inset = b.w * 0.09;
+    ctx.beginPath();
+    ctx.moveTo(b.x, top);
+    ctx.lineTo(b.x + inset, bot - 6);
+    ctx.quadraticCurveTo(cx, bot + 6, b.x + b.w - inset, bot - 6);
+    ctx.lineTo(b.x + b.w, top);
+    ctx.closePath();
+    const bg = ctx.createLinearGradient(0, top, 0, bot);
+    bg.addColorStop(0, tint([196, 152, 96]));
+    bg.addColorStop(1, tint([138, 98, 56]));
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    // Weave: staggered strokes.
+    ctx.strokeStyle = tint([110, 76, 42], 0.55);
+    ctx.lineWidth = 1.2;
+    const rows = 4;
+    for (let r = 0; r < rows; r++) {
+      const y = top + ((r + 0.5) / rows) * (bot - top);
+      for (let x = b.x + (r % 2 ? 6 : 0); x < b.x + b.w; x += 12) {
+        ctx.beginPath(); ctx.ellipse(x + 3, y, 5, (bot - top) / rows / 2.4, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.restore();
+    // Compost inside, mounding with all the family's weeds.
+    const fill = Math.min(1, (this.compostBase + this.composted) / 40);
+    ctx.fillStyle = tint([66, 44, 26]);
+    ctx.beginPath();
+    ctx.ellipse(cx, top + 1, b.w * 0.47, b.h * 0.14 + fill * b.h * 0.12, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = tint([90, 112, 52], 0.8);
+    for (let k = 0; k < 5 * fill + 1; k++) {
+      ctx.beginPath(); ctx.ellipse(cx + ((k * 29) % (b.w * 0.6)) - b.w * 0.3, top - 2 - ((k * 7) % 5), 4, 1.6, (k % 3) - 1, 0, Math.PI * 2); ctx.fill();
+    }
+    // Rim.
+    ctx.strokeStyle = tint([120, 84, 46]);
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(cx, top, b.w / 2, b.h * 0.16, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = tint([214, 176, 118], 0.6);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(cx, top - 1.5, b.w / 2 - 2, b.h * 0.14, 0, Math.PI, 0); ctx.stroke();
+    // A puff as something goes in.
+    if (b.puff > 0) {
+      ctx.fillStyle = `rgba(120,96,64,${0.5 * b.puff})`;
+      for (let k = 0; k < 7; k++) {
+        const a = Math.PI * (1.1 + (0.8 * k) / 6), d = (1 - b.puff) * b.w * 0.45;
+        ctx.beginPath(); ctx.arc(cx + Math.cos(a) * d, top + Math.sin(a) * d * 0.6, 2.2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  draw(ctx, night, reduced) {
+    const ink = night > 0.5 ? [239, 232, 216] : [70, 62, 52];
+    this.drawSoil(ctx, night);
+    this.drawWall(ctx, night);
 
     for (const st of this.stones) {
       if (st.gone) continue;
+      if (st.fly) { this.drawFlying(ctx, st, night); continue; }
       this.drawStone(ctx, st, night);
     }
 
     this.labels = [];
-    for (const w of this.weeds) {
-      if (w.state === 'gone') continue;
+    const drawWeed = (w) => {
       const g = w.grow;
       ctx.save();
       ctx.globalAlpha = w.a;
@@ -629,9 +867,13 @@ export class Field {
       const hd = drawThorn(ctx, w, t, night);
       drawSeedHead(ctx, w, hd.x, hd.y, night, this.t);
       ctx.restore();
-      this.drawLabel(ctx, w, night, ink);
+      if (w.state !== 'compost') this.drawLabel(ctx, w, night, ink);
       ctx.restore();
-    }
+    };
+    for (const w of this.weeds) if (w.state !== 'gone' && w.state !== 'carried' && w.state !== 'compost') drawWeed(w);
+    // The basket is in front of the field; what's carried is in front of it.
+    this.drawBasket(ctx, night);
+    for (const w of this.weeds) if (w.state === 'carried' || w.state === 'compost') drawWeed(w);
 
     // The hand on a weed: a small ring at the finger. While it's rooted
     // the ring fills as the roots loosen; its colour is the hand's speed —
@@ -684,6 +926,23 @@ export class Field {
       }
       ctx.restore();
     }
+  }
+
+  // A stone on its way into the wall: it eases from where it was let go
+  // to its place, turning flat and shrinking to the wall's scale.
+  drawFlying(ctx, st, night) {
+    const f = st.fly;
+    const u = f.t < 0.5 ? 2 * f.t * f.t : 1 - (-2 * f.t + 2) ** 2 / 2;
+    const x = f.x0 + (f.slot.x - f.x0) * u;
+    const y = f.y0 + (f.slot.y - f.y0) * u - Math.sin(Math.PI * u) * 40 * this.S;
+    const sc = 1 + (Math.min(f.slot.w / (st.hw * 2), 1.4) - 1) * u;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(f.a0 * (1 - u));
+    ctx.scale(sc, sc * (1 - 0.25 * u));
+    ctx.drawImage(st.img.c, -st.img.w / 2, -st.img.h / 2, st.img.w, st.img.h);
+    if (night > 0.02) { ctx.fillStyle = `rgba(20,24,42,${0.4 * night})`; ctx.fill(st.path); }
+    ctx.restore();
   }
 
   drawLabel(ctx, w, night, ink) {
@@ -767,6 +1026,7 @@ export class Field {
     x.fill();
     x.restore();
     // The carving: a shadowed cut, then the letters' fill.
+    if (!st.word) return { c, w, h };   // rubble: no carving
     x.font = this.font;
     if ('letterSpacing' in x) x.letterSpacing = '0.04em';
     x.textAlign = 'center';

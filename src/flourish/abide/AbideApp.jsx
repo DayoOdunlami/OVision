@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import AbideScene, { skyAt, groupEntries, ripeness, familyIn } from './AbideScene.jsx';
+import AbideScene, { skyAt } from './AbideScene.jsx';
 import {
-  WORDS, wordForRef, wordByKey, readVineyard, gatherToday, todayIso, groundFor,
-  learnedWords, familyDays, seasonNow, prettyDate,
+  WORDS, wordForRef, wordByKey, readVineyard, gatherToday, todayIso, groundFor, doneTodayFor,
+  learnedWords, seasonNow, prettyDate, readField, addToField, daysBetween,
 } from './words.js';
+import { PEOPLE, personOf, readGroup, writeGroup, groupLabel } from './people.js';
 import { readPrayerState } from '../../data/prayerLink.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // Abide — a Flourish mode with a purpose.
 //
 // The outcome: take one word of Scripture into the day, and over the
-// weeks see what has taken root — and what has borne fruit.
+// weeks see what has taken root — and what has borne fruit. Made for a
+// family on one device: whoever is abiding taps in at the start, alone
+// or together, and it all goes into one family vineyard of rows.
 //
-// A daily practice of about three minutes, in five movements:
+// A daily practice of about three minutes:
 //
-//   1 Clear   the parable of the sower, by hand: a pile of engraved
-//             stones to drag off the seed's spot, and thorns to pull up
-//             gently and carry away (or they seed). More thorns if you've
-//             been away. Setting aside what crowds the mind, before
-//             receiving anything. Mark 4:5–7, 18–19.
+//   0 Who     tap who's here (remembered from last time)
+//   1 Clear   the parable of the sower, by hand (field.js): stones to
+//             carry to the wall, thorns to lift slowly and lay in the
+//             compost. Care leaves rich soil; a field cleared without
+//             dropping a seed is good soil, and today's vine bears more.
 //   2 Sow     this week's word (the one the family is praying), or
 //             another.
 //   3 Abide   it grows only while you stay, at the pace of breath —
@@ -26,16 +29,13 @@ import { readPrayerState } from '../../data/prayerLink.js';
 //             out; a slow guided breath if you don't. The verse comes a
 //             line at a time; then a question.
 //   4 Respond optionally, one line in answer, kept with the day.
-//   5 Gather  into the vineyard: a section per word, a cluster per day.
+//   5 Gather  into the vineyard (vineyard.js): a row each, a vine a
+//             day, growing for a week; shared days tied together; the
+//             family's wall and compost in front. Pan, zoom, tap a vine.
 //
-// The vineyard is where it pays off over time. Tap a section to see
-// its verse, the days, and what you wrote. Its fruit stays green until
-// the verse is learned by heart in the Pray puzzle, then ripens; gold
-// berries on the stalk are days the family prayed. The whole page
-// follows the clock (sun, moon) and the calendar (seasons).
-//
-// Lives beside the original Flourish page (/flourish/), which is
-// untouched; the switch at the top moves between them.
+// Coming back on a new day, the vineyard shows what grew overnight.
+// The whole page follows the clock (sun, moon) and the calendar
+// (seasons). Lives beside the original Flourish page (/flourish/).
 // ═══════════════════════════════════════════════════════════════════
 
 // How forgiving the field is with a hurried hand. Per device.
@@ -61,17 +61,28 @@ export default function AbideApp() {
   const weekWord = useMemo(() => wordForRef(readPrayerState().prayerRef), []);
   const season = useMemo(() => seasonNow(), []);
   const learned = useMemo(() => learnedWords(), []);
-  const famDays = useMemo(() => familyDays(), []);
   const [entry, setEntry] = useState(weekWord);
   const [entries, setEntries] = useState(readVineyard);
-  const ground = useMemo(() => ({ ...groundFor(entries), seed: todayIso() }), []);   // eslint-disable-line react-hooks/exhaustive-deps
-  const doneToday = entries.some((e) => e.date === todayIso());
+  const [who, setWhoRaw] = useState(readGroup);
+  const setWho = (names) => { setWhoRaw(names); writeGroup(names); };
+  const [field, setField] = useState(readField);
+  // How many days since the vineyard was last seen: what grew overnight.
+  const revealDays = useMemo(() => {
+    const seen = field.seen;
+    const today = todayIso();
+    const d = seen ? Math.max(0, daysBetween(seen, today)) : 0;
+    addToField({ seen: today });
+    return d;
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const [ground, setGround] = useState(() => ({ ...groundFor(entries, who), seed: todayIso() + who.join('') }));
+  const doneToday = doneTodayFor(entries, who);
   const [phase, setPhase] = useState(doneToday ? 'vineyard' : 'ground');
   const [run, setRun] = useState(0);
   const [progress, setProgress] = useState(0);
   const [breath, setBreath] = useState({ b: '', led: false });
   const [grown, setGrown] = useState(false);
   const [left, setLeft] = useState(ground.weeds + ground.stones);
+  const [goodSoil, setGoodSoil] = useState(false);
   // A passing word from the field ("too quick: it scattered seed").
   const [fieldLine, setNoteLine] = useState('');
   const [patience, setPatienceRaw] = useState(readPatience);
@@ -86,9 +97,11 @@ export default function AbideApp() {
     noteTimer.current = setTimeout(() => setNoteLine(''), 3800);
   };
   const [note, setNote] = useState('');
-  const [slots, setSlots] = useState([]);
-  const [open, setOpen] = useState(-1);
+  const [view, setView] = useState('family');
+  const [open, setOpen] = useState(null);
+  const [grewLine, setGrewLine] = useState(false);
   const [hour, setHour] = useState(hourNow);
+  const control = useRef(null);
 
   useEffect(() => {
     const id = setInterval(() => setHour(hourNow()), 60000);
@@ -96,9 +109,16 @@ export default function AbideApp() {
   }, []);
 
   const night = skyAt(hour, season).night > 0.5;
-  const groups = groupEntries(entries);
-  const daysTotal = entries.length;
 
+  // A fresh field for whoever is here now.
+  const startGround = () => {
+    const g = { ...groundFor(entries, who), seed: todayIso() + who.join('') + Date.now() };
+    setGround(g);
+    setLeft(g.weeds + g.stones + 7);
+    setGoodSoil(false);
+    setRun((n) => n + 1);
+    setPhase('ground');
+  };
   const sow = () => {
     setProgress(0);
     setGrown(false);
@@ -108,21 +128,36 @@ export default function AbideApp() {
     setPhase('sow');
   };
   const gather = () => {
-    setEntries(gatherToday(entry, note));
+    setEntries(gatherToday(entry, note, who, { soil: goodSoil ? 'good' : '' }));
     setPhase('gather');
   };
+  const again = () => {
+    setOpen(null);
+    if (doneTodayFor(entries, who)) setPhase('intro');
+    else startGround();
+  };
   const abideWith = (w) => {
-    setOpen(-1);
+    setOpen(null);
     setEntry(w);
-    setPhase(doneToday ? 'intro' : 'ground');
+    if (doneTodayFor(entries, who)) setPhase('intro');
+    else startGround();
+  };
+  const onFieldEvent = (ev) => {
+    if (ev.type === 'wall') setField(addToField({ wall: 1 }));
+    if (ev.type === 'compost') setField(addToField({ compost: 1 }));
   };
 
   const lines = entry.lines;
   const shownLines = lines.filter((_, k) => progress >= 0.1 + k * 0.22).length;
   const showQuestion = progress >= 0.55;
   const awayLine = ground.away === null
-    ? 'Your first time here'
+    ? `Welcome, ${groupLabel(who)}`
     : ground.away >= 2 ? `Welcome back · ${ground.away} days away` : 'Before you sow';
+
+  // Vineyard facts.
+  const rowsWith = PEOPLE.filter((p) => entries.some((e) => e.who.includes(p.name)));
+  const together = entries.filter((e) => e.who.length > 1).length;
+  const vines = entries.reduce((m, e) => m + Math.max(1, e.who.length), 0);
 
   return (
     <div className={`ab-app is-${phase}${night ? ' is-night' : ''}`}>
@@ -135,7 +170,12 @@ export default function AbideApp() {
         season={season}
         ground={ground}
         learned={learned}
-        famDays={famDays}
+        field={field}
+        who={who}
+        view={view}
+        goodSoil={goodSoil}
+        revealDays={revealDays}
+        controlRef={control}
         onProgress={setProgress}
         onBreath={(b, led) => setBreath({ b, led })}
         onGrown={() => setGrown(true)}
@@ -143,8 +183,16 @@ export default function AbideApp() {
         onClearLeft={setLeft}
         onNote={fieldNote}
         patience={patience}
-        onCleared={() => setPhase((p) => (p === 'ground' ? 'intro' : p))}
-        onSlots={setSlots}
+        onCleared={(res) => {
+          setGoodSoil(Boolean(res?.perfect));
+          setPhase((p) => (p === 'ground' ? 'intro' : p));
+        }}
+        onFieldEvent={onFieldEvent}
+        onTapVine={(e) => setOpen(e)}
+        onReveal={(on) => {
+          setGrewLine(on);
+          if (on) setTimeout(() => setGrewLine(false), 4200);
+        }}
       />
 
       <nav className="ab-nav" aria-label="Surfaces">
@@ -156,18 +204,22 @@ export default function AbideApp() {
         <a href="/pray/" className="ab-pill">Pray</a>
       </nav>
 
+      {(phase === 'ground' || phase === 'intro') && (
+        <WhoPicker who={who} setWho={setWho} />
+      )}
+
       {phase === 'ground' && (
         <section className="ab-ground" aria-live="polite">
           <p className="ab-eyebrow">{awayLine}</p>
           <h1 className="ab-title">Prepare the ground</h1>
           <p className="ab-how">
-            Drag the stones away from where the seed will fall. Then pull up the thorns, slowly, and carry each one right off the field.
+            Carry the stones to the wall, one at a time. Then lift each thorn out slowly and lay it in the compost basket.
           </p>
           <p className={`ab-left${fieldLine ? ' is-note' : ''}`}>
             {fieldLine || (left > 0 ? `${left} left` : 'Ready')}
           </p>
           <p className="ab-cite">
-            “Some fell on rocky ground … some among thorns, and the thorns grew up and choked it.” <span className="ab-nowrap">Mark 4:5–7</span>
+            “He cleared it of stones and planted it with the choicest vines.” <span className="ab-nowrap">Isaiah 5:2</span>
           </p>
           <div className="ab-patience" role="radiogroup" aria-label="Patience: how forgiving the field is with a hurried hand">
             <span className="ab-patience-label">Patience</span>
@@ -190,9 +242,14 @@ export default function AbideApp() {
 
       {phase === 'intro' && (
         <section className="ab-intro">
-          <p className="ab-eyebrow">{entry === weekWord ? 'This week’s word' : 'Today’s word'}</p>
+          <p className="ab-eyebrow">
+            {goodSoil ? 'Good soil · ' : ''}{entry === weekWord ? 'This week’s word' : 'Today’s word'}
+          </p>
           <h1 className="ab-word">{entry.word}</h1>
           <p className="ab-ref">{entry.ref}</p>
+          {goodSoil && (
+            <p className="ab-good">Cleared without dropping a seed. “Good soil… bears thirty, sixty, a hundredfold.” Mark 4:20</p>
+          )}
           <p className="ab-how">
             Sow it, then stay while it grows. Breathe with it: hold anywhere to breathe in, let go to breathe out. About two minutes.
           </p>
@@ -252,41 +309,36 @@ export default function AbideApp() {
 
       {phase === 'vineyard' && (
         <>
-          <div className="ab-sections">
-            {slots.map((s) => {
-              const grp = groups[s.i];
-              if (!grp) return null;
-              const ripe = ripeness(grp, learned) >= 4;
-              return (
-                <button
-                  key={`${s.key}-${s.i}`}
-                  type="button"
-                  className="ab-section"
-                  style={{ left: s.box.x, top: Math.min(s.box.y, s.box.labelY), width: s.box.w, height: s.box.h + 24 }}
-                  onClick={() => setOpen(s.i)}
-                  aria-label={`${grp.word}, ${grp.ref}, ${grp.days.length} day${grp.days.length === 1 ? '' : 's'}${ripe ? ', ripe' : ''}`}
-                />
-              );
-            })}
+          <div className="ab-views" role="radiogroup" aria-label="Whose vineyard to show">
+            <ViewChip on={view === 'family'} onClick={() => setView('family')}>Family</ViewChip>
+            {rowsWith.map((p) => (
+              <ViewChip key={p.name} on={view === p.name} onClick={() => setView(p.name)} color={p.color}>{p.label}</ViewChip>
+            ))}
+            {together > 0 && <ViewChip on={view === 'together'} onClick={() => setView('together')} gold>Together</ViewChip>}
+          </div>
+          <p className={`ab-grew${grewLine ? ' is-shown' : ''}`} aria-live="polite">Overnight, the vineyard grew.</p>
+          <div className="ab-zoom" role="group" aria-label="Zoom the vineyard">
+            <button type="button" className="ab-zoom-btn" onClick={() => control.current?.zoom(1.5)} aria-label="Closer">+</button>
+            <button type="button" className="ab-zoom-btn" onClick={() => control.current?.zoom(1 / 1.5)} aria-label="Further">−</button>
+            <button type="button" className="ab-zoom-btn" onClick={() => control.current?.home()} aria-label="Back to today">⌂</button>
           </div>
           <section className="ab-foot">
             <p className="ab-summary">
-              {groups.length
-                ? `Your vineyard · ${groups.length} word${groups.length === 1 ? '' : 's'} · ${daysTotal} day${daysTotal === 1 ? '' : 's'} abided`
-                : 'Your vineyard is waiting for its first word.'}
+              {entries.length
+                ? `${vines} vine${vines === 1 ? '' : 's'}${together ? ` · ${together} day${together === 1 ? '' : 's'} together` : ''}${field.wall ? ` · a wall of ${field.wall} stone${field.wall === 1 ? '' : 's'}` : ''}`
+                : 'The vineyard is waiting for its first vine.'}
             </p>
-            <button type="button" className="ab-btn" onClick={() => setPhase(doneToday ? 'intro' : 'ground')}>
-              {doneToday ? 'Abide again' : 'Sow today’s word'}
+            <button type="button" className="ab-btn" onClick={again}>
+              {doneTodayFor(entries, who) ? 'Abide again' : 'Sow today’s word'}
             </button>
           </section>
-          {open >= 0 && groups[open] && (
-            <SectionCard
-              grp={groups[open]}
+          {open && (
+            <VineCard
+              e={open}
               learned={learned}
-              famDays={famDays}
               weekKey={weekWord.key}
               night={night}
-              onClose={() => setOpen(-1)}
+              onClose={() => setOpen(null)}
               onAbide={abideWith}
             />
           )}
@@ -296,19 +348,55 @@ export default function AbideApp() {
   );
 }
 
-// ── A section of the vineyard, opened ─────────────────────────────
-function SectionCard({ grp, learned, famDays, weekKey, night, onClose, onAbide }) {
+// ── Who's abiding ─────────────────────────────────────────────────
+function WhoPicker({ who, setWho }) {
+  const toggle = (name) => {
+    const on = who.includes(name);
+    if (on && who.length === 1) return;   // always someone
+    setWho(on ? who.filter((n) => n !== name) : PEOPLE.map((p) => p.name).filter((n) => n === name || who.includes(n)));
+  };
+  return (
+    <div className="ab-who" role="group" aria-label="Who’s abiding today">
+      <span className="ab-who-label">Who’s here?</span>
+      {PEOPLE.map((p) => {
+        const on = who.includes(p.name);
+        return (
+          <button
+            key={p.name}
+            type="button"
+            aria-pressed={on}
+            className={`ab-who-chip${on ? ' is-on' : ''}`}
+            onClick={() => toggle(p.name)}
+          >
+            <span className="ab-koi" style={{ background: p.color }} aria-hidden="true" />
+            {p.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ViewChip({ on, onClick, color, gold, children }) {
+  return (
+    <button type="button" role="radio" aria-checked={on} className={`ab-view${on ? ' is-on' : ''}`} onClick={onClick}>
+      {color && <span className="ab-koi" style={{ background: color }} aria-hidden="true" />}
+      {gold && <span className="ab-koi is-gold" aria-hidden="true" />}
+      {children}
+    </button>
+  );
+}
+
+// ── A vine, opened ────────────────────────────────────────────────
+function VineCard({ e, learned, weekKey, night, onClose, onAbide }) {
   const ref = useRef(null);
-  const w = wordByKey(grp.key);
-  const ripeOn = learned[grp.key];
-  const fam = familyIn(grp, famDays);
-  const n = grp.days.length;
-  const a = grp.days[0], b = grp.days[n - 1];
-  const span = a === b ? prettyDate(a, { weekday: 'short', day: 'numeric', month: 'short' }) : `${prettyDate(a)} – ${prettyDate(b)}`;
+  const w = wordByKey(e.key);
+  const ripeOn = learned[e.key];
+  const people = e.who.map((n) => personOf(n)).filter(Boolean);
 
   useEffect(() => {
     ref.current?.querySelector('button')?.focus();
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (ev) => { if (ev.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -320,37 +408,38 @@ function SectionCard({ grp, learned, famDays, weekKey, night, onClose, onAbide }
         className={`ab-card${night ? ' is-night' : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label={`${grp.word}, ${grp.ref}`}
-        onClick={(e) => e.stopPropagation()}
+        aria-label={`${e.word}, ${prettyDate(e.date, { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        onClick={(ev) => ev.stopPropagation()}
       >
         <button type="button" className="ab-close" onClick={onClose} aria-label="Close">×</button>
-        <p className="ab-eyebrow">{grp.ref}</p>
-        <h2 className="ab-card-word">{grp.word}</h2>
+        <p className="ab-eyebrow">{prettyDate(e.date, { weekday: 'long', day: 'numeric', month: 'long' })} · {e.ref}</p>
+        <h2 className="ab-card-word">{e.word}</h2>
         {w && (
           <p className="ab-card-verse">
             {w.lines.map((l, k) => <span key={k}>{l} </span>)}
           </p>
         )}
         <ul className="ab-facts">
-          <li><span className="ab-dot is-grape" />Abided {n} day{n === 1 ? '' : 's'} · {span}</li>
+          <li>
+            {people.length
+              ? <><span className="ab-dots">{people.map((p) => <span key={p.name} className="ab-koi" style={{ background: p.color }} />)}</span>
+                {people.length > 1 ? `Together: ${groupLabel(e.who)}` : `${people[0].label}`}</>
+              : <><span className="ab-dot is-family" />The family</>}
+          </li>
           <li>
             <span className={`ab-dot ${ripeOn !== undefined ? 'is-ripe' : 'is-green'}`} />
             {ripeOn !== undefined
               ? `Ripe: learned by heart${ripeOn ? ` on ${prettyDate(ripeOn)}` : ''}`
-              : grp.key === weekKey
+              : e.key === weekKey
                 ? <span>Still green: it ripens when you learn this prayer by heart. <a href="/pray/">Learn it in Pray →</a></span>
                 : <span>Still green: it ripens when you learn this prayer by heart in Pray, the week it comes round.</span>}
           </li>
-          {fam > 0 && <li><span className="ab-dot is-family" />The family prayed on {fam} of these days</li>}
+          {e.soil === 'good' && <li><span className="ab-dot is-family" />Good soil: the ground was cleared without dropping a seed, so it bore more.</li>}
         </ul>
-        {grp.notes.length > 0 && (
+        {e.note && (
           <div className="ab-notes">
             {w && <p className="ab-notes-q">{w.question}</p>}
-            {grp.notes.map((x) => (
-              <p key={x.date} className="ab-noteline">
-                <span>{prettyDate(x.date)}</span> {x.note}
-              </p>
-            ))}
+            <p className="ab-noteline">{e.note}</p>
           </div>
         )}
         {w && (

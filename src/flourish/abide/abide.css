@@ -515,6 +515,131 @@
 .ab-card .ab-btn-primary { width: 100%; }
 
 @keyframes ab-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Who's abiding, and whose vineyard to show ──────────────────── */
+.ab-who, .ab-views {
+  position: absolute;
+  top: calc(62px + env(safe-area-inset-top, 0px));
+  left: 12px; right: 12px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  animation: ab-rise 0.8s ease both;
+}
+.ab-who-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.ab-who-chip, .ab-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--muted);
+  background: var(--btn-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem 0.3rem 0.45rem;
+  min-height: 36px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.ab-who-chip:hover, .ab-view:hover { color: var(--ink); }
+.ab-who-chip.is-on, .ab-view.is-on {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(47, 58, 44, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.is-night .ab-who-chip.is-on, .is-night .ab-view.is-on { background: rgba(255, 255, 255, 0.2); border-color: rgba(255,255,255,0.4); }
+.ab-who-chip:not(.is-on) .ab-koi { opacity: 0.45; }
+.ab-who-chip:focus-visible, .ab-view:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
+.ab-view { padding-left: 0.75rem; }
+.ab-view .ab-koi { margin-left: -0.3rem; }
+.ab-koi {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18), inset -2px -2px 3px rgba(0, 0, 0, 0.15);
+}
+.ab-koi.is-gold { background: radial-gradient(circle at 35% 35%, #fbe3a0, #c98e2e); }
+.ab-dots { display: inline-flex; gap: 3px; transform: translateY(2px); }
+@media (max-width: 520px) {
+  .ab-who-label { display: none; }
+  .ab-who-chip, .ab-view { font-size: 0.78rem; padding: 0.22rem 0.6rem 0.22rem 0.38rem; min-height: 32px; }
+  .ab-views { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .ab-views::-webkit-scrollbar { display: none; }
+}
+/* Leave room for the picker above the field's and the word's text. */
+.is-ground .ab-ground, .is-intro .ab-intro { padding-top: 96px; }
+
+.ab-grew {
+  position: absolute;
+  top: calc(116px + env(safe-area-inset-top, 0px));
+  left: 0; right: 0;
+  margin: 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.1rem, 1rem + 0.6vw, 1.5rem);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.ab-grew.is-shown { opacity: 1; }
+
+.ab-good {
+  margin: 0.8rem 0 0;
+  max-width: 24rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1rem;
+  color: #6b5a1f;
+}
+.is-night .ab-good { color: #f0d890; }
+
+.ab-zoom {
+  position: absolute;
+  right: 14px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ab-zoom-btn {
+  width: 40px; height: 40px;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: #f4ead8;
+  background: rgba(40, 32, 24, 0.45);
+  border: 1px solid rgba(244, 234, 216, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.ab-zoom-btn:hover { background: rgba(40, 32, 24, 0.6); }
+.ab-zoom-btn:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
+.is-vineyard .ab-scene { cursor: grab; }
+/* A soft floor under the footer, so its words read over the vines. */
+.is-vineyard::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 110px;
+  background: linear-gradient(rgba(58, 42, 26, 0), rgba(58, 42, 26, 0.55));
+  pointer-events: none;
+}
+.is-vineyard .ab-scene:active { cursor: grabbing; }
 @keyframes ab-rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
