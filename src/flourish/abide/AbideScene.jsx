@@ -86,6 +86,23 @@ export function skyAt(h, season) {
   return { top, bottom, night };
 }
 
+// Everything a vine will draw, fully grown: stems and tendrils, the
+// tips of its leaves, its blossoms.
+function extentOf(v) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const add = (x, y, r = 0) => {
+    if (x - r < x0) x0 = x - r; if (x + r > x1) x1 = x + r;
+    if (y - r < y0) y0 = y - r; if (y + r > y1) y1 = y + r;
+  };
+  for (const st of v.stems) for (const p of st.pts) add(p[0], p[1], v.base);
+  for (const lf of v.leaves) {
+    const reach = lf.pl + lf.L;
+    add(lf.x + Math.cos(lf.ang) * reach, lf.y + Math.sin(lf.ang) * reach, lf.W * 0.5);
+  }
+  for (const b of v.blossoms) add(b.x, b.y, b.r * 1.4);
+  return { x0, y0, x1, y1 };
+}
+
 // A stem from plain points, fully grown and mature — for the vineyard.
 function still(pts, w0, w1) {
   const st = stem(pts, { w0, w1 });
@@ -107,7 +124,7 @@ function bezier(a, c1, c2, b, n) {
 
 export default function AbideScene({
   phase, entry, entries, hour, season = 'summer', ground, learned, field, who = [], view = 'family',
-  goodSoil = false, revealDays = 0, controlRef,
+  goodSoil = false, revealDays = 0, controlRef, textH = 0, onLayout,
   onNote, patience = 'balanced', onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared,
   onFieldEvent, onTapVine, onReveal,
 }) {
@@ -115,7 +132,7 @@ export default function AbideScene({
   const canvasRef = useRef(null);
   const live = useRef(null);
   live.current = {
-    phase, entries, hour, ground, learned, field, who, view, goodSoil, revealDays, onNote, patience,
+    phase, entries, hour, ground, learned, field, who, view, goodSoil, revealDays, onNote, patience, textH, onLayout,
     onProgress, onBreath, onGrown, onGathered, onClearLeft, onCleared, onFieldEvent, onTapVine, onReveal,
   };
 
@@ -136,6 +153,7 @@ export default function AbideScene({
     const amb = new Ambient({ season, reduced });
 
     let W = 0, H = 0, dpr = 1, soilY = 0, soilH = 0, soilPath = null, edgePath = null;
+    let vineExt = null, sentTop = -1, sentInset = -1, laidTextH = live.current.textH, skyA = 1;
     let vine = null, shoot = null, vineStart = 0, total = 1, crop = null, seedX = 0;
     let vyEntries = null, vyLearned = null, vyField = null, revealed = false;
     let mode = null, rt = 0, sowT = 0, growT = 0, g = 0, rate = 1, gT = 0;
@@ -161,24 +179,60 @@ export default function AbideScene({
       soilH = Math.max(70, Math.min(160, H * 0.16));
       soilY = H - soilH;
 
-      // The word above the verse, the verse above the soil.
-      const textBlock = Math.max(150, Math.min(260, H * 0.26));
-      const top = 74;
-      const box = { x: W * 0.05, y: top, w: W * 0.9, h: Math.max(120, soilY - textBlock - top) };
+      // The word above the verse, the verse above the soil — laid out
+      // together from what is really drawn, so a tendril, leaf or
+      // blossom never reaches into the words. The page measures the
+      // verse block (textH); the vine gets the rest, and the two are
+      // centred as one piece in the sky.
+      const textH = live.current.textH || Math.max(150, Math.min(260, H * 0.26));
+      const top = 74, gap = Math.max(14, Math.min(28, H * 0.025)), side = 10;
+      const room = soilY - 12 - top;
+      const opts = { pace: 0.8, bloom: 'blossom', amount: live.current.goodSoil ? 'some' : 'few' };
       // Good soil (the field cleared without dropping a seed) bears more.
-      vine = buildVine(entry.word, box, { pace: 0.8, bloom: 'blossom', amount: live.current.goodSoil ? 'some' : 'few' });
+      let box = { x: W * 0.05, y: top, w: W * 0.9, h: Math.max(110, room - textH - gap) };
+      vine = buildVine(entry.word, box, opts);
+      let ext = extentOf(vine);
+      // Shrink until everything the vine draws is inside its space.
+      for (let i = 0; i < 4; i++) {
+        const over = Math.max(0, ext.y1 - (box.y + box.h), top - ext.y0);
+        const overX = Math.max(0, side - ext.x0, ext.x1 - (W - side));
+        if (over < 1 && overX < 1) break;
+        const ky = over ? Math.max(0.6, (box.h - over * 2.2) / box.h) : 1;
+        const kx = overX ? Math.max(0.6, (box.w - overX * 2.2) / box.w) : 1;
+        box = { x: box.x + (box.w * (1 - kx)) / 2, y: box.y + (box.h * (1 - ky)) / 2, w: box.w * kx, h: box.h * ky };
+        vine = buildVine(entry.word, box, opts);
+        ext = extentOf(vine);
+      }
+      // Centre vine + verse as one piece (a little above the middle).
+      const used = ext.y1 - ext.y0 + gap + textH;
+      const shift = Math.max(0, (room - used) * 0.42) + (top - ext.y0);
+      if (Math.abs(shift) > 0.5) {
+        box = { ...box, y: box.y + shift };
+        vine = buildVine(entry.word, box, opts);
+        ext = extentOf(vine);
+      }
+      vineExt = ext;
       bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       bctx.clearRect(0, 0, W, H);
 
       // The shoot: from the seed up to where the word begins.
       const first = vine.stems[0];
       const p0 = first.pts[0];
-      seedX = Math.min(p0[0] - 10, Math.max(W * 0.1, p0[0] - W * 0.08));
+      // On a phone the stalk hugs the edge, out of the verse's way.
+      seedX = W < 560 ? 14 : Math.min(p0[0] - 10, Math.max(W * 0.1, p0[0] - W * 0.08));
       const a = [seedX, soilY + 2];
       const pts = bezier(a, [seedX - 10, soilY - (soilY - p0[1]) * 0.55], [p0[0] - (p0[0] - seedX) * 0.2, p0[1] + (soilY - p0[1]) * 0.35], p0, 80);
       shoot = stem(pts, { w0: vine.base * 1.15, w1: first.w0 });
       timeStem(shoot, 0, vine.em * 0.55, vine.em, seeded(entry.word + ' shoot'));
       vineStart = shoot.tEnd * 0.9;
+      // Tell the page where the verse goes: under the vine, and kept
+      // clear of the shoot's stalk on a narrow screen.
+      const verseTop = Math.round(vineExt.y1 + gap);
+      const inset = Math.round(Math.max(16, Math.min(W * 0.22, seedX + vine.base * 1.2 + 8)));
+      if (verseTop !== sentTop || inset !== sentInset) {
+        sentTop = verseTop; sentInset = inset;
+        live.current.onLayout?.({ verseTop, inset });
+      }
       total = vineStart + vine.doneAt;
 
       // Where the finished vine sits, for drawing it back in.
@@ -432,6 +486,9 @@ export default function AbideScene({
       vy.setView(P.view);
       vy.step(dt);
       if (P.phase !== mode) enter(P.phase);
+      // The verse block changed size (fonts loaded, the screen turned):
+      // lay the vine out around it again.
+      if (P.textH !== laidTextH && mode !== 'gather') { laidTextH = P.textH; layout(); }
 
       // Growth: only while you're here, at the pace of breath.
       if (mode === 'sow') {
@@ -497,8 +554,19 @@ export default function AbideScene({
       const h = ((P.hour % 24) + 24) % 24;
       const arc = (u) => [W * (0.08 + 0.84 * u), soilY - Math.sin(Math.PI * u) * (soilY - 90) * 0.92];
       const R = Math.max(18, Math.min(46, W * 0.03));
+      // Far things step back behind the word while it grows: the sun or
+      // moon fades where it would sit inside the letters.
+      // So does it behind the verse.
+      const behind = (x, y) => (mode === 'sow' || mode === 'gather') && vineExt
+        && x > Math.min(vineExt.x0, sentInset) - R && x < Math.max(vineExt.x1, W - sentInset) + R
+        && y > vineExt.y0 - R && y < sentTop + (P.textH || 0) + R;
+      const celestial = (x, y) => {
+        skyA += ((behind(x, y) ? 0.22 : 1) - skyA) * Math.min(1, dt * 1.2);
+        ctx.globalAlpha = skyA;
+      };
       if (h >= 5.8 && h <= 19.6) {
         const [x, y] = arc((h - 5.8) / 13.8);
+        celestial(x, y);
         const glow = ctx.createRadialGradient(x, y, R * 0.2, x, y, R * 3.2);
         glow.addColorStop(0, 'rgba(255,220,150,0.55)');
         glow.addColorStop(1, 'rgba(255,220,150,0)');
@@ -511,6 +579,7 @@ export default function AbideScene({
       } else {
         const hn = h > 19.6 ? h - 19.6 : h + 4.4;
         const [x, y] = arc(hn / 10.2);
+        celestial(x, y);
         const glow = ctx.createRadialGradient(x, y, R * 0.2, x, y, R * 2.6);
         glow.addColorStop(0, 'rgba(240,236,214,0.35)');
         glow.addColorStop(1, 'rgba(240,236,214,0)');
@@ -521,11 +590,13 @@ export default function AbideScene({
         ctx.arc(x, y, R * 0.7, 0, Math.PI * 2);
         ctx.fill();
         // A crescent: the sky's own colour bites one side away.
+        ctx.globalAlpha = 1;
         ctx.fillStyle = rgb(mixc(sky.top, sky.bottom, clamp01(y / soilY)));
         ctx.beginPath();
         ctx.arc(x + R * 0.32, y - R * 0.12, R * 0.62, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.globalAlpha = 1;
 
       // Clouds, and now and then a bird, in the sky.
       amb.drawSky(ctx, sky.night);

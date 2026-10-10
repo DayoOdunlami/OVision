@@ -10,7 +10,6 @@
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Source Sans 3', system-ui, sans-serif;
   --soil: clamp(70px, 16dvh, 160px);
-  --text-block: clamp(150px, 26dvh, 260px);
 
   position: fixed;
   inset: 0;
@@ -149,21 +148,33 @@
 .ab-btn-primary:hover { background: #45692a; }
 .ab-btn:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
 
-/* The verse, a line at a time, just above the soil. */
+/* The verse, a line at a time, under the vine. The scene measures this
+   block and lays the vine out above it, then sets its top (inline). It
+   is always in the page, hidden until sowing, so it can be measured. */
 .ab-verse {
   position: absolute;
   left: 16px; right: 16px;
   bottom: calc(var(--soil) + 10px);
-  height: var(--text-block);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.15rem;
   text-align: center;
   pointer-events: none;
   z-index: 1;
 }
+.ab-verse.is-off { visibility: hidden; }
+/* Breath guide or answer: one slot, the same height either way, so
+   nothing moves when the vine has finished. */
+.ab-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 5.6rem;
+}
+@media (max-width: 560px) { .ab-slot { min-height: 7.6rem; } }
 .ab-line, .ab-verse-ref, .ab-question, .ab-breath {
   display: block;
   opacity: 0;
@@ -328,6 +339,7 @@
   cursor: pointer;
 }
 .ab-link:hover { color: var(--ink); }
+.ab-quiet { margin-top: 0; font-size: 0.74rem; text-decoration: none; opacity: 0.75; }
 .ab-link:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; border-radius: 999px; }
 
 /* ── 3 · Breath ──────────────────────────────────────────────────
@@ -647,4 +659,14 @@
 @media (prefers-reduced-motion: reduce) {
   .ab-intro, .ab-gather, .ab-foot, .ab-ground, .ab-respond, .ab-card, .ab-scrim { animation: none; }
   .ab-orb { transition-duration: 0.01s; }
+}
+
+/* A phone on its side: the verse must still fit above the soil. */
+@media (max-height: 520px) {
+  .ab-line { font-size: clamp(1rem, 0.8rem + 1vw, 1.3rem); }
+  .ab-question { margin-top: 0.3rem; font-size: 0.9rem; }
+  .ab-slot { min-height: 3.4rem; }
+  .ab-respond { margin-top: 0.4rem; flex-wrap: nowrap; }
+  .ab-note, .ab-btn { min-height: 40px; }
+  .ab-tip { display: none; }
 }

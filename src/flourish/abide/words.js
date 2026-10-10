@@ -4,52 +4,53 @@
 // prayer's reference ("Psalm 1", "John 15"), which the pond bridge
 // already exposes. Verse lines are short excerpts, mostly WEB (public
 // domain), revealed a line at a time as the vine grows; the question
-// appears halfway.
+// appears halfway. Questions are "I wonder…" (as in Godly Play): there
+// is no right answer, and staying quiet is an answer too.
 // ═══════════════════════════════════════════════════════════════════
 
 export const WORDS = [
   { key: 'Ephesians 1', word: 'See', ref: 'Ephesians 1:18',
     lines: ['Having the eyes of your hearts enlightened,', 'that you may know', 'the hope of his calling.'],
-    question: 'What would you like to see clearly today?' },
+    question: 'I wonder what you would like to see clearly today?' },
   { key: 'Ephesians 3', word: 'Rooted', ref: 'Ephesians 3:17',
     lines: ['That Christ may dwell in your hearts', 'through faith,', 'being rooted and grounded in love.'],
-    question: 'Where do you feel most rooted right now?' },
+    question: 'I wonder where you feel most rooted?' },
   { key: 'Philippians 1', word: 'Discern', ref: 'Philippians 1:9',
     lines: ['That your love may abound', 'yet more and more', 'in knowledge and all discernment.'],
-    question: 'Where do you need wise love today?' },
+    question: 'I wonder where you need wise love today?' },
   { key: 'Colossians 1', word: 'Fruitful', ref: 'Colossians 1:10',
     lines: ['Bearing fruit in every good work,', 'and increasing', 'in the knowledge of God.'],
-    question: 'What good work is in front of you today?' },
+    question: 'I wonder what good work is waiting for you today?' },
   { key: 'Romans 15', word: 'Hope', ref: 'Romans 15:13',
     lines: ['May the God of hope fill you', 'with all joy and peace in believing,', 'that you may abound in hope.'],
-    question: 'Where could joy and peace fill in today?' },
+    question: 'I wonder where joy and peace could fill you today?' },
   { key: '1 Thessalonians 3', word: 'Abound', ref: '1 Thessalonians 3:12',
     lines: ['May the Lord make you', 'increase and abound in love', 'toward one another, and toward all.'],
-    question: 'Who is just beyond your front door today?' },
+    question: 'I wonder who is just beyond your front door?' },
   { key: 'Hebrews 13', word: 'Equipped', ref: 'Hebrews 13:21',
     lines: ['Make you complete in every good work', 'to do his will,', 'working in you what is pleasing in his sight.'],
-    question: 'What are you being equipped for today?' },
+    question: 'I wonder what God is making you ready for?' },
   { key: 'Psalm 139', word: 'Search', ref: 'Psalm 139:23',
     lines: ['Search me, God,', 'and know my heart.', 'Try me, and know my thoughts.'],
-    question: 'What is really on your heart today?' },
+    question: 'I wonder what is really on your heart today?' },
   { key: 'John 17', word: 'Kept', ref: 'John 17:15',
     lines: ['I pray not that you would', 'take them from the world,', 'but that you would keep them from the evil one.'],
-    question: 'Who needs keeping today?' },
+    question: 'I wonder who needs keeping safe today?' },
   { key: 'John 15', word: 'Abide', ref: 'John 15:4–5',
     lines: ['Abide in me, and I in you.', 'I am the vine; you are the branches.', 'Apart from me you can do nothing.'],
-    question: 'Where do you need to abide today?' },
+    question: 'I wonder where you most need to stay close today?' },
   { key: 'Psalm 1', word: 'Planted', ref: 'Psalm 1:3',
     lines: ['He will be like a tree', 'planted by the streams of water,', 'that brings forth its fruit in its season.'],
-    question: 'What streams are you planted by?' },
+    question: 'I wonder what streams you are planted by?' },
   { key: 'Psalm 63', word: 'Thirst', ref: 'Psalm 63:1',
     lines: ['God, you are my God.', 'I will earnestly seek you.', 'My soul thirsts for you.'],
-    question: 'What are you thirsty for?' },
+    question: 'I wonder what you are thirsty for?' },
   { key: 'Psalm 121', word: 'Keep', ref: 'Psalm 121:7',
     lines: ['The Lord will keep you', 'from all evil.', 'He will keep your soul.'],
-    question: 'What do you need to hand over today?' },
+    question: 'I wonder what you would like to hand over to God today?' },
   { key: 'Luke 2', word: 'Grow', ref: 'Luke 2:52',
     lines: ['And Jesus increased', 'in wisdom and stature,', 'and in favour with God and people.'],
-    question: 'Where would you like to grow?' },
+    question: 'I wonder where you would like to grow?' },
 ];
 
 export const DEFAULT_KEY = 'John 15';

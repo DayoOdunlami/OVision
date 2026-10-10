@@ -99,6 +99,21 @@ export default function AbideApp() {
   const [grewLine, setGrewLine] = useState(false);
   const [hour, setHour] = useState(hourNow);
   const control = useRef(null);
+  // The verse block is measured, and the scene lays the vine out above
+  // it; the scene says where the verse begins.
+  const verseRef = useRef(null);
+  const [textH, setTextH] = useState(0);
+  const [verseAt, setVerseAt] = useState(null);
+  useEffect(() => {
+    const el = verseRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setTextH(Math.ceil(el.scrollHeight)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  // A closing line after the gather: the point of the morning, said once.
+  const [sendLine, setSendLine] = useState('');
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setHour(hourNow()), 60000);
@@ -126,6 +141,8 @@ export default function AbideApp() {
   };
   const gather = () => {
     setEntries(gatherToday(entry, note, who, { soil: goodSoil ? 'good' : '' }));
+    setSendLine(entry.word);
+    setTimeout(() => setSendLine(''), 9000);
     setPhase('gather');
   };
   const again = () => {
@@ -173,6 +190,8 @@ export default function AbideApp() {
         goodSoil={goodSoil}
         revealDays={revealDays}
         controlRef={control}
+        textH={textH}
+        onLayout={setVerseAt}
         onProgress={setProgress}
         onBreath={(b, led) => setBreath({ b, led })}
         onGrown={() => setGrown(true)}
@@ -210,7 +229,7 @@ export default function AbideApp() {
           <p className="ab-eyebrow">{awayLine}</p>
           <h1 className="ab-title">Prepare the ground</h1>
           <p className="ab-how">
-            Carry the stones to the wall, one at a time. Then lift each thorn out slowly and lay it in the compost basket.
+            Carry each stone to the wall. Lift each thorn out slowly, into the basket.
           </p>
           <p className={`ab-left${fieldLine ? ' is-note' : ''}`}>
             {fieldLine || (left > 0 ? `${left} left` : 'Ready')}
@@ -218,22 +237,8 @@ export default function AbideApp() {
           <p className="ab-cite">
             “He cleared it of stones and planted it with the choicest vines.” <span className="ab-nowrap">Isaiah 5:2</span>
           </p>
-          <div className="ab-patience" role="radiogroup" aria-label="Patience: how forgiving the field is with a hurried hand">
-            <span className="ab-patience-label">Patience</span>
-            {PATIENCE_OPTS.map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                role="radio"
-                aria-checked={patience === k}
-                className={`ab-patience-opt${patience === k ? ' is-on' : ''}`}
-                onClick={() => setPatience(k)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
           {left > 0 && <button type="button" className="ab-link" onClick={() => setPhase('intro')}>Skip</button>}
+          <Patience patience={patience} setPatience={setPatience} />
         </section>
       )}
 
@@ -248,31 +253,41 @@ export default function AbideApp() {
             <p className="ab-good">Cleared without dropping a seed. “Good soil… bears thirty, sixty, a hundredfold.” Mark 4:20</p>
           )}
           <p className="ab-how">
-            Sow it, then stay while it grows. Breathe with it: hold anywhere to breathe in, let go to breathe out. About two minutes.
+            Sow it, then stay with it while it grows. About two minutes.
           </p>
           <button type="button" className="ab-btn ab-btn-primary" onClick={sow}>Sow</button>
-          <label className="ab-choose">
-            <span>or choose another</span>
-            <select
-              value={entry.key}
-              onChange={(e) => setEntry(WORDS.find((w) => w.key === e.target.value) || weekWord)}
-            >
-              {WORDS.map((w) => (
-                <option key={w.key} value={w.key}>{w.word} — {w.ref}</option>
-              ))}
-            </select>
-          </label>
+          {choosing ? (
+            <label className="ab-choose">
+              <span>Choose a word</span>
+              <select
+                value={entry.key}
+                onChange={(e) => setEntry(WORDS.find((w) => w.key === e.target.value) || weekWord)}
+              >
+                {WORDS.map((w) => (
+                  <option key={w.key} value={w.key}>{w.word} — {w.ref}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <button type="button" className="ab-link" onClick={() => setChoosing(true)}>Another word</button>
+          )}
         </section>
       )}
 
-      {phase === 'sow' && (
-        <section className="ab-verse" aria-live="polite">
+      <section
+        ref={verseRef}
+        className={`ab-verse${phase === 'sow' ? '' : ' is-off'}`}
+        style={verseAt ? { top: verseAt.verseTop, bottom: 'auto', left: verseAt.inset, right: verseAt.inset } : undefined}
+        aria-live="polite"
+        aria-hidden={phase !== 'sow'}
+      >
           {lines.map((l, k) => (
             <span key={k} className={`ab-line${k < shownLines ? ' is-shown' : ''}`}>{l}</span>
           ))}
           <span className={`ab-verse-ref${shownLines === lines.length ? ' is-shown' : ''}`}>{entry.ref}</span>
           <span className={`ab-question${showQuestion ? ' is-shown' : ''}`}>{entry.question}</span>
-          {grown ? (
+          <span className="ab-slot">
+          {grown && phase === 'sow' ? (
             <form
               className="ab-respond"
               onSubmit={(e) => { e.preventDefault(); gather(); }}
@@ -283,7 +298,7 @@ export default function AbideApp() {
                 value={note}
                 maxLength={160}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="A line in answer (optional)"
+                placeholder="Write a line, or just be still"
                 aria-label={`Your answer: ${entry.question}`}
                 enterKeyHint="done"
               />
@@ -301,8 +316,8 @@ export default function AbideApp() {
               </span>
             </span>
           )}
-        </section>
-      )}
+          </span>
+      </section>
 
       {phase === 'vineyard' && (
         <>
@@ -313,7 +328,9 @@ export default function AbideApp() {
             ))}
             {together > 0 && <ViewChip on={view === 'together'} onClick={() => setView('together')} gold>Together</ViewChip>}
           </div>
-          <p className={`ab-grew${grewLine ? ' is-shown' : ''}`} aria-live="polite">Overnight, the vineyard grew.</p>
+          <p className={`ab-grew${grewLine || sendLine ? ' is-shown' : ''}`} aria-live="polite">
+            {sendLine ? <>Carry <em>{sendLine}</em> with you today.</> : 'Overnight, the vineyard grew.'}
+          </p>
           <div className="ab-zoom" role="group" aria-label="Zoom the vineyard">
             <button type="button" className="ab-zoom-btn" onClick={() => control.current?.zoom(1.5)} aria-label="Closer">+</button>
             <button type="button" className="ab-zoom-btn" onClick={() => control.current?.zoom(1 / 1.5)} aria-label="Further">−</button>
@@ -341,6 +358,36 @@ export default function AbideApp() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// ── Patience: a setting for grown-ups, out of the children's way ──
+function Patience({ patience, setPatience }) {
+  const [open, setOpen] = useState(false);
+  const label = PATIENCE_OPTS.find(([k]) => k === patience)?.[1];
+  if (!open) {
+    return (
+      <button type="button" className="ab-link ab-quiet" onClick={() => setOpen(true)} aria-expanded="false">
+        Patience · {label}
+      </button>
+    );
+  }
+  return (
+    <div className="ab-patience" role="radiogroup" aria-label="Patience: how forgiving the field is with a hurried hand">
+      <span className="ab-patience-label">Patience</span>
+      {PATIENCE_OPTS.map(([k, l]) => (
+        <button
+          key={k}
+          type="button"
+          role="radio"
+          aria-checked={patience === k}
+          className={`ab-patience-opt${patience === k ? ' is-on' : ''}`}
+          onClick={() => { setPatience(k); setOpen(false); }}
+        >
+          {l}
+        </button>
+      ))}
     </div>
   );
 }

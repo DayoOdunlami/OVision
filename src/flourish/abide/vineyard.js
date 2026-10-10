@@ -306,6 +306,16 @@ export class Vineyard {
     if (!ghost) this.drawLand(ctx, tint);
     this.hits = [];
     const entries = this.data.entries;
+    // Rows still to plant, back to the hills: bare wires and posts, so a
+    // young vineyard reads as room to grow, not an empty field.
+    if (!ghost) this.spareRows(ctx, tint);
+    // Each row's name pill, worked out first so the vines' word tags can
+    // keep out from under them.
+    const pills = this.rows.map((row, r) => {
+      const { s, y } = this.rowAt(r);
+      return s > 0.18 ? this.pillRect(ctx, row, this.sx(30, s) - 14 * s, y - WIRE * s + 6 * s, s) : null;
+    });
+    const underPill = (x, y, w, h) => pills.some((p) => p && x < p.x + p.w + 4 && x + w > p.x - 4 && y < p.y + p.h && y + h > p.y);
     // Back rows first.
     for (let r = this.rows.length - 1; r >= 0; r--) {
       const row = this.rows[r];
@@ -360,7 +370,7 @@ export class Vineyard {
           ctx.closePath(); ctx.fill();
         }
         // Its word, on a tag, when close enough to read.
-        if (!ghost && s > 0.62) this.tag(ctx, e.word, x, y + 9 * s, s, night, lit);
+        if (!ghost && s > 0.62 && !underPill(x - 40 * s, y + 9 * s, 80 * s, 18 * s)) this.tag(ctx, e.word, x, y + 9 * s, s, night, lit);
         this.hits.push({ x: x - 46 * s, y: y - 100 * s, w: 92 * s, h: 112 * s, e, row: row.key, r });
       }
       ctx.globalAlpha = alpha;
@@ -446,6 +456,39 @@ export class Vineyard {
     ctx.textBaseline = 'top';
     ctx.fillText(word, x, y + 3);
     ctx.restore();
+  }
+
+  // Where a row's name pill sits (as drawn by rowLabel).
+  pillRect(ctx, row, x, y, s) {
+    const fs = clamp(13 * s, 10, 15);
+    ctx.save();
+    ctx.font = `600 ${fs}px "Source Sans 3", system-ui, sans-serif`;
+    const tw = ctx.measureText(row.label).width;
+    ctx.restore();
+    const pad = fs * 0.55, dot = fs * 0.42;
+    const w = tw + dot * 2 + pad * 3, h = fs + pad * 1.2;
+    const right = Math.max(x, 12 + w);
+    return { x: right - w, y: y - h / 2, w, h };
+  }
+
+  spareRows(ctx, tint) {
+    const x0w = 30, x1w = this.xOf(this.today) + DX * 1.5;
+    let lastY = Infinity;
+    for (let r = this.rows.length; r < this.rows.length + 24; r++) {
+      const { s, y } = this.rowAt(r);
+      if (y < this.horizon + 10 || lastY - y < 5 || s < 0.05) break;
+      lastY = y;
+      const k = clamp01((y - this.horizon) / Math.max(1, this.front - this.horizon));
+      ctx.save();
+      ctx.globalAlpha *= 0.2 + 0.35 * k;
+      const x0 = this.sx(x0w, s), x1 = this.sx(x1w, s), wy = y - WIRE * s;
+      ctx.strokeStyle = `rgba(${tint([110, 100, 86]).join(',')},0.8)`;
+      ctx.lineWidth = Math.max(0.5, 1.1 * s);
+      ctx.beginPath(); ctx.moveTo(x0, wy); ctx.lineTo(x1, wy); ctx.stroke();
+      for (let d = 0; d <= this.days + 1; d += 7) this.post(ctx, this.sx(70 + d * DX - DX / 2, s), y, s, tint, true);
+      this.post(ctx, x1, y, s, tint, true);
+      ctx.restore();
+    }
   }
 
   rowLabel(ctx, row, x, y, s, night, dim) {
