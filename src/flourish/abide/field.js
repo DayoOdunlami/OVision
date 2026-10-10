@@ -519,7 +519,7 @@ export class Field {
     const g = w.grow;
     const stretch = 1 + Math.max(0, w.pull) * 0.28;
     const h = w.stalkH * g * stretch;
-    const a = w.rot + w.lean * 0.4 + (w.free ? 0 : Math.sin(this.t * 1.3 + w.phase) * 0.05);
+    const a = w.rot + w.lean * 0.4 + (w.free ? 0 : (w.windSway != null ? w.windSway : Math.sin(this.t * 1.3 + w.phase) * 0.05) * (1 - Math.max(0, w.pull)));
     const base = { x: w.x, y: w.y - (w.free ? 0 : Math.max(0, w.pull) * 6 * w.s) };
     return { x: base.x + Math.sin(a) * h, y: base.y - Math.cos(a) * h, base, a, h };
   }
@@ -852,6 +852,8 @@ export class Field {
 
     this.labels = [];
     const drawWeed = (w) => {
+      // In the one wind, like the grass around it.
+      if (this.wind) { w.windSway = this.wind.sway(w.x, 0.12, w.phase); w.windAt = this.wind.at(w.x); }
       const g = w.grow;
       ctx.save();
       ctx.globalAlpha = w.a;

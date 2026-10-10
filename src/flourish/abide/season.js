@@ -77,7 +77,10 @@ export class SeasonAir {
     };
   }
 
-  step(dt, t) {
+  step(dt, t, wind) {
+    // Carried by the one wind: faster in a gust, nearly still in a lull.
+    const d = wind ? wind.drift() : 1;
+    dt *= 0.4 + 0.6 * d;
     for (const p of this.parts) {
       if (this.season === 'summer') {
         p.x += (p.vx + Math.sin(t * 0.7 + p.phase) * 8) * dt;

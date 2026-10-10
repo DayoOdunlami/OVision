@@ -233,7 +233,10 @@ export function drawThorn(ctx, w, t, night) {
   const out = w.free;
   const pull = Math.max(0, w.pull);
   const stretch = 1 + pull * 0.28;
-  const breeze = out ? 0 : Math.sin(t * 1.3 + w.phase) * 0.05 * (1 - pull);
+  // The one wind (set by the field from wind.js); a private sine only if
+  // there's no wind to hand.
+  const breeze = out ? 0 : (w.windSway != null ? w.windSway : Math.sin(t * 1.3 + w.phase) * 0.05) * (1 - pull);
+  const gusty = w.windAt != null ? 0.4 + w.windAt * 1.4 : 1;
   const s = w.s;
 
   // Resting on the soil: a soft contact shadow, and as the roots loosen
@@ -295,7 +298,7 @@ export function drawThorn(ctx, w, t, night) {
     // Back leaves first (the ones lying flatter), so the rosette has depth.
     const order = [...T.leaves].sort((a, b) => Math.abs(b.ang + Math.PI / 2) - Math.abs(a.ang + Math.PI / 2));
     for (const lf of order) {
-      const sway = out ? 0 : Math.sin(t * 1.1 + lf.tone * 9) * 0.035;
+      const sway = out ? 0 : Math.sin(t * 1.1 + lf.tone * 9) * 0.03 * gusty;
       ctx.save();
       ctx.rotate(lf.ang + Math.PI / 2 + breeze * 0.6 + lf.bend * 0.3 + sway);
       ctx.rotate(-Math.PI / 2);
@@ -304,7 +307,7 @@ export function drawThorn(ctx, w, t, night) {
     }
   } else if (T.type === 'foxtail') {
     for (const lf of T.leaves) {
-      const sway = out ? 0 : Math.sin(t * 1.4 + lf.tone * 9) * 0.05;
+      const sway = out ? 0 : Math.sin(t * 1.4 + lf.tone * 9) * 0.04 * gusty;
       ctx.save();
       ctx.rotate(lf.ang + breeze + sway);
       blade(ctx, lf.len, lf.wid, lf.droop, lift([88, 132, 58], (lf.tone - 0.5) * 34), night);

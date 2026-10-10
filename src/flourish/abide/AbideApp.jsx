@@ -67,13 +67,10 @@ export default function AbideApp() {
   const setWho = (names) => { setWhoRaw(names); writeGroup(names); };
   const [field, setField] = useState(readField);
   // How many days since the vineyard was last seen: what grew overnight.
-  const revealDays = useMemo(() => {
-    const seen = field.seen;
-    const today = todayIso();
-    const d = seen ? Math.max(0, daysBetween(seen, today)) : 0;
-    addToField({ seen: today });
-    return d;
-  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  // (Read before it's written: the write happens after mounting, so a
+  // render run twice can't see today's date and miss the reveal.)
+  const [revealDays] = useState(() => (field.seen ? Math.max(0, daysBetween(field.seen, todayIso())) : 0));
+  useEffect(() => { addToField({ seen: todayIso() }); }, []);
   const [ground, setGround] = useState(() => ({ ...groundFor(entries, who), seed: todayIso() + who.join('') }));
   const doneToday = doneTodayFor(entries, who);
   const [phase, setPhase] = useState(doneToday ? 'vineyard' : 'ground');

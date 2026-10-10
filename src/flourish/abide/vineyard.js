@@ -144,8 +144,9 @@ function vineLeaf(x, px, py, s, rot, col) {
 }
 
 export class Vineyard {
-  constructor({ season = 'summer', onTap, onReveal } = {}) {
+  constructor({ season = 'summer', onTap, onReveal, wind } = {}) {
     this.season = season;
+    this.wind = wind || null;
     this.onTap = onTap || (() => {});
     this.onReveal = onReveal || (() => {});
     this.view = 'family';
@@ -201,6 +202,10 @@ export class Vineyard {
     if (!(daysSince > 0)) return;
     this.revealDays = Math.min(6, daysSince);
     this.reveal = 0;
+    // A slow push-in while it grows: the camera says "look".
+    const z = this.zoom;
+    this.anim = { t: 0, dur: 3.2, z0: z * 0.8, z1: z, x0: this.camX, x1: this.camX };
+    this.zoom = z * 0.8;
   }
 
   xOf(date) { return 70 + daysBetween(this.d0, date) * DX; }
@@ -276,7 +281,7 @@ export class Vineyard {
     }
     if (this.anim) {
       const a = this.anim;
-      a.t = Math.min(1, a.t + dt / 0.35);
+      a.t = Math.min(1, a.t + dt / (a.dur || 0.35));
       const k = ease(a.t);
       this.zoom = a.z0 + (a.z1 - a.z0) * k;
       this.camX = a.x0 + (a.x1 - a.x0) * k;
@@ -336,7 +341,17 @@ export class Vineyard {
         const spr = vineSprite(g, 1 + (e.soil === 'good' ? 1 : 0) + (g > 0.85 ? 1 : 0), ripe, this.season, this.dpr);
         ctx.globalAlpha = alpha * lit;
         this.post(ctx, x, y, s * 0.85, tint, false);
-        ctx.drawImage(spr.c, x - spr.ox * s, y - spr.oy * s, spr.w * s, spr.h * s);
+        // Leaning a little in the one wind, from the root.
+        const lean = this.wind ? this.wind.sway(x, 0.05, hash(e.date + row.key)) : 0;
+        if (lean) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.transform(1, 0, -lean, 1, 0, 0);
+          ctx.drawImage(spr.c, -spr.ox * s, -spr.oy * s, spr.w * s, spr.h * s);
+          ctx.restore();
+        } else {
+          ctx.drawImage(spr.c, x - spr.ox * s, y - spr.oy * s, spr.w * s, spr.h * s);
+        }
         // Together: a gold ribbon on the stake.
         if (e.who.length > 1) {
           ctx.fillStyle = `rgba(222,178,74,${0.95})`;

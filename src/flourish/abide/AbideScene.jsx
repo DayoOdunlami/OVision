@@ -3,6 +3,8 @@ import { buildVine, grownLength, stem, timeStem, seeded } from '../lib/vine.js';
 import { drawStem, bakeStem, drawLeaf, drawBloom } from '../lib/draw.js';
 import { Field } from './field.js';
 import { Vineyard } from './vineyard.js';
+import { Wind } from './wind.js';
+import { Ambient } from './ambient.js';
 import { todayIso } from './words.js';
 import { seasonLeaves, SeasonAir } from './season.js';
 
@@ -128,6 +130,10 @@ export default function AbideScene({
     const rand0 = seeded(entry.word + ' sky');
     const stars = Array.from({ length: 70 }, () => [rand0(), rand0() * 0.62, 0.4 + rand0() * 1.1, rand0() * 6]);
     const air = new SeasonAir(season);
+    // One wind for everything that moves on its own; the quiet life of
+    // the place (grass, clouds, a rare bird). See abide-direction.
+    const wind = new Wind({ reduced });
+    const amb = new Ambient({ season, reduced });
 
     let W = 0, H = 0, dpr = 1, soilY = 0, soilH = 0, soilPath = null, edgePath = null;
     let vine = null, shoot = null, vineStart = 0, total = 1, crop = null, seedX = 0;
@@ -221,12 +227,14 @@ export default function AbideScene({
         }
       }
       air.resize(W, soilY);
+      amb.resize(W, soilY, edge);
       vy.resize(W, H, soilY);
       vyEntries = null;   // and give it its data again
     };
 
     // ── Vineyard ────────────────────────────────────────────────────
     const vy = new Vineyard({
+      wind,
       season,
       onTap: (e, row) => live.current.onTapVine?.(e, row),
       onReveal: (on) => live.current.onReveal?.(on),
@@ -263,8 +271,8 @@ export default function AbideScene({
           const p = (tv - lf.t0) / lf.dur;
           if (p <= 0) continue;
           const settle = reduced ? 0 : clamp01(p - 1);
-          const gust = Math.pow(0.5 + 0.5 * Math.sin(rt * 0.33 - (lf.x / vine.em) * 0.8), 3);
-          const sway = settle * (0.045 * Math.sin(rt * 1.2 + lf.phase) + 0.08 * gust * Math.sin(rt * 2.3 + lf.phase * 1.3));
+          // In the one wind (which, while abiding, is the breath).
+          const sway = settle * wind.sway(lf.x, 0.22, lf.phase);
           drawLeaf(c, lf, p, sway, vine.base, tv);
         }
         for (const b of vine.blossoms) drawBloom(c, b, (tv - b.t0) / 3, reduced ? 0 : rt);
@@ -457,7 +465,12 @@ export default function AbideScene({
           if (clearedAt >= 0 && !clearedSent && rt - clearedAt > 0.9) { clearedSent = true; P.onCleared?.(grd.result()); }
         }
       }
-      if (!reduced) air.step(dt, rt);
+      // The verse is read in stillness; the field's work is a little
+      // quieter than the open moments.
+      const reading = mode === 'sow' && sowT >= GROW_AT;
+      wind.step(dt, { calm: reading ? 0.2 : mode === 'ground' ? 0.75 : 1, breath: mode === 'sow' ? breath : '' });
+      amb.step(dt, wind, { mode, quiet: reading });
+      if (!reduced) air.step(dt, rt, wind);
 
       const sky = skyAt(P.hour, season);
       const wantVy = mode === 'vineyard' ? 1 : mode === 'intro' ? 0 : mode === 'ground' ? 0 : mode === 'gather' ? smooth(0.15, 0.7, gT / GATHER_S) : 0;
@@ -514,6 +527,9 @@ export default function AbideScene({
         ctx.fill();
       }
 
+      // Clouds, and now and then a bird, in the sky.
+      amb.drawSky(ctx, sky.night);
+
       // The vineyard: its own hillside when you're in it; a faint ghost
       // of its rows behind the field otherwise.
       const inVy = mode === 'vineyard' || mode === 'gather';
@@ -541,7 +557,8 @@ export default function AbideScene({
           ctx.fillStyle = `rgba(52,30,12,${0.3 * rich})`;
           ctx.fill(soilPath);
         }
-        if (grd) grd.draw(ctx, sky.night, reduced);
+        amb.drawGrass(ctx, wind, sky.night);
+        if (grd) { grd.wind = wind; grd.draw(ctx, sky.night, reduced); }
         ctx.restore();
       }
 
@@ -596,7 +613,13 @@ export default function AbideScene({
       }
 
       // The season's air, over everything but the words.
-      if (!reduced) air.draw(ctx, rt, sky.night);
+      // The season's air thins while the verse is read.
+      if (!reduced) {
+        ctx.save();
+        ctx.globalAlpha = 0.15 + 0.85 * wind.calm;
+        air.draw(ctx, rt, sky.night);
+        ctx.restore();
+      }
     };
 
     layout();
