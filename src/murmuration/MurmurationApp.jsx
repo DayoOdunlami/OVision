@@ -21,7 +21,7 @@ import { hourNow, lightAt, paintSky } from './sky.js';
 const OPT_KEY = 'mm.options';
 const DEFAULTS = {
   words: 'board', writing: 'written', almost: true, pace: 'patient', touch: 'scatter',
-  verse: true, lit: true, breathe: false, ink: false, clock: true, lettering: 'sans',
+  verse: true, lit: true, breathe: false, ink: false, clock: true, lettering: 'sans', guide: true,
 };
 const readOpts = () => {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(OPT_KEY) || '{}') }; } catch { return { ...DEFAULTS }; }
@@ -62,6 +62,7 @@ const lerp = (a, b, k) => a + (b - a) * k;
 export default function MurmurationApp() {
   const bgRef = useRef(null);
   const glRef = useRef(null);
+  const guideRef = useRef(null);
   const [opts, setOptsRaw] = useState(readOpts);
   const optsRef = useRef(opts);
   optsRef.current = opts;
@@ -245,11 +246,11 @@ export default function MurmurationApp() {
     const gather = (called = false) => {
       const o = optsRef.current;
       if (o.words === 'none' || !words.length || !fontReady) { S.next = S.t + 4; return; }
-      const word = pickWord(words, last, o.words);
+      const word = pickWord(words, last, o.words, portrait);
       last = word;
       count++;
       S.tease = !called && o.almost && count > 2 && Math.random() < 0.25;
-      const P = Math.round(N * (S.tease ? 0.5 : 0.82));
+      const P = Math.round(N * (S.tease ? 0.5 : 0.92));
       // Big enough to read across a room, never edge to edge.
       const maxW = V * (portrait ? 0.88 : 0.74), maxH = Math.min(Hv * 0.26, V * 0.22);
       const pts = sampleWord(word.text, P, maxW, maxH, o.lettering);
@@ -271,6 +272,7 @@ export default function MurmurationApp() {
       targetTex.needsUpdate = true;
       S.maxDelay = spread + 0.8;
       S.word = word;
+      S.guide = pts.guide;
       S.phase = 'gather';
       S.formT = 0;
       S.releaseT = -1;
@@ -313,6 +315,35 @@ export default function MurmurationApp() {
     document.addEventListener('pointerleave', onLeave);
     window.addEventListener('blur', onLeave);
 
+    // ── The guide: the word's letters, faint in the sky under the birds,
+    // there only once they've arrived, so the eye can find the word. ──
+    const gc = guideRef.current, gx = gc.getContext('2d');
+    let guideA = 0, guideFor = null, tinted = null;
+    const drawGuide = (L) => {
+      const W = innerWidth, H = innerHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (gc.width !== Math.round(W * dpr) || gc.height !== Math.round(H * dpr)) { gc.width = Math.round(W * dpr); gc.height = Math.round(H * dpr); }
+      gx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      gx.clearRect(0, 0, W, H);
+      const g = S.guide;
+      if (!g || guideA < 0.003) return;
+      if (guideFor !== g) {
+        // The letters in the birds' own colour, once per word.
+        guideFor = g;
+        tinted = document.createElement('canvas');
+        tinted.width = g.canvas.width; tinted.height = g.canvas.height;
+        const t = tinted.getContext('2d');
+        t.drawImage(g.canvas, 0, 0);
+        t.globalCompositeOperation = 'source-in';
+        t.fillStyle = `rgb(${L.birds.map((v) => v | 0).join(',')})`;
+        t.fillRect(0, 0, tinted.width, tinted.height);
+      }
+      const cY = Hv * 0.07;
+      const x0 = ((-g.cx * g.k) / V + 0.5) * W;
+      const y0 = (0.5 - (g.cy * g.k + cY) / Hv) * H;
+      gx.globalAlpha = guideA * (L.night ? 0.12 : 0.16);
+      gx.drawImage(tinted, x0, y0, (g.canvas.width * g.k / V) * W, (g.canvas.height * g.k / Hv) * H);
+    };
+
     // ── Each frame ────────────────────────────────────────────────
     let lastT = performance.now(), raf = 0;
     const tick = () => {
@@ -329,7 +360,9 @@ export default function MurmurationApp() {
       birdUniforms.birdColor.value.setRGB(L.birds[0] / 255, L.birds[1] / 255, L.birds[2] / 255, THREE.SRGBColorSpace);
       birdUniforms.hazeColor.value.setRGB(L.mid[0] / 255, L.mid[1] / 255, L.mid[2] / 255, THREE.SRGBColorSpace);
       birdUniforms.litColor.value.setRGB(L.lit[0] / 255, L.lit[1] / 255, L.lit[2] / 255, THREE.SRGBColorSpace);
-      birdUniforms.lit.value = o.lit ? 0.5 : 0;
+      // The light catches the word most against a dark sky; by day a
+      // touch, so the word keeps its contrast.
+      birdUniforms.lit.value = o.lit ? (L.night ? 0.5 : 0.22) : 0;
 
       // The rhythm.
       if (S.phase === 'free') {
@@ -373,8 +406,8 @@ export default function MurmurationApp() {
       // Shimmer: loose while they arrive, settling through the hold — the
       // word comes into focus as you look at it.
       const shimmer = S.phase === 'hold'
-        ? lerp(S.tease ? 9 : 3.5, S.tease ? 9 : 0.5, smooth(S.holdT / Math.max(2, S.holdDur * 0.6)))
-        : S.tease ? 10 : 7;
+        ? lerp(S.tease ? 9 : 2, S.tease ? 9 : 0.15, smooth(S.holdT / Math.max(1.5, S.holdDur * 0.45)))
+        : S.tease ? 10 : 4;
       S.calm += ((S.verseShown && S.phase === 'hold' ? 1 : 0) - S.calm) * Math.min(1, dt * 1.5);
       // Breathe: the word swells on the in-breath (4s) and settles on the
       // out (6s), as in Abide.
@@ -401,6 +434,10 @@ export default function MurmurationApp() {
       gpu.compute();
       birdUniforms.texturePosition.value = gpu.getCurrentRenderTarget(posV).texture;
       birdUniforms.textureVelocity.value = gpu.getCurrentRenderTarget(velV).texture;
+      const wantGuide = o.guide && !S.tease && (S.phase === 'hold' || (S.phase === 'gather' && S.formT > S.gatherDur - 1.5)) ? 1 : 0;
+      const before = guideA;
+      guideA += (wantGuide - guideA) * Math.min(1, dt * (wantGuide ? 0.9 : 2.2));
+      if (Math.abs(guideA - before) > 0.0005 || (before > 0.003 && guideA <= 0.003) || (guideA > 0.003 && S.guide !== guideFor)) drawGuide(L);
       if (o.ink && !reduced) renderer.render(fadeScene, fadeCam);
       else renderer.clear();
       renderer.clearDepth();
@@ -447,6 +484,7 @@ export default function MurmurationApp() {
   return (
     <div className={`mm-app${idle && !panel ? ' is-idle' : ''}${night ? ' is-night' : ''}`}>
       <canvas ref={bgRef} className="mm-sky" aria-hidden="true" />
+      <canvas ref={guideRef} className="mm-sky mm-guide" aria-hidden="true" />
       <div ref={glRef} className="mm-stage" aria-hidden="true" />
 
       <header className="mm-top">
@@ -478,6 +516,7 @@ export default function MurmurationApp() {
             options={[['scatter', 'Scatter'], ['gather', 'Gather']]} />
           <div className="mm-toggles">
             <Toggle label="Almost-words" hint="Now and then a word only half forms" on={opts.almost} set={(v) => setOpt('almost', v)} />
+            <Toggle label="Faint letters" hint="A whisper of the word in the sky, under the birds" on={opts.guide} set={(v) => setOpt('guide', v)} />
             <Toggle label="Verse beneath" hint="The word’s verse, while it holds" on={opts.verse} set={(v) => setOpt('verse', v)} />
             <Toggle label="Sunlit word" hint="The word catches the last light" on={opts.lit} set={(v) => setOpt('lit', v)} />
             <Toggle label="Breathe" hint="The word swells and settles: 4s in, 6s out" on={opts.breathe} set={(v) => setOpt('breathe', v)} bold />

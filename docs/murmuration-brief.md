@@ -80,6 +80,22 @@ switched off.
 | Follow the clock | On | otherwise always dusk |
 | Full screen | — | screensaver: fills the screen and keeps it awake; controls fade when you're not touching |
 
+## Legibility (learned on a real phone)
+
+Spreading birds evenly across thick letters made long words dust on a phone. What makes a word
+read:
+- **Lettering:** heavy-ish (700) upright letters with air between them.
+- **More of the flock in the word:** 92% of the birds take part.
+- **Bigger birds in the word:** they grow about 70% as they arrive, so they overlap like ink.
+  The free flock stays fine.
+- **A tight hold:** jitter settles almost to nothing.
+- **Fewer long words on phones:** words over 8 letters come up a quarter as often.
+- **Faint letters** (an option, on by default): a whisper of the word in the sky under the
+  birds, there only once they've arrived.
+- **The sunlit gold** is strong only against a dark sky.
+
+More birds was *not* the answer: the flocking cost grows with the square of the count.
+
 ## Technical
 
 - **Flocking:** three.js's `webgl_gpgpu_birds` (MIT), on the graphics chip, about 1,000 birds on

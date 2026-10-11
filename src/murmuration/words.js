@@ -38,11 +38,13 @@ export async function boardWords() {
 }
 
 // Pick the next word by weight, never the same twice in a row.
-export function pickWord(words, last, mode) {
+// On a narrow screen long words turn to dust, so they come less often.
+export function pickWord(words, last, mode, narrow = false) {
   if (mode === 'one') return words[0];
   const pool = words.length > 1 ? words.filter((w) => w !== last) : words;
-  let r = Math.random() * pool.reduce((m, w) => m + w.weight, 0);
-  for (const w of pool) { r -= w.weight; if (r <= 0) return w; }
+  const weight = (w) => w.weight * (narrow && w.text.length > 8 ? 0.25 : 1);
+  let r = Math.random() * pool.reduce((m, w) => m + weight(w), 0);
+  for (const w of pool) { r -= weight(w); if (r <= 0) return w; }
   return pool[0];
 }
 
@@ -57,7 +59,7 @@ export function sampleWord(text, n, maxW, maxH, lettering = 'sans') {
   const x = c.getContext('2d', { willReadFrequently: true });
   const spec = lettering === 'serif'
     ? `italic 800 ${S}px "Fraunces", Georgia, serif`
-    : `800 ${S}px "Manrope", "Source Sans 3", system-ui, sans-serif`;
+    : `700 ${S}px "Manrope", "Source Sans 3", system-ui, sans-serif`;
   x.font = spec;
   // Letters drawn one by one with air between them, so neighbouring
   // letters made of birds don't run together.
@@ -73,7 +75,7 @@ export function sampleWord(text, n, maxW, maxH, lettering = 'sans') {
   x.textBaseline = 'middle';
   // A little stroke as well as the fill, so an italic's hairlines are
   // thick enough for birds to hold.
-  x.lineWidth = S * 0.05;
+  x.lineWidth = lettering === 'serif' ? S * 0.05 : S * 0.02;
   x.lineJoin = 'round';
   let cx0 = S * 0.15;
   chars.forEach((ch, i) => {
@@ -104,9 +106,13 @@ export function sampleWord(text, n, maxW, maxH, lettering = 'sans') {
   };
   const nEdge = Math.min(edge.length ? Math.round(n * 0.42) : 0, n);
   const pts = [...take(edge, nEdge), ...take(inside.length ? inside : edge, n - nEdge)];
-  return pts.map(([px, py]) => [
+  // The drawing itself, and how it maps to the points, so the page can
+  // lay a faint guide of the letters exactly under the birds.
+  const out = pts.map(([px, py]) => [
     (px - cx + (Math.random() - 0.5) * 2) * k,
     -(py - cy + (Math.random() - 0.5) * 2) * k,
     (Math.random() - 0.5) * 6,
   ]);
+  out.guide = { canvas: c, k, cx, cy };
+  return out;
 }
