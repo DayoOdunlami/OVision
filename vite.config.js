@@ -25,6 +25,7 @@ import react from '@vitejs/plugin-react';
 //   labs/index.html  → /labs/   each design change, New or Classic (A/B)
 //   make/index.html  → /make/   make a board, for you or someone else
 //   admin/index.html → /admin/  version, Main/Lab switch, every change (/labs/ too)
+//   birds/index.html → /birds/  bird gallery: candidates for the sky, live
 //   today/index.html → /today/  optional: today's prayer, word and board in one place
 //
 // They're separate documents on purpose (the prayer page must never
@@ -54,6 +55,7 @@ export default defineConfig({
         make: resolve(__dirname, 'make/index.html'),
         admin: resolve(__dirname, 'admin/index.html'),
         today: resolve(__dirname, 'today/index.html'),
+        birds: resolve(__dirname, 'birds/index.html'),
       },
     },
   },

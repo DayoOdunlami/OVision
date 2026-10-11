@@ -109,6 +109,7 @@ function Header({ all, saved, onLock }) {
             <li><a href="/flourish/abide/">Abide</a></li>
             <li><a href="/today/">Today</a></li>
             <li><a href="/make/">Make a board</a></li>
+            <li><a href="/birds/">Bird gallery (candidates)</a></li>
           </ul>
         </div>
 
