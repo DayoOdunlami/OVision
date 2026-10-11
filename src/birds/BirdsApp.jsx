@@ -11,6 +11,7 @@ import { CANDIDATES } from './candidates.js';
 
 const DEMOS = {
   gltf: lazy(() => import('./demos/GltfBirds.jsx')),
+  eagle: lazy(() => import('./demos/GltfBirds.jsx').then((m) => ({ default: (p) => <m.default {...p} models={m.EAGLE} /> }))),
   murmuration: lazy(() => import('./demos/Murmuration.jsx')),
 };
 
@@ -23,7 +24,8 @@ export default function BirdsApp() {
   const links = CANDIDATES.filter((c) => c.kind === 'link');
   const [id, setIdRaw] = useState(() => (live.some((c) => c.id === pick()) ? pick() : live[0].id));
   const [menu, setMenu] = useState(false);
-  const [info, setInfo] = useState(true);
+  // Notes open on a big screen; on a phone, the birds come first.
+  const [info, setInfo] = useState(() => window.innerWidth > 700);
   const c = live.find((x) => x.id === id);
   const [controls, setControls] = useState({});
   const setId = (v) => {

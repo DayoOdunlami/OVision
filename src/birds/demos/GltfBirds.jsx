@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { duskBackdrop, fitRenderer } from './stage.js';
 
 // Artist-animated birds: the Parrot, Flamingo and Stork that ship with
@@ -11,13 +13,22 @@ import { duskBackdrop, fitRenderer } from './stage.js';
 // Here they're driven by our kind of steering, to show it fits: each bird
 // wanders and circles, banks into its turns, and its wingbeat speeds up
 // with effort or pauses into a glide. A finger scatters them.
-const MODELS = [
+export const ROME = [
   { file: 'Flamingo.glb', n: 2, size: 420 },
   { file: 'Parrot.glb', n: 2, size: 260 },
   { file: 'Stork.glb', n: 2, size: 440 },
 ];
 
-export default function GltfBirds({ controls }) {
+// Quaternius's low-poly eagle (CC0), rigged with a flying clip.
+// Its colours don't survive the FBX file, so they're given here (a bald
+// eagle: brown wings, white head, gold beak and claws), flat-shaded as
+// it was made.
+export const EAGLE = [{
+  file: 'Eagle.fbx', n: 4, size: 240, clip: /Flying/i, flat: true,
+  palette: { Wings: '#5b3b22', Head: '#f1ece2', Beak: '#e0a43a', Claws: '#e0a43a' },
+}];
+
+export default function GltfBirds({ controls, models = ROME }) {
   const ref = useRef(null);
   const ctl = useRef(controls);
   ctl.current = controls;
@@ -39,13 +50,23 @@ export default function GltfBirds({ controls }) {
     const birds = [];
     const loader = new GLTFLoader();
     let dead = false;
-    for (const m of MODELS) {
-      loader.load(`/models/birds/${m.file}`, (gltf) => {
+    const fbx = new FBXLoader();
+    for (const m of models) {
+      const isFbx = m.file.endsWith('.fbx');
+      (isFbx ? fbx : loader).load(`/models/birds/${m.file}`, (res) => {
         if (dead) return;
+        const root = isFbx ? res : res.scene.children[0];
+        const clips = res.animations || [];
+        const clip = (m.clip && clips.find((c) => m.clip.test(c.name))) || clips[0];
         for (let i = 0; i < m.n; i++) {
-          const src = gltf.scene.children[0];
-          const mesh = src.clone();
-          mesh.material = src.material.clone();
+          const mesh = SkeletonUtils.clone(root);
+          const fix = (x) => {
+            const c = x.clone();
+            if (m.palette?.[c.name]) c.color = new THREE.Color(m.palette[c.name]);
+            if (m.flat) { c.flatShading = true; c.shininess = 4; c.needsUpdate = true; }
+            return c;
+          };
+          mesh.traverse((o) => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(fix) : fix(o.material); });
           const box = new THREE.Box3().setFromObject(mesh);
           const k = m.size / Math.max(1, box.getSize(new THREE.Vector3()).length());
           mesh.scale.setScalar(k);
@@ -53,7 +74,8 @@ export default function GltfBirds({ controls }) {
           holder.add(mesh);
           scene.add(holder);
           const mixer = new THREE.AnimationMixer(mesh);
-          const action = mixer.clipAction(gltf.animations[0]).setDuration(1).play();
+          const action = mixer.clipAction(clip).setDuration(1).play();
+          if (m.turn) mesh.rotation.y = m.turn;
           action.time = Math.random();
           const { W, H } = size();
           birds.push({
