@@ -321,9 +321,9 @@ export function markFed() {
   try { localStorage.setItem(HINT_KEY, '1'); } catch { /* ignore */ }
 }
 
-export function drawFeedHint(ctx, x, y, alpha, { dark = false, text: say } = {}) {
+export function drawFeedHint(ctx, x, y, alpha, { dark = false } = {}) {
   if (alpha <= 0.01) return;
-  const text = say || 'Double-tap or hold to feed the koi';
+  const text = 'Double-tap or hold to feed the koi';
   ctx.save();
   ctx.font = '500 13px "Source Sans 3", Manrope, system-ui, sans-serif';
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0.06em';

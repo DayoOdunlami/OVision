@@ -5,7 +5,7 @@ import {
 
 // ═══════════════════════════════════════════════════════════════════
 // Make a board — for yourself, or for someone else. Four questions in
-// plain words, a world to live in, and the real pond beside the form,
+// plain words, and the real pond beside the form,
 // redrawn as you type. Save it to this device, or send it as a link
 // (the link carries the whole board; nothing is uploaded).
 // ═══════════════════════════════════════════════════════════════════
@@ -13,7 +13,6 @@ import {
 const EXAMPLE = {
   name: 'Sam',
   period: 'Autumn 2026',
-  world: 'birds',
   identity: {
     heroWord: 'Steady',
     statement: 'I want to be a steady presence: slow to panic, quick to listen, rooted in God.',
@@ -40,7 +39,7 @@ const EXAMPLE = {
 };
 
 const BLANK = {
-  name: '', period: '', world: 'koi',
+  name: '', period: '',
   identity: { heroWord: '', statement: '', values: [], anchor: { text: '', reference: '' } },
   season: { heroWord: '', sentence: '', threads: [] },
   commitments: [{}, {}, {}, {}],
@@ -111,8 +110,8 @@ export default function MakeApp() {
             <p className="mk-eyebrow">{editing ? 'Edit a board' : 'Make a board'}</p>
             <h1>Who are you becoming?</h1>
             <p className="mk-lede">
-              Four short answers. They become a living board — words in the water (or the sky),
-              with creatures that swim through them. For you, or for someone you love.
+              Four short answers. They become a living board — words in the water,
+              with koi that swim through them. For you, or for someone you love.
             </p>
             {!editing && (
               <button type="button" className="mk-quiet" onClick={() => setDraft(structuredClone(EXAMPLE))}>
@@ -127,16 +126,6 @@ export default function MakeApp() {
             </Row>
             <Row label="When" hint="A season or a year, so you know when to look again.">
               <input {...field('period')} placeholder="Autumn 2026" maxLength={40} />
-            </Row>
-            <Row label="World" group>
-              <div className="mk-seg" role="radiogroup" aria-label="World">
-                {[['koi', 'Koi pond'], ['birds', 'Birds at dusk'], ['dusk3d', 'Dusk in 3D']].map(([id, label]) => (
-                  <button key={id} type="button" role="radio" aria-checked={draft.world === id}
-                    className={draft.world === id ? 'is-on' : ''} onClick={() => setDraft((d) => ({ ...d, world: id }))}>
-                    {label}
-                  </button>
-                ))}
-              </div>
             </Row>
           </Section>
 

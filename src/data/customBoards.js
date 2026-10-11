@@ -6,7 +6,8 @@
 //
 // No server: the link *is* the board. A board has the same shape as the
 // built-in ones in board.js (identity / season / commitments / friction)
-// plus `world` ('koi' | 'birds').
+// (Boards made while there were other worlds may still carry `world`;
+// it's dropped.)
 // ═══════════════════════════════════════════════════════════════════
 
 const KEY = 'vb.boards';
@@ -34,7 +35,6 @@ export function normaliseBoard(b = {}) {
     role: 'Made here',
     owner: str(b.owner, 40) || name,
     period: str(b.period, 40),
-    world: ['birds', 'dusk3d'].includes(b.world) ? b.world : 'koi',
     identity: {
       statement: str(b.identity?.statement, 280),
       heroWord: str(b.identity?.heroWord, 18) || 'Becoming',

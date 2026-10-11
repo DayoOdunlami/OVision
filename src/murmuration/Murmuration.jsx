@@ -150,5 +150,5 @@ export default function Murmuration({ controls }) {
     };
   }, []);
 
-  return <div ref={ref} className="bd-stage" />;
+  return <div ref={ref} className="mm-stage" />;
 }

@@ -13,7 +13,7 @@ They are deliberately **not** the same page. The pond is animated koi; the
 prayer surface is still type on paper. Putting koi behind prayer text would
 fight the exact problem the prayer surface exists to solve (a wandering mind).
 
-| `/make/` | **Make a board**: for you or someone else | Four short answers and a world (koi pond or birds at dusk), with a live preview. Saves to this device, or travels as a link (`/?board=…`). |
+| `/make/` | **Make a board**: for you or someone else | Four short answers, with a live preview. Saves to this device, or travels as a link (`/?board=…`). |
 | `/today/` | **Today**: optional front door | Pray → Abide → Rest your eyes, with what's been done today. Each room still stands alone. |
 | `/admin/` | **Admin** (also `/labs/`) | Password `bio123`. Shows the live version, a Main/Lab switch, every change New or Classic, and links to every mode. Live at o-vision.vercel.app, deployed from `main`. |
 
@@ -32,12 +32,12 @@ unless it's been switched to Classic on `/labs/`. On any page:
 Abide also takes `?at=intro|sow|vineyard` to open at a step (which `/labs/` compare uses), and
 `?fast=1` in development to run the after-growth timings twenty times faster.
 
-## Worlds and made boards
+## Made boards, screensaver, murmuration
 
-A board lives in a world: `koi` (the pond), `birds` (a dusk sky, `src/pond/birds.js`; second pass with flocking and painted clouds in `birds2.js`, Labs `pond.birds2` and `pond.clouds2`), or `dusk3d` (the same flight in three.js, `src/pond/worlds/Dusk3D.jsx`, lazy-loaded). `?world=…` shows one for a visit. The screensaver is `?screen=1` (`src/pond/screensaver.js`). Birds
-answer to the same calls as koi, so names, swell, colour, food and the commitments' wake all
-carry over. Made boards are kept under `vb.boards` (`src/data/customBoards.js`). A board
-travels as base64url JSON in `?board=`, which is normalised, text only and length-capped.
+Made boards are kept under `vb.boards` (`src/data/customBoards.js`). A board travels as base64url
+JSON in `?board=`, which is normalised, text only and length-capped. The screensaver is
+`?screen=1` (`src/pond/screensaver.js`). `/murmuration/` is an experiment: three.js's GPU flock
+(MIT) at dusk. The bird worlds we tried and removed are recorded in `docs/birds-log.md`.
 
 ## How they're joined
 

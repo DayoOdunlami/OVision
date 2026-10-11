@@ -65,15 +65,6 @@ export const LABS = [
     classic: 'Eleven groups and about thirty buttons in one long sheet.',
     path: '/pray/', query: '', howTo: 'Tap Options.' },
 
-  // ── Pond ───────────────────────────────────────────────────────────
-  { key: 'pond.birds2', surface: 'Pond', title: 'Birds that really fly',
-    what: 'Flocking birds (after the open-source three.js and Vanta birds) with wings that bend at the wrist, bank into turns, glide and burst into flapping; each its own species, five of them birds of the Bible: dove, sparrow, raven, swallow, stork.',
-    classic: 'Simple silhouettes whose wings stretch and shrink.',
-    path: '/', query: 'world=birds', howTo: 'The pond in its “Birds at dusk” world. Watch a bird turn, glide, then flap.' },
-  { key: 'pond.clouds2', surface: 'Pond', title: 'Painted clouds birds fly through',
-    what: 'Three layers of painted clouds, lit warm from below by the dusk; they part around a passing bird and close behind it, high birds pass behind them, and a distant murmuration turns far off. They drift with parallax as you scroll.',
-    classic: 'Faint blurred streaks.',
-    path: '/', query: 'world=birds', howTo: 'The pond in its “Birds at dusk” world. Scroll, and watch a bird pass through a cloud.' },
 ];
 
 const KEY = 'labs';

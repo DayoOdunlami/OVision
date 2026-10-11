@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PondCanvas from '../pond/PondCanvas.jsx';
 import FlourishZone from '../pond/zones/FlourishZone.jsx';
 import FullZone from '../pond/zones/FullZone.jsx';
@@ -6,17 +6,8 @@ import CommitmentsZone from '../pond/zones/CommitmentsZone.jsx';
 import MarrowZone from '../pond/zones/MarrowZone.jsx';
 import { POND_VARIETIES } from '../SpineFish.js';
 import { readPrayerState, todayKoi, PRAY_URL } from '../data/prayerLink.js';
-import { DUSK } from '../pond/birds.js';
 import { useScreensaver, SCREEN_CSS } from '../pond/screensaver.js';
 
-// The worlds a board can live in. Same meaning, different place.
-const WORLDS = [
-  { id: 'koi', label: 'Koi pond' },
-  { id: 'birds', label: 'Birds at dusk' },
-  { id: 'dusk3d', label: 'Dusk in 3D' },
-];
-// The 3D sky is loaded only when it's chosen (three.js is its own chunk).
-const Dusk3D = lazy(() => import('../pond/worlds/Dusk3D.jsx'));
 
 // ═══════════════════════════════════════════════════════════════════
 // PosterPond — STAGE 3 rebuild.
@@ -105,35 +96,10 @@ export default function PosterPond({ board }) {
 
   const [concepts, setConcepts] = useState(DEFAULT_CONCEPTS);
 
-  // Which world this board lives in: the koi pond or birds at dusk. The
-  // board says (a made board chooses); this device can try the other.
-  const worldKey = `vb.world.${board?.id || 'board'}`;
-  const [worldPick, setWorldPick] = useState(() => {
-    try { return localStorage.getItem(worldKey) || ''; } catch { return ''; }
-  });
-  // ?world=birds shows a world for this visit only (Labs' compare uses it).
-  const worldAsked = (() => { try { return new URLSearchParams(location.search).get('world'); } catch { return null; } })();
-  const world = WORLDS.some((w) => w.id === worldAsked) ? worldAsked
-    : WORLDS.some((w) => w.id === worldPick) ? worldPick : (board?.world || 'koi');
-  const setWorld = (id) => {
-    setWorldPick(id);
-    try { localStorage.setItem(worldKey, id); } catch { /* ignore */ }
-  };
-  const creature = world === 'koi' ? 'koi' : 'birds';
-  const [failed3d, setFailed3d] = useState(false);
-  const sky3d = world === 'dusk3d' && !failed3d;
+  // Screensaver: the board full screen, slowly touring its zones.
   const contentRef = useRef(null);
   const screen = useScreensaver(contentRef);
-  useEffect(() => {
-    if (world === 'koi') return undefined;
-    const prev = document.body.style.background;
-    document.body.style.background = DUSK.body;
-    document.documentElement.style.background = DUSK.body;
-    return () => {
-      document.body.style.background = prev;
-      document.documentElement.style.background = prev;
-    };
-  }, [world]);
+
 
   // The prayer surface's state, read (never written) from the shared
   // localStorage of the same origin. See data/prayerLink.js.
@@ -241,17 +207,6 @@ export default function PosterPond({ board }) {
           because the Commitments zone has its own pads. When the
           admin panel has pinned per-variety counts, `mix` overrides
           the density-scaled auto mix. */}
-      {sky3d ? (
-        <Suspense fallback={null}>
-          <Dusk3D
-            fishMin={3}
-            fishMax={5}
-            mix={mixTotal > 0 ? mixCounts : null}
-            namedKoi={namedKoi}
-            onFail={() => setFailed3d(true)}
-          />
-        </Suspense>
-      ) : (
       <PondCanvas
         fishMin={3}
         fishMax={5}
@@ -259,9 +214,7 @@ export default function PosterPond({ board }) {
         mix={mixTotal > 0 ? mixCounts : null}
         namedKoi={namedKoi}
         pairToday={concepts.pairToday && namedKoi.length >= 2}
-        world={world === 'dusk3d' ? 'birds' : world}
       />
-      )}
 
       {/* Content layer. position:relative + zIndex:1 so all zones sit
           above the fixed canvas. Keep plenty of vertical rhythm. */}
@@ -310,14 +263,12 @@ export default function PosterPond({ board }) {
           text={season.heroWord || 'Full'}
           cadence={cadenceFromThreads(season.threads)}
           verse={season.sentence}
-          creature={creature}
         />
 
         {/* 03 · Commitments */}
         <CommitmentsZone
           title="Commitments"
           commitments={commitments}
-          world={world}
         />
 
         {/* 04 · marrow */}
@@ -328,7 +279,6 @@ export default function PosterPond({ board }) {
           verse={friction.prayer?.text}
           anchor={friction.prayer?.reference}
           showNames={concepts.namedKoi}
-          creature={creature}
         />
 
         {/* Footer breath */}
@@ -349,8 +299,6 @@ export default function PosterPond({ board }) {
         concepts={concepts}
         toggleConcept={toggleConcept}
         prayerAvailable={prayer.available}
-        world={world}
-        setWorld={setWorld}
         onScreensaver={screen.start}
       />
 
@@ -458,8 +406,6 @@ function PondSettingsMenu({
   concepts,
   toggleConcept,
   prayerAvailable,
-  world = 'koi',
-  setWorld,
   onScreensaver,
 }) {
   const [open, setOpen] = useState(false);
@@ -525,7 +471,7 @@ function PondSettingsMenu({
         <span style={{ opacity: 0.85 }}>{activeFlourish?.label || 'Bubbles'}</span>
         <span style={{ opacity: 0.55 }}>·</span>
         <span style={{ opacity: 0.85 }}>
-          {world === 'dusk3d' ? 'Dusk 3D' : world === 'birds' ? 'Birds' : mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
+          {mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
         </span>
       </button>
 
@@ -553,30 +499,10 @@ function PondSettingsMenu({
             overflowY: 'auto',
           }}
         >
-          {/* Section: World — the same board, in another place. */}
+          {/* Section: the board as a screensaver, making one, admin. */}
           <div>
-            <SectionLabel>World</SectionLabel>
-            <div style={{ display: 'flex', gap: 4, padding: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 999, marginTop: 6 }}>
-              {WORLDS.map((w) => {
-                const selected = world === w.id;
-                return (
-                  <button
-                    key={w.id}
-                    onClick={() => setWorld?.(w.id)}
-                    aria-pressed={selected}
-                    style={{
-                      flex: 1, padding: '6px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                      background: selected ? 'rgba(255,255,255,0.92)' : 'transparent',
-                      color: selected ? '#0a2026' : 'rgba(255,255,255,0.82)',
-                      fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
-                    }}
-                  >
-                    {w.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+            <SectionLabel>Board</SectionLabel>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
               <button
                 type="button"
                 onClick={() => { setOpen(false); onScreensaver?.(); }}

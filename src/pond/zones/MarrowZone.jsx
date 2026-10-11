@@ -24,7 +24,6 @@ import { readPrayerState } from '../../data/prayerLink.js';
 // ═══════════════════════════════════════════════════════════════════
 
 export default function MarrowZone({
-  creature = 'koi',
   text = 'marrow',
   preText,
   statement,
@@ -80,11 +79,11 @@ export default function MarrowZone({
               : names.join(' & ')}
           </span>
           <span className="pond-zone-hint" style={{ marginTop: '0.55rem' }}>
-            Their {creature === 'birds' ? 'birds' : 'koi'} take the colour as they pass
+            Their koi take the colour as they pass
           </span>
         </div>
       ) : (
-        <div className="pond-zone-hint">{creature === 'birds' ? 'Birds' : 'Fish'} passing close take its colour.</div>
+        <div className="pond-zone-hint">Fish passing close take its colour.</div>
       )}
 
       <style>{`

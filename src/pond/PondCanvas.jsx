@@ -21,9 +21,6 @@ import {
   Ripple,
 } from './pads.js';
 import { FoodBowl, feedGesture, wantsFeedHint, markFed, drawFeedHint } from '../shared/koiFood.js';
-import { Bird, paintSky, SkyLife } from './birds.js';
-import { Bird2, SkyScape } from './birds2.js';
-import { lab } from '../shared/labs.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PondCanvas — one fixed full-viewport canvas behind the whole board.
@@ -92,10 +89,6 @@ export default function PondCanvas({
   // the original brief's Zone 04 note: "two fish swimming in
   // synchronised pairs — a metaphor for knowing-and-being-known".
   pairToday = false,
-  // Which world the board lives in: 'koi' (the pond) or 'birds' (a dusk
-  // sky). Birds answer to the same calls as koi (see birds.js), so the
-  // zones, names, food and swell all carry over.
-  world = 'koi',
 }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({
@@ -137,10 +130,6 @@ export default function PondCanvas({
     let disposed = false;
 
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    // The sky world, second pass (Labs): flocking birds with articulated
-    // wings, and painted clouds they fly through. See birds2.js.
-    const birds2 = world === 'birds' && lab('pond.birds2');
-    const clouds2 = world === 'birds' && lab('pond.clouds2');
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     // Identity board uses fish shading's symmetric mode by default so
@@ -197,9 +186,8 @@ export default function PondCanvas({
       // shoal down with the viewport. Cloning the variety (rather than
       // mutating it) matters — VARIETIES is a shared module-level array.
       const sizeFactor = Math.max(0.55, Math.min(1, w / 1000));
-      const Creature = world === 'birds' ? (birds2 ? Bird2 : Bird) : SpineFish;
       const fish = varieties.map(
-        (v) => new Creature(w, h, {
+        (v) => new SpineFish(w, h, {
           ...v,
           sizeScale: (v.sizeScale || 1) * sizeFactor,
         }),
@@ -219,8 +207,6 @@ export default function PondCanvas({
         }
       }
 
-      // Birds that flock know about each other.
-      for (const f of fish) f.joinFlock?.(fish);
       stateRef.current.fish = fish;
 
       // Fish-layer offscreen — same logical CSS size, same DPR transform.
@@ -256,23 +242,16 @@ export default function PondCanvas({
       const t = s.tick;
       const ts = t * 0.0028;
 
-      if (world === 'birds') {
-        paintSky(ctx, W, H);
-        (s.sky ||= new SkyLife()).draw(ctx, W, H, t, { clouds: !clouds2 });
-      } else {
-        paintWater(ctx, W, H, palette);
-        paintCurrents(ctx, W, H, ts, palette);
-      }
+      paintWater(ctx, W, H, palette);
+      paintCurrents(ctx, W, H, ts, palette);
 
       // Pad floor-shadows (before lighting layers)
       if (!skipPads) {
         DEFAULT_PADS.forEach((p) => drawPadShadow(ctx, p.rx * W, p.ry * H, p.r, p.rot, t, p.phase));
       }
 
-      if (world !== 'birds') {
-        paintGodRays(ctx, W, H, ts, palette);
-        paintCaustics(ctx, W, H, ts, palette);
-      }
+      paintGodRays(ctx, W, H, ts, palette);
+      paintCaustics(ctx, W, H, ts, palette);
 
       // ── Attractor targets (Marrow tint + Full swell) ──────────
       // Cache element centres (viewport coords = canvas coords since
@@ -326,20 +305,7 @@ export default function PondCanvas({
       // only lands on fish pixels, not the water underneath.
       const off = s.fishLayer;
       const offCtx = s.fishLayerCtx;
-      if (!birds2) offCtx.clearRect(0, 0, W, H);
-
-      // Painted clouds: the far layer and a distant murmuration behind
-      // everything; the middle layer between high birds and low ones
-      // (so they pass through); wisps in front, after the birds.
-      const sky2 = clouds2 ? (s.sky2 ||= new SkyScape()) : null;
-      let midDrawn = false;
-      if (sky2) {
-        sky2.layout(W, H);
-        if (!reduced) sky2.step(s.fish, window.scrollY || 0);
-        sky2.drawFar(ctx);
-        sky2.drawLayer(ctx, 0);
-        if (!birds2) { sky2.drawLayer(ctx, 1); midDrawn = true; }
-      }
+      offCtx.clearRect(0, 0, W, H);
 
       // Publish ambient fish positions (viewport coords) for other
       // zones (FlourishZone reads this to make particles scatter
@@ -434,27 +400,15 @@ export default function PondCanvas({
       const labels = [];
       for (const f of drawOrder) {
         const scale = resolveFullScale(f);
-        // Second-pass birds draw straight onto the sky, between the
-        // cloud layers, and take the friction word's colour themselves.
-        const dctx = birds2 ? ctx : offCtx;
-        if (birds2) {
-          if (sky2 && !midDrawn && (f.depth ?? 0.4) <= 0.5) { sky2.drawLayer(ctx, 1); midDrawn = true; }
-          let heat = 0;
-          for (const m of s.marrowTargets) {
-            const d = Math.hypot(f.head.x - m.cx, f.head.y - m.cy);
-            if (d < m.radius) heat = Math.max(heat, 1 - d / m.radius);
-          }
-          f.tint = heat;
-        }
         if (scale !== 1) {
-          dctx.save();
-          dctx.translate(f.head.x, f.head.y);
-          dctx.scale(scale, scale);
-          dctx.translate(-f.head.x, -f.head.y);
-          f.draw(dctx);
-          dctx.restore();
+          offCtx.save();
+          offCtx.translate(f.head.x, f.head.y);
+          offCtx.scale(scale, scale);
+          offCtx.translate(-f.head.x, -f.head.y);
+          f.draw(offCtx);
+          offCtx.restore();
         } else {
-          f.draw(dctx);
+          f.draw(offCtx);
         }
 
         // Publish spine points with their *apparent* radius — i.e.
@@ -509,8 +463,7 @@ export default function PondCanvas({
       // fish layer with source-atop composite. Only fish pixels inside
       // the disc get coloured; water is untouched; the tint is strong
       // and unambiguous (the whole point).
-      if (sky2 && !midDrawn) sky2.drawLayer(ctx, 1);
-      if (!birds2 && s.marrowTargets.length) {
+      if (s.marrowTargets.length) {
         offCtx.save();
         offCtx.globalCompositeOperation = 'source-atop';
         for (const m of s.marrowTargets) {
@@ -526,8 +479,7 @@ export default function PondCanvas({
       }
 
       // Flatten the fish layer onto the main canvas.
-      if (!birds2) ctx.drawImage(off, 0, 0, W, H);
-      if (sky2) sky2.drawLayer(ctx, 2);
+      ctx.drawImage(off, 0, 0, W, H);
 
       // ── Name labels for the koi carrying today's names ────────
       // Drawn after the flatten so the marrow tint mask (which is
@@ -600,8 +552,8 @@ export default function PondCanvas({
         r.draw(ctx);
       });
 
-      // Drifting blossoms (on the water only)
-      if (world !== 'birds' && s.blossomCooldown <= 0 && s.blossoms.length < 2) {
+      // Drifting blossoms
+      if (s.blossomCooldown <= 0 && s.blossoms.length < 2) {
         s.blossoms.push(new Blossom(W, H));
         s.blossomCooldown = 1100 + Math.random() * 900;
       }
@@ -617,17 +569,15 @@ export default function PondCanvas({
         DEFAULT_PADS.forEach((p) => drawPad(ctx, p, W, H, t));
       }
 
-      if (world !== 'birds') {
-        paintVignette(ctx, W, H, palette);
-        paintShimmer(ctx, W, H, ts, palette);
-      }
+      paintVignette(ctx, W, H, palette);
+      paintShimmer(ctx, W, H, ts, palette);
 
       // First visits: say once, quietly, that the koi can be fed.
       if (interactive && s.hint >= 0) {
         s.hint++;
         const a = Math.min(1, Math.max(0, (s.hint - 360) / 90)) * Math.min(1, Math.max(0, (2200 - s.hint) / 120));
         if (s.hint > 2200) s.hint = -1;
-        drawFeedHint(ctx, W / 2, H - 78, a, { text: world === 'birds' ? 'Double-tap or hold to scatter seed' : undefined });
+        drawFeedHint(ctx, W / 2, H - 78, a);
       }
       return true;
     };
@@ -727,7 +677,7 @@ export default function PondCanvas({
     // `namedKoi` must be a stable reference from the caller (PosterPond
     // memoises it) or this effect thrashes and the pond respawns every
     // render. `pairToday` is a boolean so it's safe as-is.
-  }, [palette, interactive, fishMin, fishMax, skipPads, mix, namedKoi, pairToday, world]);
+  }, [palette, interactive, fishMin, fishMax, skipPads, mix, namedKoi, pairToday]);
 
   return (
     <canvas

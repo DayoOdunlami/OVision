@@ -75,9 +75,6 @@
   .mk-ref { flex: none; }
 }
 
-.mk-seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; align-self: flex-start; }
-.mk-app .mk-seg button { border: 0; min-height: 36px; padding: 0.3rem 1rem; color: var(--muted); }
-.mk-app .mk-seg button.is-on { color: #fff; background: var(--green); }
 
 .mk-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid var(--line); }
 .mk-app .mk-primary { color: #fff; background: var(--green); border-color: var(--green); }

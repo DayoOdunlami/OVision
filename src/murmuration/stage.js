@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 
-// Shared bits for the 3D demos: a dusk sky behind everything, and a
-// camera sized so the z = 0 plane maps one-to-one onto the stage.
+// A dusk sky behind everything.
 export function duskBackdrop(scene, { top = '#141a36', mid = '#363c6c', low = '#9a7290' } = {}) {
   const mat = new THREE.ShaderMaterial({
     depthWrite: false, side: THREE.BackSide, fog: false,
@@ -12,22 +11,4 @@ export function duskBackdrop(scene, { top = '#141a36', mid = '#363c6c', low = '#
   const sky = new THREE.Mesh(new THREE.SphereGeometry(6000, 24, 16), mat);
   scene.add(sky);
   return { sky, dispose: () => { sky.geometry.dispose(); mat.dispose(); } };
-}
-
-export function fitRenderer(renderer, camera, el) {
-  let W = 1, H = 1;
-  const apply = () => {
-    W = Math.max(1, el.clientWidth); H = Math.max(1, el.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-    renderer.setSize(W, H, false);
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
-    camera.aspect = W / H;
-    camera.position.set(0, 0, (H / 2) / Math.tan((camera.fov * Math.PI) / 360));
-    camera.updateProjectionMatrix();
-  };
-  apply();
-  const ro = new ResizeObserver(apply);
-  ro.observe(el);
-  return () => ({ W, H, dispose: () => ro.disconnect() });
 }

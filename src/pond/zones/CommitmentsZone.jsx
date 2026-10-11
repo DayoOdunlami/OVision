@@ -67,28 +67,6 @@ const WAKE = {
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
-// In the birds' world the commitments are clouds the birds fly under:
-// the same four places, rocking as they pass.
-function CloudSVG({ id }) {
-  const puffs = [
-    [-92, 18, 70, 46], [-30, -14, 82, 62], [48, -4, 76, 56], [104, 22, 52, 38], [8, 34, 128, 48],
-  ];
-  return (
-    <svg viewBox={`-${PAD_W / 2} -${PAD_H / 2} ${PAD_W} ${PAD_H}`} className="pad-svg" aria-hidden="true">
-      <defs>
-        <linearGradient id={`cloud-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f3eef6" />
-          <stop offset="62%" stopColor="#efe6ee" />
-          <stop offset="100%" stopColor="#f6d6c4" />
-        </linearGradient>
-      </defs>
-      <g fill={`url(#cloud-${id})`}>
-        {puffs.map(([x, y, rx, ry], i) => <ellipse key={i} cx={x} cy={y} rx={rx} ry={ry} />)}
-      </g>
-    </svg>
-  );
-}
-
 function PadSVG({ hue, id }) {
   // Organic blob: subtle radial wobble around an ellipse, with a
   // single small notch on the right edge to keep the lily-pad read.
@@ -147,7 +125,7 @@ function PadSVG({ hue, id }) {
   );
 }
 
-export default function CommitmentsZone({ title = 'Commitments', commitments = null, world = 'koi' }) {
+export default function CommitmentsZone({ title = 'Commitments', commitments = null }) {
   // A board's own commitments, whatever their verbs (up to four); a pad
   // keeps its motion preset by verb when one matches, else by position.
   const own = commitments?.length ? commitments.slice(0, 4) : null;
@@ -171,7 +149,7 @@ export default function CommitmentsZone({ title = 'Commitments', commitments = n
 
       <div className="pond-pad-grid">
         {pads.map((p) => (
-          <ReactivePad key={p.id} pad={p} cloud={world === 'birds'} />
+          <ReactivePad key={p.id} pad={p} />
         ))}
       </div>
 
@@ -181,7 +159,7 @@ export default function CommitmentsZone({ title = 'Commitments', commitments = n
 }
 
 // ── One pad, wired to the pond ──────────────────────────────────────
-function ReactivePad({ pad, cloud = false }) {
+function ReactivePad({ pad }) {
   const slotRef = useRef(null);
   const rockRef = useRef(null);
   const rippleHostRef = useRef(null);
@@ -333,7 +311,7 @@ function ReactivePad({ pad, cloud = false }) {
       >
         <div ref={rockRef} className="pad-rock">
           <div className="pad-tilt" style={{ transform: `rotate(${pad.rotate}deg)` }}>
-            {cloud ? <CloudSVG id={pad.id} /> : <PadSVG hue={pad.hue} id={pad.id} />}
+            <PadSVG hue={pad.hue} id={pad.id} />
           </div>
           <div ref={rippleHostRef} className="pad-ripples" aria-hidden="true" />
           <div className="pad-content" style={{ transform: `rotate(${pad.rotate}deg)` }}>

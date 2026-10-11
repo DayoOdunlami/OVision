@@ -102,14 +102,12 @@ function Header({ all, saved, onLock }) {
           <h2>Open</h2>
           <ul className="ad-links">
             <li><a href="/">Pond</a></li>
-            <li><a href="/?world=birds">Pond as birds at dusk</a></li>
-            <li><a href="/?world=dusk3d">Pond as dusk in 3D (preview)</a></li>
             <li><a href="/?screen=1">Pond as a screensaver</a></li>
             <li><a href="/pray/">Pray</a></li>
             <li><a href="/flourish/abide/">Abide</a></li>
             <li><a href="/today/">Today</a></li>
             <li><a href="/make/">Make a board</a></li>
-            <li><a href="/birds/">Bird gallery (candidates)</a></li>
+            <li><a href="/murmuration/">Murmuration (experiment)</a></li>
           </ul>
         </div>
 

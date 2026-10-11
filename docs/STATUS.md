@@ -43,52 +43,23 @@ The rooms only touch lightly:
 
 **Pond**
 - `/make/` (make a board for anyone) and share links.
-- Worlds:
-  - **Koi pond**
-  - **Birds at dusk**
-    - Lab: flocking birds with real wingbeats.
-    - Lab: painted clouds they fly through.
-  - **Dusk in 3D** (preview).
 - Screensaver (`/?screen=1` or Pond settings): full screen, screen kept awake, a slow tour of
   the zones.
 
 **Today:** an optional front door. "Start the day on Today" is an Admin switch.
 
-## Birds and sky
+## Birds: stopped
 
-| | Birds at dusk (2D, Lab) | Dusk in 3D (preview) |
-|---|---|---|
-| Birds | Flocking after the MIT three.js/Vanta birds, with wings that bend at the wrist, banking, glides between bursts of flapping, and 9 species (5 Bible birds) | The same flight, drawn as low-poly birds whose lit wings hinge at the shoulder and wrist |
-| Clouds | Painted, lit from below, part around birds | Soft puffs at real depths in fog, with true parallax |
-| Weight | No extra download | three.js loaded only for this world (~134KB gz) |
-| Still to do | Fine-tuning | Names on birds, feeding (seed), quality tiers for slow devices, the abide-direction checklist |
+Four attempts at a bird world didn't come close to the koi, so they were removed. The record and
+the reasons are in `docs/birds-log.md`. The one keeper is the **murmuration**
+(`/murmuration/`), and the idea worth trying next is a murmuration that writes the board's words.
 
-**Bible birds**, matched to each person's koi:
-- dove (Matthew 3:16)
-- sparrow (Matthew 10:29–31)
-- raven (Luke 12:24)
-- swallow (Psalm 84:3)
-- stork (Jeremiah 8:7)
+## 3D: a view
 
-## 3D: the options, and a view
-
-- **Worth doing, as a world you choose:**
-  - **Plain three.js** (MIT), loaded only when picked. This is what Dusk in 3D uses, so the
-    simulations are shared and React needn't be upgraded.
-  - The words stay as page text over the canvas, which keeps them sharp. 3D type blurs and is
-    harder to read.
-- **Next candidates:**
-  - **Pond in 3D**: water with caustics and a Fresnel sheen. The MIT koi-pond-garden repo is
-    the reference. About 6–10 days.
-  - **Polishing Dusk 3D**: a sun with a soft bloom, more clouds, and quality tiers. About
-    3–5 days.
-- **Not worth it now:**
-  - Spline: proprietary, and huge.
-  - WebGPU: not ready across browsers.
-  - Glass/refraction materials: expensive on phones.
-  - 3D text: hard to read.
-  - react-three-fiber: its current version needs React 19, so it would mean an upgrade.
-- **Battery** matters only for the always-on tablet. The 3D world sleeps when the tab is hidden.
+Plain three.js (MIT), loaded only where it's used, is the right tool if we want 3D, with the
+words kept as page text over it. The murmuration already uses it. A **3D koi pond** (water with
+light patterns and reflections; the MIT koi-pond-garden repo is the reference) would be the
+next 3D step, about 6–10 days, if the 2D pond ever feels limiting.
 
 ## Suggestions (not built)
 
