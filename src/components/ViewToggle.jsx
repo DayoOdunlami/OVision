@@ -116,6 +116,15 @@ function MemberPicker({ members, memberId, setMemberId }) {
               </li>
             );
           })}
+          <li>
+            <a href={`/make/${memberId?.startsWith('custom-') ? `?id=${memberId}` : ''}`} className="sans vb-option vb-make">
+              <span aria-hidden="true" className="vb-dot" style={{ background: 'transparent', border: '1px dashed currentColor' }} />
+              <span className="vb-option-text">
+                <span className="vb-option-name">{memberId?.startsWith('custom-') ? 'Edit this board' : 'Make a board'}</span>
+                <span className="vb-option-role">{memberId?.startsWith('custom-') ? 'Change its words or world' : 'For you, or someone else'}</span>
+              </span>
+            </a>
+          </li>
         </ul>
       )}
     </div>
@@ -225,6 +234,20 @@ function ChromeStyles() {
         cursor: pointer;
         text-align: left;
       }
+      .vb-make { text-decoration: none; opacity: 0.85; border-top: 1px solid rgba(255,255,255,0.08); }
+      .shared-banner {
+        position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); z-index: 30;
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px;
+        width: min(560px, calc(100vw - 32px)); padding: 12px 16px; border-radius: 16px;
+        background: rgba(10, 32, 38, 0.92); color: #F1E6D2; font-size: 14px;
+        border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      }
+      .shared-banner button {
+        font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 999px;
+        padding: 8px 14px; min-height: 40px; border: 1px solid #F1E6D2; background: #F1E6D2; color: #0a2026;
+      }
+      .shared-banner button.is-quiet { background: transparent; color: #F1E6D2; border-color: rgba(241,230,210,0.4); }
       .vb-option.is-selected {
         background: #F1E6D2;
         color: #0c2024;

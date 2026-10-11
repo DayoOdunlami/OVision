@@ -1,3 +1,4 @@
+import { readCustomBoards } from './customBoards.js';
 // ═══════════════════════════════════════════════════════════════════
 // BOARD DATA — source of truth for every identity-board variant.
 //
@@ -58,6 +59,7 @@ const DAYO = {
   friction: {
     sentence: 'I know the words. I want them in my marrow.',
     heroWord: 'marrow',
+    cadence: 'Silence · Fasting · Confession',
     plans: [
       { trigger: 'After gratitude and Bible reading',            action: 'Five minutes of silence. No phone. Just sit.' },
       { trigger: 'When I notice I am in head-mode on a passage', action: 'Stop. Pray it instead of processing it.'       },
@@ -219,7 +221,19 @@ export const BOARD = DAYO;
 // loadBoard — async adapter. Pick a member by id; source governs
 // whether we read from the local objects above or from Notion.
 // ═══════════════════════════════════════════════════════════════════
+// Built-in boards, then any made on this device (see customBoards.js).
+export function allMemberIndex() {
+  return [
+    ...MEMBER_INDEX,
+    ...readCustomBoards().map((m) => ({ id: m.id, name: m.name, role: m.role, draft: false, heroWord: m.identity.heroWord })),
+  ];
+}
+
 export async function loadBoard(source = 'local', memberId = DEFAULT_MEMBER_ID) {
+  if (String(memberId).startsWith('custom-')) {
+    const made = readCustomBoards().find((b) => b.id === memberId);
+    if (made) return made;
+  }
   const id = MEMBERS_BY_ID[memberId] ? memberId : DEFAULT_MEMBER_ID;
   if (source === 'notion') return loadFromNotion(id);
   return MEMBERS_BY_ID[id];

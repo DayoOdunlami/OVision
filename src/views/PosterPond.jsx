@@ -6,6 +6,13 @@ import CommitmentsZone from '../pond/zones/CommitmentsZone.jsx';
 import MarrowZone from '../pond/zones/MarrowZone.jsx';
 import { POND_VARIETIES } from '../SpineFish.js';
 import { readPrayerState, todayKoi, PRAY_URL } from '../data/prayerLink.js';
+import { DUSK } from '../pond/birds.js';
+
+// The worlds a board can live in. Same meaning, different place.
+const WORLDS = [
+  { id: 'koi', label: 'Koi pond' },
+  { id: 'birds', label: 'Birds at dusk' },
+];
 
 // ═══════════════════════════════════════════════════════════════════
 // PosterPond — STAGE 3 rebuild.
@@ -93,6 +100,29 @@ export default function PosterPond({ board }) {
   const [mixCounts, setMixCounts] = useState(null);
 
   const [concepts, setConcepts] = useState(DEFAULT_CONCEPTS);
+
+  // Which world this board lives in: the koi pond or birds at dusk. The
+  // board says (a made board chooses); this device can try the other.
+  const worldKey = `vb.world.${board?.id || 'board'}`;
+  const [worldPick, setWorldPick] = useState(() => {
+    try { return localStorage.getItem(worldKey) || ''; } catch { return ''; }
+  });
+  const world = WORLDS.some((w) => w.id === worldPick) ? worldPick : (board?.world || 'koi');
+  const setWorld = (id) => {
+    setWorldPick(id);
+    try { localStorage.setItem(worldKey, id); } catch { /* ignore */ }
+  };
+  const creature = world === 'birds' ? 'birds' : 'koi';
+  useEffect(() => {
+    if (world !== 'birds') return undefined;
+    const prev = document.body.style.background;
+    document.body.style.background = DUSK.body;
+    document.documentElement.style.background = DUSK.body;
+    return () => {
+      document.body.style.background = prev;
+      document.documentElement.style.background = prev;
+    };
+  }, [world]);
 
   // The prayer surface's state, read (never written) from the shared
   // localStorage of the same origin. See data/prayerLink.js.
@@ -207,6 +237,7 @@ export default function PosterPond({ board }) {
         mix={mixTotal > 0 ? mixCounts : null}
         namedKoi={namedKoi}
         pairToday={concepts.pairToday && namedKoi.length >= 2}
+        world={world}
       />
 
       {/* Content layer. position:relative + zIndex:1 so all zones sit
@@ -256,22 +287,25 @@ export default function PosterPond({ board }) {
           text={season.heroWord || 'Full'}
           cadence={cadenceFromThreads(season.threads)}
           verse={season.sentence}
+          creature={creature}
         />
 
         {/* 03 · Commitments */}
         <CommitmentsZone
           title="Commitments"
           commitments={commitments}
+          world={world}
         />
 
         {/* 04 · marrow */}
         <MarrowZone
           text={friction.heroWord || 'marrow'}
           {...splitMarrowSentence(friction.sentence, friction.heroWord || 'marrow')}
-          cadence="Silence · Fasting · Confession"
+          cadence={friction.cadence}
           verse={friction.prayer?.text}
           anchor={friction.prayer?.reference}
           showNames={concepts.namedKoi}
+          creature={creature}
         />
 
         {/* Footer breath */}
@@ -292,6 +326,8 @@ export default function PosterPond({ board }) {
         concepts={concepts}
         toggleConcept={toggleConcept}
         prayerAvailable={prayer.available}
+        world={world}
+        setWorld={setWorld}
       />
 
       <style>{`
@@ -391,6 +427,8 @@ function PondSettingsMenu({
   concepts,
   toggleConcept,
   prayerAvailable,
+  world = 'koi',
+  setWorld,
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -455,7 +493,7 @@ function PondSettingsMenu({
         <span style={{ opacity: 0.85 }}>{activeFlourish?.label || 'Bubbles'}</span>
         <span style={{ opacity: 0.55 }}>·</span>
         <span style={{ opacity: 0.85 }}>
-          {mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
+          {world === 'birds' ? 'Birds' : mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
         </span>
       </button>
 
@@ -483,6 +521,34 @@ function PondSettingsMenu({
             overflowY: 'auto',
           }}
         >
+          {/* Section: World — the same board, in another place. */}
+          <div>
+            <SectionLabel>World</SectionLabel>
+            <div style={{ display: 'flex', gap: 4, padding: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 999, marginTop: 6 }}>
+              {WORLDS.map((w) => {
+                const selected = world === w.id;
+                return (
+                  <button
+                    key={w.id}
+                    onClick={() => setWorld?.(w.id)}
+                    aria-pressed={selected}
+                    style={{
+                      flex: 1, padding: '6px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                      background: selected ? 'rgba(255,255,255,0.92)' : 'transparent',
+                      color: selected ? '#0a2026' : 'rgba(255,255,255,0.82)',
+                      fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
+                    }}
+                  >
+                    {w.label}
+                  </button>
+                );
+              })}
+            </div>
+            <a href="/make/" style={{ display: 'inline-block', marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>
+              Make your own board →
+            </a>
+          </div>
+
           {/* Section: Flourish treatment */}
           <div>
             <SectionLabel>Flourish ring</SectionLabel>

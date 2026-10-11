@@ -5,9 +5,10 @@ import PosterPond from './views/PosterPond.jsx';
 import DocumentView from './views/Document.jsx';
 import {
   loadBoard,
-  MEMBER_INDEX,
+  allMemberIndex,
   DEFAULT_MEMBER_ID,
 } from './data/board.js';
+import { decodeBoard, saveCustomBoard } from './data/customBoards.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // App — top-level for the Pond surface.
@@ -31,7 +32,12 @@ import {
 
 const DEFAULT_VIEW = 'poster-pond';
 const VALID_VIEWS = new Set(['poster-pond', 'document']);
-const VALID_MEMBERS = new Set(MEMBER_INDEX.map((m) => m.id));
+const query = (k) => { try { return new URLSearchParams(location.search).get(k); } catch { return null; } };
+// A board that arrived as a link (?board=…): shown at once, kept on
+// this device only if the person asks.
+const SHARED = query('board') ? decodeBoard(query('board')) : null;
+// ?preview=1: the /make/ page's live preview — just the board.
+const PREVIEW = query('preview') === '1';
 
 export default function App() {
   const [view, setView] = useState(() => {
@@ -44,13 +50,29 @@ export default function App() {
 
   // Which member's board is being rendered. Persisted so the fridge
   // tablet remembers which family member was on screen when it slept.
+  const [members, setMembers] = useState(allMemberIndex);
+  const [shared, setShared] = useState(SHARED);
   const [memberId, setMemberId] = useState(() => {
+    const valid = new Set(allMemberIndex().map((m) => m.id));
+    const asked = query('member');
+    if (asked && valid.has(asked)) return asked;
     try {
       const saved = localStorage.getItem('ib.member');
-      if (saved && VALID_MEMBERS.has(saved)) return saved;
+      if (saved && valid.has(saved)) return saved;
     } catch {}
     return DEFAULT_MEMBER_ID;
   });
+  const keepShared = () => {
+    const b = saveCustomBoard(shared);
+    setMembers(allMemberIndex());
+    setShared(null);
+    setMemberId(b.id);
+    history.replaceState(null, '', '/');
+  };
+  const closeShared = () => {
+    setShared(null);
+    history.replaceState(null, '', '/');
+  };
 
   const [board, setBoard] = useState(null);
 
@@ -60,13 +82,14 @@ export default function App() {
   // the effect cleanup so rapid member switches don't race.
   useEffect(() => {
     let cancelled = false;
+    if (shared) { setBoard(shared); return undefined; }
     loadBoard('local', memberId).then((b) => {
       if (!cancelled) setBoard(b);
     });
     return () => {
       cancelled = true;
     };
-  }, [memberId]);
+  }, [memberId, shared]);
 
   useEffect(() => {
     try {
@@ -110,15 +133,22 @@ export default function App() {
   return (
     <>
       <SharedStyles />
-      <ViewToggle
+      {!PREVIEW && <ViewToggle
         view={view}
         setView={setView}
-        members={MEMBER_INDEX}
-        memberId={memberId}
-        setMemberId={setMemberId}
-      />
+        members={shared ? [...members, { id: shared.id, name: shared.name, role: 'Shared with you' }] : members}
+        memberId={shared ? shared.id : memberId}
+        setMemberId={(id) => { if (shared) closeShared(); setMemberId(id); }}
+      />}
 
-      {view === 'poster-pond' && <PosterPond   board={board} />}
+      {shared && !PREVIEW && (
+        <div className="shared-banner sans" role="region" aria-label="A board shared with you">
+          <span>Someone shared <strong>{shared.name}</strong>’s board with you.</span>
+          <button type="button" onClick={keepShared}>Keep it on this device</button>
+          <button type="button" className="is-quiet" onClick={closeShared}>Just looking</button>
+        </div>
+      )}
+      {view === 'poster-pond' && <PosterPond key={board.id} board={board} />}
       {view === 'document'    && <DocumentView board={board} />}
     </>
   );

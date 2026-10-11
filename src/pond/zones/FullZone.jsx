@@ -38,6 +38,7 @@ function swellFor(c) {
 }
 
 export default function FullZone({
+  creature = 'koi',
   text = 'Full',
   cadence = 'Rooted · Honest · Resilient',
   verse,
@@ -117,12 +118,12 @@ export default function FullZone({
           <div className="pond-zone-hint" style={{ marginTop: '0.7rem' }}>
             {prayer.daysPrayedThisWeek} of {prayer.daysElapsedThisWeek} this week
             {' · '}
-            {c >= 0.85 ? 'the koi are full' : c >= 0.5 ? 'filling' : 'running lean'}
+            {c >= 0.85 ? `the ${creature} are full` : c >= 0.5 ? 'filling' : 'running lean'}
           </div>
         </div>
       ) : (
         <div className="pond-zone-hint">
-          Fish drawing near grow full. Those drifting far grow lean.
+          {creature === 'birds' ? 'Birds' : 'Fish'} drawing near grow full. Those drifting far grow lean.
         </div>
       )}
 

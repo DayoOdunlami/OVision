@@ -23,6 +23,7 @@ import react from '@vitejs/plugin-react';
 //   flourish/index.html → /flourish/  the Vine (a word grown by a vine)
 //   flourish/abide/index.html → /flourish/abide/  Abide (sow, stay, gather)
 //   labs/index.html  → /labs/   each design change, New or Classic (A/B)
+//   make/index.html  → /make/   make a board, for you or someone else
 //
 // They're separate documents on purpose (the prayer page must never
 // carry the animated pond), but they share an origin — and therefore
@@ -48,6 +49,7 @@ export default defineConfig({
         flourish: resolve(__dirname, 'flourish/index.html'),
         abide: resolve(__dirname, 'flourish/abide/index.html'),
         labs: resolve(__dirname, 'labs/index.html'),
+        make: resolve(__dirname, 'make/index.html'),
       },
     },
   },

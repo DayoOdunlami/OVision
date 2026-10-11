@@ -67,6 +67,28 @@ const WAKE = {
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
+// In the birds' world the commitments are clouds the birds fly under:
+// the same four places, rocking as they pass.
+function CloudSVG({ id }) {
+  const puffs = [
+    [-92, 18, 70, 46], [-30, -14, 82, 62], [48, -4, 76, 56], [104, 22, 52, 38], [8, 34, 128, 48],
+  ];
+  return (
+    <svg viewBox={`-${PAD_W / 2} -${PAD_H / 2} ${PAD_W} ${PAD_H}`} className="pad-svg" aria-hidden="true">
+      <defs>
+        <linearGradient id={`cloud-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fbf6f4" />
+          <stop offset="70%" stopColor="#ece2ea" />
+          <stop offset="100%" stopColor="#d9c9d8" />
+        </linearGradient>
+      </defs>
+      <g fill={`url(#cloud-${id})`}>
+        {puffs.map(([x, y, rx, ry], i) => <ellipse key={i} cx={x} cy={y} rx={rx} ry={ry} />)}
+      </g>
+    </svg>
+  );
+}
+
 function PadSVG({ hue, id }) {
   // Organic blob: subtle radial wobble around an ellipse, with a
   // single small notch on the right edge to keep the lily-pad read.
@@ -82,7 +104,8 @@ function PadSVG({ hue, id }) {
     const wobble = 1 + Math.sin(a * 5) * 0.018 + Math.sin(a * 9) * 0.009;
     pts.push(`${(Math.cos(a) * rx * wobble).toFixed(1)},${(Math.sin(a) * ry * wobble).toFixed(1)}`);
   }
-  const d = `M ${pts[0]} L ${pts.slice(1).join(' L ')} L 0,0 Z`;
+  // The slit stops short of the centre, so it never runs through the words.
+  const d = `M ${pts[0]} L ${pts.slice(1).join(' L ')} L ${(rx * 0.7).toFixed(1)},0 Z`;
 
   // Radiating veins from the centre — subtle, not loud.
   const veinCount = 9;
@@ -124,14 +147,17 @@ function PadSVG({ hue, id }) {
   );
 }
 
-export default function CommitmentsZone({ title = 'Commitments', commitments = null }) {
-  const pads = PAD_PRESETS.map((preset) => {
-    const match = commitments?.find((c) =>
-      c.verb?.toLowerCase() === preset.verb.toLowerCase() ||
-      c.label?.toLowerCase() === preset.verb.toLowerCase()
-    );
+export default function CommitmentsZone({ title = 'Commitments', commitments = null, world = 'koi' }) {
+  // A board's own commitments, whatever their verbs (up to four); a pad
+  // keeps its motion preset by verb when one matches, else by position.
+  const own = commitments?.length ? commitments.slice(0, 4) : null;
+  const pads = (own || PAD_PRESETS).map((c, i) => {
+    const preset = PAD_PRESETS.find((p) => p.verb.toLowerCase() === (c.verb || c.label || '').toLowerCase()) || PAD_PRESETS[i % PAD_PRESETS.length];
+    const match = own ? c : null;
     return {
       ...preset,
+      id: `${preset.id}-${i}`,
+      bob: preset.id,
       verb: match?.verb || match?.label || preset.verb,
       body: match?.text || match?.body || '',
       cadence: match?.cadence || '',
@@ -145,7 +171,7 @@ export default function CommitmentsZone({ title = 'Commitments', commitments = n
 
       <div className="pond-pad-grid">
         {pads.map((p) => (
-          <ReactivePad key={p.id} pad={p} />
+          <ReactivePad key={p.id} pad={p} cloud={world === 'birds'} />
         ))}
       </div>
 
@@ -155,7 +181,7 @@ export default function CommitmentsZone({ title = 'Commitments', commitments = n
 }
 
 // ── One pad, wired to the pond ──────────────────────────────────────
-function ReactivePad({ pad }) {
+function ReactivePad({ pad, cloud = false }) {
   const slotRef = useRef(null);
   const rockRef = useRef(null);
   const rippleHostRef = useRef(null);
@@ -300,14 +326,14 @@ function ReactivePad({ pad }) {
   return (
     <div ref={slotRef} className="pad-slot">
       <div
-        className={`pad-bob pad-bob-${pad.id}`}
+        className={`pad-bob pad-bob-${pad.bob}`}
         style={{
           animationDuration: `${pad.bobDuration}s`,
         }}
       >
         <div ref={rockRef} className="pad-rock">
           <div className="pad-tilt" style={{ transform: `rotate(${pad.rotate}deg)` }}>
-            <PadSVG hue={pad.hue} id={pad.id} />
+            {cloud ? <CloudSVG id={pad.id} /> : <PadSVG hue={pad.hue} id={pad.id} />}
           </div>
           <div ref={rippleHostRef} className="pad-ripples" aria-hidden="true" />
           <div className="pad-content" style={{ transform: `rotate(${pad.rotate}deg)` }}>
@@ -397,7 +423,8 @@ function PadStyles() {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 11% 12%;
+        /* More room on the right, where the slit is. */
+        padding: 11% 19% 11% 12%;
         text-align: center;
       }
 

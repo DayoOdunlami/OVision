@@ -21,6 +21,7 @@ import {
   Ripple,
 } from './pads.js';
 import { FoodBowl, feedGesture, wantsFeedHint, markFed, drawFeedHint } from '../shared/koiFood.js';
+import { Bird, paintSky, SkyLife } from './birds.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PondCanvas — one fixed full-viewport canvas behind the whole board.
@@ -89,6 +90,10 @@ export default function PondCanvas({
   // the original brief's Zone 04 note: "two fish swimming in
   // synchronised pairs — a metaphor for knowing-and-being-known".
   pairToday = false,
+  // Which world the board lives in: 'koi' (the pond) or 'birds' (a dusk
+  // sky). Birds answer to the same calls as koi (see birds.js), so the
+  // zones, names, food and swell all carry over.
+  world = 'koi',
 }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({
@@ -186,8 +191,9 @@ export default function PondCanvas({
       // shoal down with the viewport. Cloning the variety (rather than
       // mutating it) matters — VARIETIES is a shared module-level array.
       const sizeFactor = Math.max(0.55, Math.min(1, w / 1000));
+      const Creature = world === 'birds' ? Bird : SpineFish;
       const fish = varieties.map(
-        (v) => new SpineFish(w, h, {
+        (v) => new Creature(w, h, {
           ...v,
           sizeScale: (v.sizeScale || 1) * sizeFactor,
         }),
@@ -242,16 +248,23 @@ export default function PondCanvas({
       const t = s.tick;
       const ts = t * 0.0028;
 
-      paintWater(ctx, W, H, palette);
-      paintCurrents(ctx, W, H, ts, palette);
+      if (world === 'birds') {
+        paintSky(ctx, W, H);
+        (s.sky ||= new SkyLife()).draw(ctx, W, H, t);
+      } else {
+        paintWater(ctx, W, H, palette);
+        paintCurrents(ctx, W, H, ts, palette);
+      }
 
       // Pad floor-shadows (before lighting layers)
       if (!skipPads) {
         DEFAULT_PADS.forEach((p) => drawPadShadow(ctx, p.rx * W, p.ry * H, p.r, p.rot, t, p.phase));
       }
 
-      paintGodRays(ctx, W, H, ts, palette);
-      paintCaustics(ctx, W, H, ts, palette);
+      if (world !== 'birds') {
+        paintGodRays(ctx, W, H, ts, palette);
+        paintCaustics(ctx, W, H, ts, palette);
+      }
 
       // ── Attractor targets (Marrow tint + Full swell) ──────────
       // Cache element centres (viewport coords = canvas coords since
@@ -552,8 +565,8 @@ export default function PondCanvas({
         r.draw(ctx);
       });
 
-      // Drifting blossoms
-      if (s.blossomCooldown <= 0 && s.blossoms.length < 2) {
+      // Drifting blossoms (on the water only)
+      if (world !== 'birds' && s.blossomCooldown <= 0 && s.blossoms.length < 2) {
         s.blossoms.push(new Blossom(W, H));
         s.blossomCooldown = 1100 + Math.random() * 900;
       }
@@ -569,15 +582,17 @@ export default function PondCanvas({
         DEFAULT_PADS.forEach((p) => drawPad(ctx, p, W, H, t));
       }
 
-      paintVignette(ctx, W, H, palette);
-      paintShimmer(ctx, W, H, ts, palette);
+      if (world !== 'birds') {
+        paintVignette(ctx, W, H, palette);
+        paintShimmer(ctx, W, H, ts, palette);
+      }
 
       // First visits: say once, quietly, that the koi can be fed.
       if (interactive && s.hint >= 0) {
         s.hint++;
         const a = Math.min(1, Math.max(0, (s.hint - 360) / 90)) * Math.min(1, Math.max(0, (2200 - s.hint) / 120));
         if (s.hint > 2200) s.hint = -1;
-        drawFeedHint(ctx, W / 2, H - 78, a);
+        drawFeedHint(ctx, W / 2, H - 78, a, { text: world === 'birds' ? 'Double-tap or hold to scatter seed' : undefined });
       }
       return true;
     };
@@ -677,7 +692,7 @@ export default function PondCanvas({
     // `namedKoi` must be a stable reference from the caller (PosterPond
     // memoises it) or this effect thrashes and the pond respawns every
     // render. `pairToday` is a boolean so it's safe as-is.
-  }, [palette, interactive, fishMin, fishMax, skipPads, mix, namedKoi, pairToday]);
+  }, [palette, interactive, fishMin, fishMax, skipPads, mix, namedKoi, pairToday, world]);
 
   return (
     <canvas
