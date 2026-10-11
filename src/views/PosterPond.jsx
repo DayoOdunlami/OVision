@@ -7,6 +7,7 @@ import MarrowZone from '../pond/zones/MarrowZone.jsx';
 import { POND_VARIETIES } from '../SpineFish.js';
 import { readPrayerState, todayKoi, PRAY_URL } from '../data/prayerLink.js';
 import { DUSK } from '../pond/birds.js';
+import { useScreensaver, SCREEN_CSS } from '../pond/screensaver.js';
 
 // The worlds a board can live in. Same meaning, different place.
 const WORLDS = [
@@ -107,12 +108,17 @@ export default function PosterPond({ board }) {
   const [worldPick, setWorldPick] = useState(() => {
     try { return localStorage.getItem(worldKey) || ''; } catch { return ''; }
   });
-  const world = WORLDS.some((w) => w.id === worldPick) ? worldPick : (board?.world || 'koi');
+  // ?world=birds shows a world for this visit only (Labs' compare uses it).
+  const worldAsked = (() => { try { return new URLSearchParams(location.search).get('world'); } catch { return null; } })();
+  const world = WORLDS.some((w) => w.id === worldAsked) ? worldAsked
+    : WORLDS.some((w) => w.id === worldPick) ? worldPick : (board?.world || 'koi');
   const setWorld = (id) => {
     setWorldPick(id);
     try { localStorage.setItem(worldKey, id); } catch { /* ignore */ }
   };
   const creature = world === 'birds' ? 'birds' : 'koi';
+  const contentRef = useRef(null);
+  const screen = useScreensaver(contentRef);
   useEffect(() => {
     if (world !== 'birds') return undefined;
     const prev = document.body.style.background;
@@ -242,7 +248,7 @@ export default function PosterPond({ board }) {
 
       {/* Content layer. position:relative + zIndex:1 so all zones sit
           above the fixed canvas. Keep plenty of vertical rhythm. */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div ref={contentRef} style={{ position: 'relative', zIndex: 1 }}>
         {/* Masthead — owner + period, plus (when the prayer surface has
             been used here) a live chip showing who today's rota is for.
             The chip is the crossing point between the two surfaces:
@@ -328,7 +334,15 @@ export default function PosterPond({ board }) {
         prayerAvailable={prayer.available}
         world={world}
         setWorld={setWorld}
+        onScreensaver={screen.start}
       />
+
+      {screen.on && (
+        <button type="button" className={`screen-exit${screen.awake ? ' is-shown' : ''}`} onClick={screen.stop} data-no-feed>
+          Exit screensaver
+        </button>
+      )}
+      <style>{SCREEN_CSS}</style>
 
       <style>{`
         .pond-masthead {
@@ -429,6 +443,7 @@ function PondSettingsMenu({
   prayerAvailable,
   world = 'koi',
   setWorld,
+  onScreensaver,
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -453,7 +468,7 @@ function PondSettingsMenu({
   return (
     <div
       ref={rootRef}
-      className="no-print"
+      className="no-print pond-settings"
       data-no-feed
       style={{
         position: 'fixed',
@@ -544,9 +559,21 @@ function PondSettingsMenu({
                 );
               })}
             </div>
-            <a href="/make/" style={{ display: 'inline-block', marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>
-              Make your own board →
-            </a>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); onScreensaver?.(); }}
+                style={{
+                  padding: '7px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.35)', cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.1)', color: '#F1E6D2', fontSize: 10, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', fontWeight: 600,
+                }}
+              >
+                Screensaver
+              </button>
+              <a href="/make/" style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>Make your own board →</a>
+              <a href="/admin/" style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Admin</a>
+            </div>
           </div>
 
           {/* Section: Flourish treatment */}

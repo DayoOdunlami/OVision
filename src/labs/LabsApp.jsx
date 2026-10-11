@@ -13,7 +13,7 @@ import { LABS, labSaved, setLab, setAllLabs } from '../shared/labs.js';
 
 const withQuery = (path, q) => `${path}${path.includes('?') ? '&' : '?'}${q}`;
 
-export default function LabsApp() {
+export default function LabsApp({ renderHeader } = {}) {
   const [saved, setSaved] = useState(() => Object.fromEntries(LABS.map((l) => [l.key, labSaved(l.key)])));
   const [compare, setCompare] = useState(null);
   const surfaces = useMemo(() => [...new Set(LABS.map((l) => l.surface))], []);
@@ -29,6 +29,7 @@ export default function LabsApp() {
 
   return (
     <div className="lb-app">
+      {renderHeader ? renderHeader({ all, saved }) : (<>
       <nav className="lb-nav" aria-label="Surfaces">
         <a href="/">Pond</a>
         <a href="/flourish/abide/">Abide</a>
@@ -47,6 +48,7 @@ export default function LabsApp() {
           <button type="button" onClick={() => all(false)}>Everything classic</button>
         </div>
       </header>
+      </>)}
 
       {surfaces.map((surface) => (
         <section key={surface} className="lb-surface">

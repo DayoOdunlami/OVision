@@ -341,7 +341,7 @@ export class SkyLife {
     }));
   }
 
-  draw(ctx, W, H, t) {
+  draw(ctx, W, H, t, { clouds = true } = {}) {
     for (const [x, y, r, ph] of this.stars) {
       ctx.globalAlpha = 0.25 + 0.25 * Math.sin(t * 0.02 + ph);
       ctx.fillStyle = '#fff6e0';
@@ -350,6 +350,7 @@ export class SkyLife {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+    if (!clouds) return;
     for (const c of this.clouds) {
       const cx = (((c.x + t * c.v) % 1.6) - 0.3) * W;
       const g = ctx.createRadialGradient(cx, c.y * H, 0, cx, c.y * H, c.w * W * 0.5);

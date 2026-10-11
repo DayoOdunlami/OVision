@@ -694,3 +694,5 @@
 .ab-key { font-style: italic; font-weight: 600; color: #8a5d16; }
 .is-night .ab-key { color: #f3d58a; }
 @media (prefers-reduced-motion: reduce) { .ab-breath-words > span { transition: none; } }
+.ab-btn-link { display: inline-flex; align-items: center; text-decoration: none; }
+.ab-foot .ab-btn-link { color: #f4ead8; background: rgba(255, 255, 255, 0.12); border-color: rgba(244, 234, 216, 0.35); }

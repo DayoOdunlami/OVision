@@ -22,6 +22,8 @@ import {
 } from './pads.js';
 import { FoodBowl, feedGesture, wantsFeedHint, markFed, drawFeedHint } from '../shared/koiFood.js';
 import { Bird, paintSky, SkyLife } from './birds.js';
+import { Bird2, SkyScape } from './birds2.js';
+import { lab } from '../shared/labs.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // PondCanvas — one fixed full-viewport canvas behind the whole board.
@@ -135,6 +137,10 @@ export default function PondCanvas({
     let disposed = false;
 
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    // The sky world, second pass (Labs): flocking birds with articulated
+    // wings, and painted clouds they fly through. See birds2.js.
+    const birds2 = world === 'birds' && lab('pond.birds2');
+    const clouds2 = world === 'birds' && lab('pond.clouds2');
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     // Identity board uses fish shading's symmetric mode by default so
@@ -191,7 +197,7 @@ export default function PondCanvas({
       // shoal down with the viewport. Cloning the variety (rather than
       // mutating it) matters — VARIETIES is a shared module-level array.
       const sizeFactor = Math.max(0.55, Math.min(1, w / 1000));
-      const Creature = world === 'birds' ? Bird : SpineFish;
+      const Creature = world === 'birds' ? (birds2 ? Bird2 : Bird) : SpineFish;
       const fish = varieties.map(
         (v) => new Creature(w, h, {
           ...v,
@@ -213,6 +219,8 @@ export default function PondCanvas({
         }
       }
 
+      // Birds that flock know about each other.
+      for (const f of fish) f.joinFlock?.(fish);
       stateRef.current.fish = fish;
 
       // Fish-layer offscreen — same logical CSS size, same DPR transform.
@@ -250,7 +258,7 @@ export default function PondCanvas({
 
       if (world === 'birds') {
         paintSky(ctx, W, H);
-        (s.sky ||= new SkyLife()).draw(ctx, W, H, t);
+        (s.sky ||= new SkyLife()).draw(ctx, W, H, t, { clouds: !clouds2 });
       } else {
         paintWater(ctx, W, H, palette);
         paintCurrents(ctx, W, H, ts, palette);
@@ -318,7 +326,20 @@ export default function PondCanvas({
       // only lands on fish pixels, not the water underneath.
       const off = s.fishLayer;
       const offCtx = s.fishLayerCtx;
-      offCtx.clearRect(0, 0, W, H);
+      if (!birds2) offCtx.clearRect(0, 0, W, H);
+
+      // Painted clouds: the far layer and a distant murmuration behind
+      // everything; the middle layer between high birds and low ones
+      // (so they pass through); wisps in front, after the birds.
+      const sky2 = clouds2 ? (s.sky2 ||= new SkyScape()) : null;
+      let midDrawn = false;
+      if (sky2) {
+        sky2.layout(W, H);
+        if (!reduced) sky2.step(s.fish, window.scrollY || 0);
+        sky2.drawFar(ctx);
+        sky2.drawLayer(ctx, 0);
+        if (!birds2) { sky2.drawLayer(ctx, 1); midDrawn = true; }
+      }
 
       // Publish ambient fish positions (viewport coords) for other
       // zones (FlourishZone reads this to make particles scatter
@@ -413,15 +434,27 @@ export default function PondCanvas({
       const labels = [];
       for (const f of drawOrder) {
         const scale = resolveFullScale(f);
+        // Second-pass birds draw straight onto the sky, between the
+        // cloud layers, and take the friction word's colour themselves.
+        const dctx = birds2 ? ctx : offCtx;
+        if (birds2) {
+          if (sky2 && !midDrawn && (f.depth ?? 0.4) <= 0.5) { sky2.drawLayer(ctx, 1); midDrawn = true; }
+          let heat = 0;
+          for (const m of s.marrowTargets) {
+            const d = Math.hypot(f.head.x - m.cx, f.head.y - m.cy);
+            if (d < m.radius) heat = Math.max(heat, 1 - d / m.radius);
+          }
+          f.tint = heat;
+        }
         if (scale !== 1) {
-          offCtx.save();
-          offCtx.translate(f.head.x, f.head.y);
-          offCtx.scale(scale, scale);
-          offCtx.translate(-f.head.x, -f.head.y);
-          f.draw(offCtx);
-          offCtx.restore();
+          dctx.save();
+          dctx.translate(f.head.x, f.head.y);
+          dctx.scale(scale, scale);
+          dctx.translate(-f.head.x, -f.head.y);
+          f.draw(dctx);
+          dctx.restore();
         } else {
-          f.draw(offCtx);
+          f.draw(dctx);
         }
 
         // Publish spine points with their *apparent* radius — i.e.
@@ -476,7 +509,8 @@ export default function PondCanvas({
       // fish layer with source-atop composite. Only fish pixels inside
       // the disc get coloured; water is untouched; the tint is strong
       // and unambiguous (the whole point).
-      if (s.marrowTargets.length) {
+      if (sky2 && !midDrawn) sky2.drawLayer(ctx, 1);
+      if (!birds2 && s.marrowTargets.length) {
         offCtx.save();
         offCtx.globalCompositeOperation = 'source-atop';
         for (const m of s.marrowTargets) {
@@ -492,7 +526,8 @@ export default function PondCanvas({
       }
 
       // Flatten the fish layer onto the main canvas.
-      ctx.drawImage(off, 0, 0, W, H);
+      if (!birds2) ctx.drawImage(off, 0, 0, W, H);
+      if (sky2) sky2.drawLayer(ctx, 2);
 
       // ── Name labels for the koi carrying today's names ────────
       // Drawn after the flatten so the marrow tint mask (which is

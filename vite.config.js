@@ -24,6 +24,8 @@ import react from '@vitejs/plugin-react';
 //   flourish/abide/index.html → /flourish/abide/  Abide (sow, stay, gather)
 //   labs/index.html  → /labs/   each design change, New or Classic (A/B)
 //   make/index.html  → /make/   make a board, for you or someone else
+//   admin/index.html → /admin/  version, Main/Lab switch, every change (/labs/ too)
+//   today/index.html → /today/  optional: today's prayer, word and board in one place
 //
 // They're separate documents on purpose (the prayer page must never
 // carry the animated pond), but they share an origin — and therefore
@@ -50,6 +52,8 @@ export default defineConfig({
         abide: resolve(__dirname, 'flourish/abide/index.html'),
         labs: resolve(__dirname, 'labs/index.html'),
         make: resolve(__dirname, 'make/index.html'),
+        admin: resolve(__dirname, 'admin/index.html'),
+        today: resolve(__dirname, 'today/index.html'),
       },
     },
   },

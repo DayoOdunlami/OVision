@@ -77,9 +77,9 @@ function CloudSVG({ id }) {
     <svg viewBox={`-${PAD_W / 2} -${PAD_H / 2} ${PAD_W} ${PAD_H}`} className="pad-svg" aria-hidden="true">
       <defs>
         <linearGradient id={`cloud-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbf6f4" />
-          <stop offset="70%" stopColor="#ece2ea" />
-          <stop offset="100%" stopColor="#d9c9d8" />
+          <stop offset="0%" stopColor="#f3eef6" />
+          <stop offset="62%" stopColor="#efe6ee" />
+          <stop offset="100%" stopColor="#f6d6c4" />
         </linearGradient>
       </defs>
       <g fill={`url(#cloud-${id})`}>

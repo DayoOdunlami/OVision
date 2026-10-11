@@ -6,6 +6,7 @@ import {
   clearedToday, markCleared, questionOf,
 } from './words.js';
 import { lab } from '../../shared/labs.js';
+import { fromToday } from '../../shared/today.js';
 import { PEOPLE, personOf, readGroup, writeGroup, groupLabel } from './people.js';
 import { readPrayerState } from '../../data/prayerLink.js';
 
@@ -61,6 +62,7 @@ function hourNow() {
 
 // Development: ?fast=1 runs the after-growth timings twenty times faster.
 const FAST = import.meta.env.DEV && /[?&]fast=1/.test(location.search) ? 0.05 : 1;
+const FROM_TODAY = fromToday();
 // ?at=intro|sow|vineyard opens at that step (for Labs' side-by-side).
 const AT = (() => { try { return new URLSearchParams(location.search).get('at') || ''; } catch { return ''; } })();
 
@@ -279,7 +281,7 @@ export default function AbideApp() {
       />
 
       <nav className="ab-nav" aria-label="Surfaces">
-        <a href="/" className="ab-pill">Pond</a>
+        {FROM_TODAY ? <a href="/today/" className="ab-pill">Today</a> : <a href="/" className="ab-pill">Pond</a>}
         {L.noFreeWrite ? (
           <span className="ab-switch"><span className="ab-pill is-here" aria-current="page">Abide</span></span>
         ) : (
@@ -425,9 +427,13 @@ export default function AbideApp() {
                 ? `${vines} vine${vines === 1 ? '' : 's'}${together ? ` · ${together} day${together === 1 ? '' : 's'} together` : ''}${field.wall ? ` · a wall of ${field.wall} stone${field.wall === 1 ? '' : 's'}` : ''}`
                 : 'The vineyard is waiting for its first vine.'}
             </p>
-            <button type="button" className="ab-btn" onClick={again}>
-              {doneTodayFor(entries, who) ? 'Abide again' : 'Sow today’s word'}
-            </button>
+            {FROM_TODAY && doneTodayFor(entries, who) ? (
+              <a className="ab-btn ab-btn-link" href="/today/">Back to Today</a>
+            ) : (
+              <button type="button" className="ab-btn" onClick={again}>
+                {doneTodayFor(entries, who) ? 'Abide again' : 'Sow today’s word'}
+              </button>
+            )}
           </section>
           {open && (
             <VineCard

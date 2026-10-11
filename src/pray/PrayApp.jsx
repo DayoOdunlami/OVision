@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import ReadingView from './components/ReadingView.jsx';
 import { lab } from '../shared/labs.js';
+import { fromToday } from '../shared/today.js';
 import { wordForRef } from '../flourish/abide/words.js';
 import ControlSheet from './components/ControlSheet.jsx';
 import PaceMode from './components/PaceMode.jsx';
@@ -151,9 +152,15 @@ export default function PrayApp() {
       className="pray-app"
       style={{ '--scale': textScale }}
     >
-      <a className="to-pond" href="/" aria-label="Back to the pond">
-        <span aria-hidden="true">&#8592;</span> Pond
-      </a>
+      {fromToday() ? (
+        <a className="to-pond" href="/today/" aria-label="Back to Today">
+          <span aria-hidden="true">&#8592;</span> Today
+        </a>
+      ) : (
+        <a className="to-pond" href="/" aria-label="Back to the pond">
+          <span aria-hidden="true">&#8592;</span> Pond
+        </a>
+      )}
 
       <ReadingView
         day={day}

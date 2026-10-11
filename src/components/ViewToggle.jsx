@@ -151,13 +151,14 @@ function ViewPicker({ view, setView }) {
       {/* A real anchor, not a button: /pray/ is a separate document,
           so this is genuine navigation. Keeping it an <a> means
           long-press / open-in-new-tab / middle-click all behave. */}
-      <a href="/flourish/" className="sans vb-pill vb-pill-link">
-        Flourish
-        <span aria-hidden="true" className="vb-arrow">↗</span>
+      <a href="/today/" className="sans vb-pill vb-pill-link">Today</a>
+      <a href="/flourish/abide/" className="sans vb-pill vb-pill-link">
+        Abide
+        <span aria-hidden="true" className="vb-arrow vb-hide-narrow">↗</span>
       </a>
       <a href={PRAY_URL} className="sans vb-pill vb-pill-link">
         Pray
-        <span aria-hidden="true" className="vb-arrow">↗</span>
+        <span aria-hidden="true" className="vb-arrow vb-hide-narrow">↗</span>
       </a>
     </div>
   );

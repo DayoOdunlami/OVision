@@ -1,0 +1,28 @@
+.ad-gate { display: flex; flex-direction: column; }
+.ad-gate-form { max-width: 22rem; margin: 12vh auto 0; text-align: center; display: flex; flex-direction: column; gap: 0.8rem; }
+.ad-gate-form h1 { margin: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 2.6rem; }
+.ad-gate-form label { display: flex; flex-direction: column; gap: 0.3rem; text-align: left; }
+.ad-label { font-size: 0.82rem; font-weight: 600; }
+.ad-gate-form input {
+  font: inherit; font-size: 1rem; color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-radius: 10px; padding: 0.6rem 0.75rem; min-height: 44px;
+}
+.ad-wrong { margin: 0; color: #a3412a; font-size: 0.88rem; }
+.lb-app .ad-primary, .lb-app .ad-mode button.is-on { color: #fff; background: var(--green); border-color: var(--green); }
+
+.lb-app .ad-lock { margin-left: 0.6rem; min-height: 32px; padding: 0.2rem 0.8rem; font-size: 0.8rem; }
+
+.ad-mode { display: inline-flex; padding: 4px; margin-top: 1.2rem; border: 1px solid var(--line); border-radius: 999px; }
+.lb-app .ad-mode button { border: 0; min-width: 7rem; min-height: 44px; font-size: 1rem; color: var(--muted); }
+.ad-now { margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--muted); }
+
+.ad-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 12px; margin-top: 1.6rem; }
+.ad-card { padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.ad-card h2 { margin: 0 0 0.4rem; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 1.4rem; }
+.ad-card p { margin: 0.3rem 0; font-size: 0.92rem; line-height: 1.45; }
+.ad-card a { color: var(--green); }
+.ad-meta { color: var(--muted); font-size: 0.82rem !important; }
+.ad-links { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.35rem; font-size: 0.95rem; }
+.ad-switch { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; font-size: 0.9rem; cursor: pointer; }
+.ad-switch input { width: 20px; height: 20px; accent-color: var(--green); }
+.ad-section { margin: 2.2rem 0 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 1.9rem; }
