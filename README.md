@@ -36,8 +36,8 @@ Abide also takes `?at=intro|sow|vineyard` to open at a step (which `/labs/` comp
 
 Made boards are kept under `vb.boards` (`src/data/customBoards.js`). A board travels as base64url
 JSON in `?board=`, which is normalised, text only and length-capped. The screensaver is
-`?screen=1` (`src/pond/screensaver.js`). `/murmuration/` is an experiment: three.js's GPU flock
-(MIT) at dusk. The bird worlds we tried and removed are recorded in `docs/birds-log.md`.
+`?screen=1` (`src/pond/screensaver.js`). `/murmuration/` is the board's words written by a flock of starlings
+(three.js's GPU flock, MIT, extended; `src/murmuration/`, brief in `docs/murmuration-brief.md`). The bird worlds we tried and removed are recorded in `docs/birds-log.md`.
 
 ## How they're joined
 

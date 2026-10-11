@@ -514,6 +514,7 @@ function PondSettingsMenu({
               >
                 Screensaver
               </button>
+              <a href="/murmuration/" style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>Murmuration →</a>
               <a href="/make/" style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>Make your own board →</a>
               <a href="/admin/" style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Admin</a>
             </div>

@@ -51,8 +51,8 @@ The rooms only touch lightly:
 ## Birds: stopped
 
 Four attempts at a bird world didn't come close to the koi, so they were removed. The record and
-the reasons are in `docs/birds-log.md`. The one keeper is the **murmuration**
-(`/murmuration/`), and the idea worth trying next is a murmuration that writes the board's words.
+the reasons are in `docs/birds-log.md`. What grew from them is the **Murmuration** (`/murmuration/`): the board's words
+written by a flock of starlings, a counterpart to the pond. Brief: `docs/murmuration-brief.md`.
 
 ## 3D: a view
 

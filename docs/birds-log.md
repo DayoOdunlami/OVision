@@ -45,6 +45,10 @@ That is a project of its own, for a smaller return than the koi already give.
   - Shadertoy defaults to non-commercial use.
   - LottieFiles uses its own licence.
 
+## What came of it
+
+Built: `/murmuration/` writes the board's words with the flock. See `docs/murmuration-brief.md`.
+
 ## The idea worth trying instead
 
 **A murmuration that writes the board's words.** Thousands of starlings pour and fold. Every

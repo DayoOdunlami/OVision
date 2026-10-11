@@ -85,7 +85,7 @@ export default function TodayApp() {
           n="3" title="Rest your eyes" next={next === 'rest'}
           href="/?from=today"
           action="Open the board"
-          extra={<a className="td-quiet" href="/?screen=1">or as a screensaver</a>}
+          extra={<><a className="td-quiet" href="/?screen=1">as a screensaver</a><a className="td-quiet" href="/murmuration/">or as a murmuration</a></>}
         >
           {board ? (
             <>{board.owner || board.name}’s board{board.period ? ` for ${board.period}` : ''}:
