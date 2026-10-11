@@ -5,7 +5,7 @@ import { LABS } from '../shared/labs.js';
 // ═══════════════════════════════════════════════════════════════════
 // Admin — the developer side, opened from the main app (Pond settings →
 // Admin, or /admin/). Not security, just a latch so the family doesn't
-// wander in: the password is "bio123" (or "123").
+// wander in: the password is "bio123" (or "123", or "dayo123").
 //
 // One place to see which version is live, flip the whole app between
 // Main (as it was) and Lab (every new change), choose change by change
@@ -14,7 +14,7 @@ import { LABS } from '../shared/labs.js';
 
 const OK_KEY = 'admin.ok';
 const HOME_KEY = 'vb.home';
-const PASSWORDS = ['bio123', '123'];
+const PASSWORDS = ['bio123', '123', 'dayo123'];
 const LIVE = 'https://o-vision.vercel.app';
 
 const read = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
