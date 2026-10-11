@@ -58,7 +58,10 @@ export function todayDayIndex() {
 }
 
 export function isoDate(d = new Date()) {
-  return d.toISOString().split('T')[0];
+  // The local calendar day (toISOString would give UTC: praying just
+  // after midnight in British Summer Time counted for the day before).
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 // ISO date for a Mon-indexed day in *the current calendar week*.

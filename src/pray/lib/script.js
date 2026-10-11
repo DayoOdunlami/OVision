@@ -3,6 +3,7 @@ import {
   prayers, blessing, lordsPrayer, petitionPrompts, kidsPetitionPrompts,
 } from '../data/prayers.js';
 import { buildPrayerContext, familyContext, pairLabel, listNames } from './context.js';
+import { lab } from '../../shared/labs.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // script.js — "what does this day's prayer consist of?"
@@ -40,6 +41,7 @@ export function buildDay(state, dayIndex) {
       title: 'The Lord’s Prayer',
       body: { kind: 'lords', html: lordsPrayer.text, explain: spoken ? lordsPrayer.explain : null },
       steps: stanzas.map((html) => ({ html })),
+      paceSteps: stanzas.map((html) => ({ html })),
       blessingHtml,
       blessingExplain: spoken ? blessing.explain(ctx) : null,
       prompt: null,
@@ -91,6 +93,13 @@ export function buildDay(state, dayIndex) {
         }));
   }
 
+  // Pray it reads the very words on the page (Labs: pray.sameWords):
+  // the reading view's paragraphs, a card each, in the chosen voice.
+  // Classic: adults get the modern Spoken lines, always first person.
+  const paceSteps = !spoken && lab('pray.sameWords') && body.kind === 'flowing'
+    ? body.paragraphs.map((html) => ({ html }))
+    : steps;
+
   const blessingMode = spoken ? 'solo' : mode;
   return {
     isSunday: false,
@@ -100,6 +109,7 @@ export function buildDay(state, dayIndex) {
     title: prayer.theme,
     body,
     steps,
+    paceSteps,
     blessingHtml: blessing.flowing[blessingMode](ctx).replace(/\n/g, '<br>'),
     blessingExplain: spoken ? blessing.explain(ctx) : null,
     prompt,

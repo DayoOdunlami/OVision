@@ -46,6 +46,24 @@ export const LABS = [
     what: 'After the gather: “Carry Abide with you today.”',
     classic: 'No closing line.', path: '/flourish/abide/', query: 'at=sow',
     howTo: 'Gather the vine into the vineyard to see it.' },
+
+  // ── Pray ───────────────────────────────────────────────────────────
+  { key: 'pray.amenTap', surface: 'Pray', title: 'Tap “Amen” to finish',
+    what: 'Reading the prayer off the page now counts: the “Amen.” at the end is a button that marks today as prayed (for the pond’s koi and the vineyard’s fruit).',
+    classic: 'Only an Amen inside “Pray it” or the puzzle counted; reading didn’t.',
+    path: '/pray/', query: '', howTo: 'Scroll to the end of today’s prayer.' },
+  { key: 'pray.thenAbide', surface: 'Pray', title: '“Now abide” after Amen',
+    what: 'Once today is prayed, a quiet link carries on to Abide with this week’s word: one daily rhythm instead of three separate pages.',
+    classic: 'No link on; you find Abide yourself.',
+    path: '/pray/', query: '', howTo: 'Tap Amen at the end of today’s prayer (needs “Tap Amen to finish”).' },
+  { key: 'pray.sameWords', surface: 'Pray', title: '“Pray it” uses the words on the page',
+    what: '“Pray it” shows the same prayer you read, a paragraph per card, in the voice you chose (Together, Kids).',
+    classic: '“Pray it” switched to modern Spoken lines in the first person, even in Together.',
+    path: '/pray/', query: '', howTo: 'Tap “Pray it”, then Begin. (Sunday’s Lord’s Prayer is the same either way.)' },
+  { key: 'pray.calmOptions', surface: 'Pray', title: 'Calmer Options',
+    what: 'Options opens with today’s choices only (day, voice, this week); everything else is under “More settings”.',
+    classic: 'Eleven groups and about thirty buttons in one long sheet.',
+    path: '/pray/', query: '', howTo: 'Tap Options.' },
 ];
 
 const KEY = 'labs';

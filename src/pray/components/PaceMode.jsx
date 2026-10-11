@@ -23,7 +23,7 @@ import AmenCard from './AmenCard.jsx';
 export default function PaceMode({ day, celebrate = 'recommended', onClose, onAmen }) {
   const cards = [
     { kind: 'breath' },
-    ...day.steps.map((s) => ({ kind: 'line', ...s })),
+    ...(day.paceSteps || day.steps).map((s) => ({ kind: 'line', ...s })),
     { kind: 'blessing', html: day.blessingHtml },
   ];
   const [i, setI] = useState(0);

@@ -38,7 +38,10 @@ export default function ControlSheet({
   onChoosePrayer,
   celebrate,
   setCelebrate,
+  calm = false,   // Labs pray.calmOptions: today's choices first, the rest folded away
 }) {
+  const [more, setMore] = useState(false);
+  const fold = calm && !more;
   const panelRef = useRef(null);
   const [dragY, setDragY] = useState(0);
   const drag = useRef(null);
@@ -115,7 +118,7 @@ export default function ControlSheet({
           </Group>
 
           {/* ── How ─────────────────────────────────────────────── */}
-          <Group label="Voice">
+          <Group label="Voice" hint={calm ? 'Solo: you pray. Together: one reads, all join the blessing. Kids: short and simple.' : undefined}>
             <Segmented
               value={state.mode}
               onChange={(mode) => update({ mode })}
@@ -127,6 +130,15 @@ export default function ControlSheet({
             />
           </Group>
 
+          {calm && <WeekDots state={state} tally={tally} today={today} togglePrayedDay={togglePrayedDay} />}
+
+          {calm && (
+            <button type="button" className="more-toggle" onClick={() => setMore((m) => !m)} aria-expanded={more}>
+              {more ? 'Fewer settings' : 'More settings'} <span aria-hidden="true">{more ? '▴' : '▾'}</span>
+            </button>
+          )}
+
+          {!fold && (<>
           <Group
             label="Style"
             hint={state.spokenView
@@ -178,7 +190,7 @@ export default function ControlSheet({
           </Group>
 
           {/* ── This week ───────────────────────────────────────── */}
-          <Group
+          {!calm && <Group
             label="This week"
             hint={`${tally.done} of ${tally.elapsed} day${tally.elapsed === 1 ? '' : 's'} prayed · tap a day to mark it`}
           >
@@ -200,7 +212,7 @@ export default function ControlSheet({
                 );
               })}
             </div>
-          </Group>
+          </Group>}
 
           <Group label="Celebration" hint={CELEBRATE_HINTS[celebrate]}>
             <Segmented
@@ -242,6 +254,7 @@ export default function ControlSheet({
 
           {/* So "are we looking at the same thing?" has an answer: the
               commit this page was built from, matching the git log. */}
+          </>)}
           <p className="build-id">Version {__BUILD_ID__}</p>
         </div>
       </div>
@@ -373,4 +386,33 @@ function formatDate(iso) {
   return Number.isNaN(d.getTime())
     ? iso
     : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+// This week's days, as dots: tap a past day to mark it prayed.
+function WeekDots({ state, tally, today, togglePrayedDay }) {
+  return (
+    <Group
+      label="This week"
+      hint={`${tally.done} of ${tally.elapsed} day${tally.elapsed === 1 ? '' : 's'} prayed · tap a day to mark it`}
+    >
+      <div className="wk">
+        {DAY_NAMES.map((d, i) => {
+          const future = i > today;
+          const done = !future && Boolean(state.prayed?.[isoForDayIndex(i)]);
+          return (
+            <button
+              key={d}
+              className={'wk-dot' + (done ? ' is-done' : '') + (future ? ' is-future' : '') + (i === today ? ' is-today' : '')}
+              disabled={future}
+              onClick={() => togglePrayedDay(i)}
+              aria-label={`${d}${done ? ', prayed' : ''}`}
+              aria-pressed={done}
+            >
+              {d[0]}
+            </button>
+          );
+        })}
+      </div>
+    </Group>
+  );
 }

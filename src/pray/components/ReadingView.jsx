@@ -23,6 +23,8 @@ export default function ReadingView({
   focus,
   onSavePetition,
   isKids,
+  onAmen,          // Labs pray.amenTap: "Amen." marks today as prayed
+  nextWord,        // Labs pray.thenAbide: this week's word, for "Now abide"
 }) {
   const rootRef = useRef(null);
   const today = todayDayIndex();
@@ -144,7 +146,28 @@ export default function ReadingView({
 
         <section className="rv-block rv-blessing">
           <Html as="p" className="rv-blessing-text" html={day.blessingHtml} />
-          <p className="rv-amen">Amen.</p>
+          {onAmen && dayIndex === today ? (
+            <>
+              <button
+                type="button"
+                className={`rv-amen rv-amen-btn${prayedThatDay ? ' is-done' : ''}`}
+                onClick={prayedThatDay ? undefined : onAmen}
+                aria-pressed={prayedThatDay}
+              >
+                Amen.{prayedThatDay && <span className="rv-amen-tick" aria-hidden="true"> &#10003;</span>}
+              </button>
+              <p className="rv-amen-hint">
+                {prayedThatDay ? 'Prayed today. The koi know.' : 'Tap Amen when you’ve prayed it together.'}
+              </p>
+            </>
+          ) : (
+            <p className="rv-amen">Amen.</p>
+          )}
+          {nextWord && prayedThatDay && dayIndex === today && (
+            <a className="rv-next" href="/flourish/abide/">
+              Now abide with <em>{nextWord}</em> <span aria-hidden="true">&#8594;</span>
+            </a>
+          )}
           <Explore html={day.blessingExplain} />
         </section>
 

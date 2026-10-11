@@ -1,5 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import ReadingView from './components/ReadingView.jsx';
+import { lab } from '../shared/labs.js';
+import { wordForRef } from '../flourish/abide/words.js';
 import ControlSheet from './components/ControlSheet.jsx';
 import PaceMode from './components/PaceMode.jsx';
 import PrintSheet from './components/PrintSheet.jsx';
@@ -29,6 +31,13 @@ import { prayers } from './data/prayers.js';
 // State is the shared `familyPrayer` record (see lib/state.js), written
 // through on every change so the pond sees it.
 // ═══════════════════════════════════════════════════════════════════
+
+// Which of the design pass's changes are on (see /labs/).
+const LABS_ON = {
+  amenTap: lab('pray.amenTap'),
+  thenAbide: lab('pray.thenAbide'),
+  calmOptions: lab('pray.calmOptions'),
+};
 
 export default function PrayApp() {
   const [state, setState] = useState(() => loadState());
@@ -154,6 +163,8 @@ export default function PrayApp() {
         focus={focus}
         onSavePetition={savePetition}
         isKids={isKids}
+        onAmen={LABS_ON.amenTap ? markPrayedToday : null}
+        nextWord={LABS_ON.thenAbide ? wordForRef(state.prayerRef).word : null}
       />
 
       <nav className="dock" aria-label="Prayer controls">
@@ -198,6 +209,7 @@ export default function PrayApp() {
         onChoosePrayer={choosePrayer}
         celebrate={celebrate}
         setCelebrate={setCelebrate}
+        calm={LABS_ON.calmOptions}
       />
 
       {overlay === 'puzzle' && day && (
