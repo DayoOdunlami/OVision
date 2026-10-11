@@ -54,6 +54,24 @@ things.
 - The breathing instruction on Sow. It already appears, in context, while you breathe.
 - The always-visible word dropdown. A strong default beats a choice.
 
+## Second pass (done, each behind a Labs flag at `/labs/`)
+
+- **Breath prayer, on the breath.** Each word has a two-part breath prayer from its verse
+  ("Abide in me" / "and I in you"). The halves cross-fade with the in-breath and out-breath.
+- **Read it twice.** Once the vine has grown, the verse is read again, a line at a time, with
+  its word picked out in gold. The question comes after.
+- **Stillness.** About 15 seconds ("Be still for a moment", while the breath carries on)
+  before Gather appears.
+- **A smaller, shared field.** About five things per person here (one person, 5; two, 10;
+  four, 20). It's laid out again if someone joins before clearing starts, and skipped if
+  everyone here has already cleared it today.
+- **No "Free write"** in Abide's menu.
+- **One human sentence** in the vineyard, e.g. "Dad and Mum have abided together once." or
+  "Bella has abided 9 times, 3 with Dad."
+- **Last pass's** "I wonder…" questions and closing line are flags too.
+
+Items 1, 2, 3, 5 and part of 6 below are now done. The rest stand.
+
 ## What to do next (ranked, and deliberately aggressive)
 
 1. **Breath prayer: put the words on the breath.** This is the biggest single upgrade.

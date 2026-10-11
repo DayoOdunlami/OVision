@@ -13,6 +13,31 @@ They are deliberately **not** the same page. The pond is animated koi; the
 prayer surface is still type on paper. Putting koi behind prayer text would
 fight the exact problem the prayer surface exists to solve (a wandering mind).
 
+| `/make/` | **Make a board**: for you or someone else | Four short answers and a world (koi pond or birds at dusk), with a live preview. Saves to this device, or travels as a link (`/?board=…`). |
+| `/labs/` | **Labs**: New or Classic | Every design change behind a flag, with what it was before. Choose per device, or compare side by side. |
+
+Design reviews, with what was changed and what to do next: `docs/abide-review.md`,
+`docs/pray-review.md`, `docs/pond-review.md`.
+
+## Labs (A/B)
+
+`src/shared/labs.js` lists every change from a design pass. `lab('abide.breathWords')` is true
+unless it's been switched to Classic on `/labs/`. On any page:
+
+- `?labs=classic` shows it exactly as it was.
+- `?labs=new` turns every change on.
+- `?lab=key1,key2` turns on only those changes, for a side-by-side comparison.
+
+Abide also takes `?at=intro|sow|vineyard` to open at a step (which `/labs/` compare uses), and
+`?fast=1` in development to run the after-growth timings twenty times faster.
+
+## Worlds and made boards
+
+A board lives in a world: `koi` (the pond) or `birds` (a dusk sky, `src/pond/birds.js`). Birds
+answer to the same calls as koi, so names, swell, colour, food and the commitments' wake all
+carry over. Made boards are kept under `vb.boards` (`src/data/customBoards.js`). A board
+travels as base64url JSON in `?board=`, which is normalised, text only and length-capped.
+
 ## How they're joined
 
 Same origin → same `localStorage`. The prayer surface writes `familyPrayer`;
