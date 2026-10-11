@@ -3,7 +3,9 @@ import AbideScene, { skyAt } from './AbideScene.jsx';
 import {
   WORDS, wordForRef, wordByKey, readVineyard, gatherToday, todayIso, groundFor, doneTodayFor,
   learnedWords, seasonNow, prettyDate, readField, addToField, daysBetween,
+  clearedToday, markCleared, questionOf,
 } from './words.js';
+import { lab } from '../../shared/labs.js';
 import { PEOPLE, personOf, readGroup, writeGroup, groupLabel } from './people.js';
 import { readPrayerState } from '../../data/prayerLink.js';
 
@@ -57,28 +59,49 @@ function hourNow() {
   return d.getHours() + d.getMinutes() / 60;
 }
 
+// Development: ?fast=1 runs the after-growth timings twenty times faster.
+const FAST = import.meta.env.DEV && /[?&]fast=1/.test(location.search) ? 0.05 : 1;
+// ?at=intro|sow|vineyard opens at that step (for Labs' side-by-side).
+const AT = (() => { try { return new URLSearchParams(location.search).get('at') || ''; } catch { return ''; } })();
+
 export default function AbideApp() {
+  // Which of the design pass's changes are on (see /labs/).
+  const L = useMemo(() => ({
+    breathWords: lab('abide.breathWords'),
+    readTwice: lab('abide.readTwice'),
+    stillness: lab('abide.stillness'),
+    smallField: lab('abide.smallField'),
+    noFreeWrite: lab('abide.noFreeWrite'),
+    humanLine: lab('abide.humanLine'),
+    wonder: lab('abide.wonder'),
+    closingLine: lab('abide.closingLine'),
+  }), []);
   const weekWord = useMemo(() => wordForRef(readPrayerState().prayerRef), []);
   const season = useMemo(() => seasonNow(), []);
   const learned = useMemo(() => learnedWords(), []);
   const [entry, setEntry] = useState(weekWord);
   const [entries, setEntries] = useState(readVineyard);
   const [who, setWhoRaw] = useState(readGroup);
-  const setWho = (names) => { setWhoRaw(names); writeGroup(names); };
   const [field, setField] = useState(readField);
   // How many days since the vineyard was last seen: what grew overnight.
   // (Read before it's written: the write happens after mounting, so a
   // render run twice can't see today's date and miss the reveal.)
   const [revealDays] = useState(() => (field.seen ? Math.max(0, daysBetween(field.seen, todayIso())) : 0));
   useEffect(() => { addToField({ seen: todayIso() }); }, []);
-  const [ground, setGround] = useState(() => ({ ...groundFor(entries, who), seed: todayIso() + who.join('') }));
+  const [ground, setGround] = useState(() => ({ ...groundFor(entries, who, L.smallField), seed: todayIso() + who.join('') }));
   const doneToday = doneTodayFor(entries, who);
-  const [phase, setPhase] = useState(doneToday ? 'vineyard' : 'ground');
+  // Back again today, with the ground already cleared: straight to sowing.
+  const [phase, setPhase] = useState(() => {
+    if (AT === 'intro' || AT === 'sow') return 'intro';
+    if (AT === 'vineyard') return 'vineyard';
+    return doneToday ? 'vineyard' : L.smallField && clearedToday(who) ? 'intro' : 'ground';
+  });
   const [run, setRun] = useState(0);
   const [progress, setProgress] = useState(0);
   const [breath, setBreath] = useState({ b: '', led: false });
   const [grown, setGrown] = useState(false);
-  const [left, setLeft] = useState(ground.weeds + ground.stones);
+  const groundTotal = ground.weeds + ground.stones + (ground.rubble ?? 7);
+  const [left, setLeft] = useState(groundTotal);
   const [goodSoil, setGoodSoil] = useState(false);
   // A passing word from the field ("too quick: it scattered seed").
   const [fieldLine, setNoteLine] = useState('');
@@ -114,6 +137,10 @@ export default function AbideApp() {
   // A closing line after the gather: the point of the morning, said once.
   const [sendLine, setSendLine] = useState('');
   const [choosing, setChoosing] = useState(false);
+  // After the vine has grown: read it again, a line at a time; be still;
+  // then gather. ('grow' → 'again' → 'still' → 'ready'.)
+  const [stage, setStage] = useState('grow');
+  const [againK, setAgainK] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setHour(hourNow()), 60000);
@@ -122,17 +149,31 @@ export default function AbideApp() {
 
   const night = skyAt(hour, season).night > 0.5;
 
-  // A fresh field for whoever is here now.
-  const startGround = () => {
-    const g = { ...groundFor(entries, who), seed: todayIso() + who.join('') + Date.now() };
+  // A fresh field for whoever is here now (sized to them).
+  const startGround = (names = who) => {
+    if (L.smallField && clearedToday(names)) { setPhase('intro'); return; }
+    const g = { ...groundFor(entries, names, L.smallField), seed: todayIso() + names.join('') + Date.now() };
     setGround(g);
-    setLeft(g.weeds + g.stones + 7);
+    setLeft(g.weeds + g.stones + (g.rubble ?? 7));
     setGoodSoil(false);
     setRun((n) => n + 1);
     setPhase('ground');
   };
+  const setWho = (names) => {
+    setWhoRaw(names);
+    writeGroup(names);
+    // Someone joined or left before any clearing began: lay the field
+    // out again for the group, so there's enough work for everyone.
+    if (L.smallField && phase === 'ground' && left === groundTotal) startGround(names);
+  };
+  const toIntro = () => {
+    if (L.smallField) markCleared(who);
+    setPhase('intro');
+  };
   const sow = () => {
     setProgress(0);
+    setStage('grow');
+    setAgainK(0);
     setGrown(false);
     setBreath({ b: '', led: false });
     setNote('');
@@ -141,8 +182,10 @@ export default function AbideApp() {
   };
   const gather = () => {
     setEntries(gatherToday(entry, note, who, { soil: goodSoil ? 'good' : '' }));
-    setSendLine(entry.word);
-    setTimeout(() => setSendLine(''), 9000);
+    if (L.closingLine) {
+      setSendLine(entry.word);
+      setTimeout(() => setSendLine(''), 9000);
+    }
     setPhase('gather');
   };
   const again = () => {
@@ -161,9 +204,32 @@ export default function AbideApp() {
     if (ev.type === 'compost') setField(addToField({ compost: 1 }));
   };
 
+  // Opened with ?at=sow: start sowing straight away.
+  useEffect(() => { if (AT === 'sow') sow(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The vine has grown: on to reading again, stillness, then gathering.
+  useEffect(() => {
+    if (!grown || phase !== 'sow') return undefined;
+    if (stage === 'grow') {
+      setStage(L.readTwice ? 'again' : L.stillness ? 'still' : 'ready');
+      return undefined;
+    }
+    let t = 0;
+    if (stage === 'again') {
+      t = againK < entry.lines.length
+        ? setTimeout(() => setAgainK((k) => k + 1), (againK === 0 ? 2600 : 3400) * FAST)
+        : setTimeout(() => setStage(L.stillness ? 'still' : 'ready'), 2400 * FAST);
+    }
+    if (stage === 'still') t = setTimeout(() => setStage('ready'), 15000 * FAST);
+    return () => clearTimeout(t);
+  }, [grown, phase, stage, againK, entry, L]);
+
   const lines = entry.lines;
-  const shownLines = lines.filter((_, k) => progress >= 0.1 + k * 0.22).length;
-  const showQuestion = progress >= 0.55;
+  const firstRead = lines.filter((_, k) => progress >= 0.1 + k * 0.22).length;
+  const shownLines = stage === 'again' ? againK : firstRead;
+  const keyed = stage !== 'grow' && L.readTwice;
+  const showQuestion = L.readTwice ? stage === 'still' || stage === 'ready' : progress >= 0.55;
+  const question = questionOf(entry, L.wonder);
   const awayLine = ground.away === null
     ? `Welcome, ${groupLabel(who)}`
     : ground.away >= 2 ? `Welcome back · ${ground.away} days away` : 'Before you sow';
@@ -201,6 +267,7 @@ export default function AbideApp() {
         patience={patience}
         onCleared={(res) => {
           setGoodSoil(Boolean(res?.perfect));
+          if (L.smallField) markCleared(who);
           setPhase((p) => (p === 'ground' ? 'intro' : p));
         }}
         onFieldEvent={onFieldEvent}
@@ -213,10 +280,14 @@ export default function AbideApp() {
 
       <nav className="ab-nav" aria-label="Surfaces">
         <a href="/" className="ab-pill">Pond</a>
-        <span className="ab-switch" role="group" aria-label="Flourish mode">
-          <span className="ab-pill is-here" aria-current="page">Abide</span>
-          <a href="/flourish/" className="ab-pill">Free write</a>
-        </span>
+        {L.noFreeWrite ? (
+          <span className="ab-switch"><span className="ab-pill is-here" aria-current="page">Abide</span></span>
+        ) : (
+          <span className="ab-switch" role="group" aria-label="Flourish mode">
+            <span className="ab-pill is-here" aria-current="page">Abide</span>
+            <a href="/flourish/" className="ab-pill">Free write</a>
+          </span>
+        )}
         <a href="/pray/" className="ab-pill">Pray</a>
       </nav>
 
@@ -237,7 +308,7 @@ export default function AbideApp() {
           <p className="ab-cite">
             “He cleared it of stones and planted it with the choicest vines.” <span className="ab-nowrap">Isaiah 5:2</span>
           </p>
-          {left > 0 && <button type="button" className="ab-link" onClick={() => setPhase('intro')}>Skip</button>}
+          {left > 0 && <button type="button" className="ab-link" onClick={toIntro}>Skip</button>}
           <Patience patience={patience} setPatience={setPatience} />
         </section>
       )}
@@ -282,12 +353,12 @@ export default function AbideApp() {
         aria-hidden={phase !== 'sow'}
       >
           {lines.map((l, k) => (
-            <span key={k} className={`ab-line${k < shownLines ? ' is-shown' : ''}`}>{l}</span>
+            <span key={k} className={`ab-line${k < shownLines ? ' is-shown' : ''}`}>{keyed ? keyWord(l, entry.word) : l}</span>
           ))}
           <span className={`ab-verse-ref${shownLines === lines.length ? ' is-shown' : ''}`}>{entry.ref}</span>
-          <span className={`ab-question${showQuestion ? ' is-shown' : ''}`}>{entry.question}</span>
+          <span className={`ab-question${showQuestion ? ' is-shown' : ''}`}>{question}</span>
           <span className="ab-slot">
-          {grown && phase === 'sow' ? (
+          {grown && phase === 'sow' && stage === 'ready' ? (
             <form
               className="ab-respond"
               onSubmit={(e) => { e.preventDefault(); gather(); }}
@@ -298,8 +369,8 @@ export default function AbideApp() {
                 value={note}
                 maxLength={160}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Write a line, or just be still"
-                aria-label={`Your answer: ${entry.question}`}
+                placeholder={L.wonder ? 'Write a line, or just be still' : 'A line in answer (optional)'}
+                aria-label={`Your answer: ${question}`}
                 enterKeyHint="done"
               />
               <button type="submit" className="ab-btn ab-btn-primary">Gather into the vineyard</button>
@@ -307,12 +378,24 @@ export default function AbideApp() {
           ) : (
             <span className={`ab-breathe${breath.b ? ' is-shown' : ''}`}>
               <span className={`ab-orb is-${breath.b || 'out'}${breath.led ? ' is-led' : ''}`} aria-hidden="true" />
-              <span className="ab-breath">
-                {breath.b === 'in' ? 'breathe in' : breath.b === 'out' ? 'breathe out' : ''}
-                {breath.led ? ' · with you' : ''}
-              </span>
-              <span className={`ab-tip${!breath.led && progress < 0.3 ? ' is-shown' : ''}`}>
-                Hold anywhere (or Space) to breathe in · let go to breathe out
+              {L.breathWords && entry.breath ? (
+                // A breath prayer from the verse: one half in, one half out.
+                <span className="ab-breath-words" aria-live="off">
+                  <span className={breath.b === 'in' ? 'is-on' : ''}>{entry.breath[0]}</span>
+                  <span className={breath.b === 'out' ? 'is-on' : ''}>{entry.breath[1]}</span>
+                </span>
+              ) : (
+                <span className="ab-breath">
+                  {breath.b === 'in' ? 'breathe in' : breath.b === 'out' ? 'breathe out' : ''}
+                  {breath.led ? ' · with you' : ''}
+                </span>
+              )}
+              <span className={`ab-tip${stage === 'still' || (!breath.led && progress < 0.3) ? ' is-shown' : ''}`}>
+                {stage === 'still'
+                  ? 'Be still for a moment.'
+                  : L.breathWords
+                    ? 'Say it with your breath. Hold anywhere to breathe in, let go to breathe out.'
+                    : 'Hold anywhere (or Space) to breathe in · let go to breathe out'}
               </span>
             </span>
           )}
@@ -338,7 +421,7 @@ export default function AbideApp() {
           </div>
           <section className="ab-foot">
             <p className="ab-summary">
-              {entries.length
+              {L.humanLine ? vineyardLine(entries, view) : entries.length
                 ? `${vines} vine${vines === 1 ? '' : 's'}${together ? ` · ${together} day${together === 1 ? '' : 's'} together` : ''}${field.wall ? ` · a wall of ${field.wall} stone${field.wall === 1 ? '' : 's'}` : ''}`
                 : 'The vineyard is waiting for its first vine.'}
             </p>
@@ -360,6 +443,57 @@ export default function AbideApp() {
       )}
     </div>
   );
+}
+
+// The verse's own word, picked out on the second reading ("Abide" in
+// "Abide in me"; "keep" for Keep). Matched on its first four letters.
+function keyWord(line, word) {
+  const stem = word.toLowerCase().slice(0, Math.min(4, word.length));
+  const parts = line.split(/(\s+)/);
+  const hit = parts.findIndex((t) => t.toLowerCase().replace(/[^a-z]/g, '').startsWith(stem));
+  if (hit < 0) return line;
+  return <>{parts.slice(0, hit).join('')}<em className="ab-key">{parts[hit]}</em>{parts.slice(hit + 1).join('')}</>;
+}
+
+// One human sentence about the vineyard, for whoever it's showing:
+// "Bella and Dad have abided together 7 times."
+const times = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
+const nameOf = (n) => personOf(n)?.label || n;
+export function vineyardLine(entries, view = 'family') {
+  if (!entries.length) return 'The vineyard is waiting for its first vine.';
+  const order = (n) => { const i = PEOPLE.findIndex((p) => p.name === n); return i < 0 ? 99 : i; };
+  const pairs = new Map();
+  for (const e of entries) {
+    const ws = [...e.who].sort((a, b) => order(a) - order(b));
+    for (let i = 0; i < ws.length; i++) for (let j = i + 1; j < ws.length; j++) {
+      const k = ws[i] + '|' + ws[j];
+      pairs.set(k, (pairs.get(k) || 0) + 1);
+    }
+  }
+  const best = (who) => {
+    let top = null;
+    for (const [k, n] of pairs) {
+      if (who && !k.split('|').includes(who)) continue;
+      if (!top || n > top[1]) top = [k.split('|'), n];
+    }
+    return top;
+  };
+  if (view !== 'family' && view !== 'together') {
+    const n = entries.filter((e) => e.who.includes(view)).length;
+    const tp = best(view);
+    if (!n) return `${nameOf(view)}'s row is ready for a first vine.`;
+    if (tp) {
+      const other = tp[0].find((x) => x !== view);
+      return `${nameOf(view)} has abided ${times(n)}, ${times(tp[1])} with ${nameOf(other)}.`;
+    }
+    return `${nameOf(view)} has abided ${times(n)}.`;
+  }
+  const tp = best();
+  if (tp) return `${nameOf(tp[0][0])} and ${nameOf(tp[0][1])} have abided together ${times(tp[1])}.`;
+  const people = PEOPLE.filter((p) => entries.some((e) => e.who.includes(p.name)));
+  if (people.length === 1) return `${people[0].label} has abided ${times(entries.length)}.`;
+  if (!people.length) return `The family has abided ${times(entries.length)}.`;
+  return `${people.slice(0, -1).map((p) => p.label).join(', ')} and ${people[people.length - 1].label} have abided ${times(entries.length)} between them.`;
 }
 
 // ── Patience: a setting for grown-ups, out of the children's way ──

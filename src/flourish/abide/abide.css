@@ -670,3 +670,27 @@
   .ab-note, .ab-btn { min-height: 40px; }
   .ab-tip { display: none; }
 }
+
+/* ── Words on the breath ─────────────────────────────────────────
+   Two halves of a breath prayer, stacked in one place: the first
+   with the in-breath, the second with the out. They cross-fade. */
+.ab-breath-words {
+  display: grid;
+  margin-top: 0.45rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.45rem);
+  line-height: 1.2;
+  color: var(--ink);
+}
+.ab-breath-words > span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+.ab-breath-words > span.is-on { opacity: 0.92; }
+/* The verse's word, picked out on the second reading. */
+.ab-key { font-style: italic; font-weight: 600; color: #8a5d16; }
+.is-night .ab-key { color: #f3d58a; }
+@media (prefers-reduced-motion: reduce) { .ab-breath-words > span { transition: none; } }

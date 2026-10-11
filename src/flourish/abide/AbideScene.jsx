@@ -377,7 +377,7 @@ export default function AbideScene({
           if (dead) return;
           grd = new Field({
             Matter, W, H, soilY, edge, pileX: seedX,
-            stones: gr.stones, weeds: gr.weeds, seed: gr.seed || 'ground',
+            stones: gr.stones, weeds: gr.weeds, rubble: gr.rubble ?? 7, seed: gr.seed || 'ground',
             onNote: (t) => live.current.onNote?.(t),
             onEvent: (ev) => live.current.onFieldEvent?.(ev),
             patience: live.current.patience,

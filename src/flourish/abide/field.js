@@ -73,7 +73,7 @@ const HEFT = {
 };
 
 export class Field {
-  constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, seed, onNote, onEvent, patience = 'balanced', wallBase = 0, compostBase = 0 }) {
+  constructor({ Matter, W, H, soilY, edge, pileX, stones, weeds, rubble = 7, seed, onNote, onEvent, patience = 'balanced', wallBase = 0, compostBase = 0 }) {
     this.M = Matter;
     this.W = W; this.H = H; this.soilY = soilY; this.edge = edge;
     this.onNote = onNote || (() => {});
@@ -204,11 +204,11 @@ export class Field {
         this.pileX += shift;
       }
     }
-    const half = Math.max(...this.stones.map((st) => Math.abs(st.body.position.x - this.pileX) + st.hw));
+    const half = Math.max(40 * this.S, ...this.stones.map((st) => Math.abs(st.body.position.x - this.pileX) + st.hw));
     this.heapHalf = half;
     // Rubble: small unnamed stones, dropped over the heap so they settle
     // into its gaps and round it into a mound.
-    const nRubble = 7;
+    const nRubble = rubble;
     for (let i = 0; i < nRubble; i++) {
       const rad = r(7, 12) * this.S * (W < 520 ? 0.8 : 1);
       const o = { word: '', hw: rad * r(1.1, 1.4), hh: rad, look: STONE_LOOKS[Math.floor(rand() * STONE_LOOKS.length)], seed: rand() };
