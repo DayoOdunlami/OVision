@@ -34,7 +34,7 @@ export function normaliseBoard(b = {}) {
     role: 'Made here',
     owner: str(b.owner, 40) || name,
     period: str(b.period, 40),
-    world: b.world === 'birds' ? 'birds' : 'koi',
+    world: ['birds', 'dusk3d'].includes(b.world) ? b.world : 'koi',
     identity: {
       statement: str(b.identity?.statement, 280),
       heroWord: str(b.identity?.heroWord, 18) || 'Becoming',

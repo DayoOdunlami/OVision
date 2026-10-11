@@ -1,94 +1,99 @@
 # Where we are (11 October 2026)
 
-## Built and live on `main`
+**Live:** <https://o-vision.vercel.app>. Every push to `main` deploys there in about a minute
+(Vercel project *o-vision*).
 
-Everything below can be switched back to Classic at **/labs/**, apart from the bug fixes.
+**Admin:** Pond settings → Admin, or `/admin/`. The password is `bio123` (`123` also works).
+From there you can:
+- switch the whole app between **Main** (as it was) and **Lab** (every new change)
+- switch any single change, or compare it side by side
+- see which version is live
+- open every surface and mode
+
+## How the pieces fit: one house, three rooms
+
+| Room | What it's for | How often | Stands alone? |
+|---|---|---|---|
+| **Pond** `/` | Who you're becoming this term or season: the long view. A board you rest your eyes on, also as a screensaver. | Glanced at; changes with the season | Yes |
+| **Pray** `/pray/` | Praying for each other: the family rota, a pair a day, Sunday all together. | Daily | Yes |
+| **Abide** `/flourish/abide/` | One word of Scripture, taken in with the breath and gathered into the vineyard. | Daily, about 3 minutes | Yes |
+| **Today** `/today/` | Optional front door: Pray → Abide → Rest your eyes, showing what's done today. | Daily, if you want it | It *is* the join |
+
+The rooms only touch lightly:
+- Pray's rota puts today's names on the water.
+- The week's prayer gives Abide its word.
+- Learning the prayer by heart ripens the vineyard's fruit.
+- The pond itself changes with the board, not the day.
+
+## What's built
 
 **Abide**
-- The vine never grows into the words.
-- Breath prayer: "Abide in me" on the in-breath, "and I in you" on the out-breath.
-- The verse is read twice, then about 15 seconds of stillness.
-- The field to clear scales with the group: 5 things per person, and it's skipped if they've
-  already cleared it today.
-- "I wonder…" questions.
-- A closing line: "Carry *Abide* with you today".
+- Breath prayer on the breath.
+- The verse is read twice, then 15 seconds of stillness.
+- The field to clear scales with the group.
+- "I wonder…" questions and a closing line.
 - One human sentence in the vineyard.
-- No Free write in its menu.
+- The vine no longer grows into the words.
 
 **Pray**
-- "Amen." is a button, so reading off the page counts as praying.
-- "Now abide →" appears after Amen.
+- Tapping Amen counts as praying, then "Now abide →".
 - "Pray it" uses the same words as the page.
 - Calmer Options.
-- Bug fix: dates now use the local day, not UTC.
+- Dates use the local day.
 
 **Pond**
-- `/make/`: make a board for anyone, with a live preview. Send it as a link, and the person who
-  opens it can keep it.
-- A second world, Birds at dusk (Pond settings → World). The commitments become clouds.
-- Commitment pads use any verbs.
-- The lily-pad slit no longer cuts through the text.
+- `/make/` (make a board for anyone) and share links.
+- Worlds:
+  - **Koi pond**
+  - **Birds at dusk**
+    - Lab: flocking birds with real wingbeats.
+    - Lab: painted clouds they fly through.
+  - **Dusk in 3D** (preview).
+- Screensaver (`/?screen=1` or Pond settings): full screen, screen kept awake, a slow tour of
+  the zones.
 
-**Labs:** `/labs/` has a New/Classic switch and a side-by-side view for every change.
+**Today:** an optional front door. "Start the day on Today" is an Admin switch.
 
-## Suggestions only (not built)
+## Birds and sky
 
-- **"Today":** one daily door linking Pray, then Abide, then the pond.
-  - Pray week bugs: the week rolls over 7 days after creation instead of on Monday, the text
-    says "this morning" at night, and "New week — shuffle" does two things at once.
-- **A household step** so another family can use Pray and Abide (names and creatures are still
-  hard-coded).
-- **Sync** across devices, more worlds, and a first-run screen for new people.
+| | Birds at dusk (2D, Lab) | Dusk in 3D (preview) |
+|---|---|---|
+| Birds | Flocking after the MIT three.js/Vanta birds, with wings that bend at the wrist, banking, glides between bursts of flapping, and 9 species (5 Bible birds) | The same flight, drawn as low-poly birds whose lit wings hinge at the shoulder and wrist |
+| Clouds | Painted, lit from below, part around birds | Soft puffs at real depths in fog, with true parallax |
+| Weight | No extra download | three.js loaded only for this world (~134KB gz) |
+| Still to do | Fine-tuning | Names on birds, feeding (seed), quality tiers for slow devices, the abide-direction checklist |
 
-## Agreed direction (from your notes)
+**Bible birds**, matched to each person's koi:
+- dove (Matthew 3:16)
+- sparrow (Matthew 10:29–31)
+- raven (Luke 12:24)
+- swallow (Psalm 84:3)
+- stork (Jeremiah 8:7)
 
-1. **Every surface stands alone, and they can also be joined.**
-   - Pond, Pray and Abide each work on their own, at their own address.
-   - "Today" is an optional mode that strings them together. It doesn't replace them.
-2. **The pond is a long-term board** for a term, a year or a season, not a daily one.
-   - Pray only adds a quiet touch to it: names on the water, and the season word's swell.
-   - That touch is off by default on boards made at `/make/`.
-3. **Screensaver mode for the pond:**
-   - `?screen=1`: full screen with no buttons, the screen kept awake, and slower creatures.
-   - "Make a wallpaper": exports the board as a PNG sized for a phone lock screen or desktop.
-   - On a Mac it can also run as a real screensaver through an open-source web screensaver
-     (WebViewScreenSaver).
+## 3D: the options, and a view
 
-## Birds and sky: the plan
+- **Worth doing, as a world you choose:**
+  - **Plain three.js** (MIT), loaded only when picked. This is what Dusk in 3D uses, so the
+    simulations are shared and React needn't be upgraded.
+  - The words stay as page text over the canvas, which keeps them sharp. 3D type blurs and is
+    harder to read.
+- **Next candidates:**
+  - **Pond in 3D**: water with caustics and a Fresnel sheen. The MIT koi-pond-garden repo is
+    the reference. About 6–10 days.
+  - **Polishing Dusk 3D**: a sun with a soft bloom, more clouds, and quality tiers. About
+    3–5 days.
+- **Not worth it now:**
+  - Spline: proprietary, and huge.
+  - WebGPU: not ready across browsers.
+  - Glass/refraction materials: expensive on phones.
+  - 3D text: hard to read.
+  - react-three-fiber: its current version needs React 19, so it would mean an upgrade.
+- **Battery** matters only for the always-on tablet. The 3D world sleeps when the tab is hidden.
 
-**Today's birds look like paper cut-outs.** The wings just stretch, the body never banks, and
-the clouds are smudges.
+## Suggestions (not built)
 
-**Adapt proven open-source code, MIT licence only:**
-- **Flocking:** the plain-JavaScript `Boid` class from Vanta.js BIRDS (MIT), the mobile version
-  of three.js's `webgl_gpgpu_birds` (MIT).
-  - Birds keep apart from close neighbours, match direction with nearby ones, and draw
-    together at a distance. A finger scatters them.
-- **Wings:** three.js's flap rule. The wingtips rise and fall with a sine wave, and the flap
-  gets faster as the bird speeds up.
-  - We add a wrist bend, banking into turns, glides with wings held, bursts of flapping on a
-    climb, and circling on a thermal when idle.
-- **Clouds:** painted cloud layers that part around a bird and slowly close behind it. Birds fly
-  between the layers, so they look like they pass through.
-  - No new libraries, kind to battery.
-  - Fits a painterly anime/Ghibli dusk, which matches the koi's flat illustrated style better
-    than Pixar-style 3D clouds.
-- **Later, on capable devices only:** mist the birds stir as they fly through, from Pavel
-  Dobryakov's WebGL fluid simulation (MIT).
-- **Bible birds as varieties** (verse wording to be checked against the app's translation):
-  - dove (Matthew 3:16)
-  - sparrow (Matthew 10:29–31)
-  - eagle (Isaiah 40:31)
-  - raven (1 Kings 17:6, Luke 12:24)
-  - swallow (Psalm 84:3)
-  - stork (Jeremiah 8:7)
-  - hen (Matthew 23:37), which suits a "gathering" state
-
-**Avoid:**
-- BirdFlight and most CodePen boids, which have no licence.
-- Shadertoy shaders, which default to non-commercial use only.
-- drei's cloud texture, which has no licence.
-- Moving to three.js for now: about 150KB more to download, and the GPU running on an
-  always-on tablet.
-
-**Estimated effort:** birds 1–2 days, clouds 1–2 days, mist 1–2 days (optional).
+- A household step on `/make/` (names and creatures) so another family can use Pray and Abide.
+- Sync across devices.
+- Pray week bugs: the week rolls over 7 days after creation, not on Monday; "this morning"
+  appears at night.
+- Wallpaper export (parked).

@@ -14,7 +14,8 @@ prayer surface is still type on paper. Putting koi behind prayer text would
 fight the exact problem the prayer surface exists to solve (a wandering mind).
 
 | `/make/` | **Make a board**: for you or someone else | Four short answers and a world (koi pond or birds at dusk), with a live preview. Saves to this device, or travels as a link (`/?board=…`). |
-| `/labs/` | **Labs**: New or Classic | Every design change behind a flag, with what it was before. Choose per device, or compare side by side. |
+| `/today/` | **Today**: optional front door | Pray → Abide → Rest your eyes, with what's been done today. Each room still stands alone. |
+| `/admin/` | **Admin** (also `/labs/`) | Password `bio123`. Shows the live version, a Main/Lab switch, every change New or Classic, and links to every mode. Live at o-vision.vercel.app, deployed from `main`. |
 
 Design reviews, with what was changed and what to do next: `docs/abide-review.md`,
 `docs/pray-review.md`, `docs/pond-review.md`.
@@ -33,7 +34,7 @@ Abide also takes `?at=intro|sow|vineyard` to open at a step (which `/labs/` comp
 
 ## Worlds and made boards
 
-A board lives in a world: `koi` (the pond) or `birds` (a dusk sky, `src/pond/birds.js`). Birds
+A board lives in a world: `koi` (the pond), `birds` (a dusk sky, `src/pond/birds.js`; second pass with flocking and painted clouds in `birds2.js`, Labs `pond.birds2` and `pond.clouds2`), or `dusk3d` (the same flight in three.js, `src/pond/worlds/Dusk3D.jsx`, lazy-loaded). `?world=…` shows one for a visit. The screensaver is `?screen=1` (`src/pond/screensaver.js`). Birds
 answer to the same calls as koi, so names, swell, colour, food and the commitments' wake all
 carry over. Made boards are kept under `vb.boards` (`src/data/customBoards.js`). A board
 travels as base64url JSON in `?board=`, which is normalised, text only and length-capped.

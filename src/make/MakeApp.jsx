@@ -130,7 +130,7 @@ export default function MakeApp() {
             </Row>
             <Row label="World" group>
               <div className="mk-seg" role="radiogroup" aria-label="World">
-                {[['koi', 'Koi pond'], ['birds', 'Birds at dusk']].map(([id, label]) => (
+                {[['koi', 'Koi pond'], ['birds', 'Birds at dusk'], ['dusk3d', 'Dusk in 3D']].map(([id, label]) => (
                   <button key={id} type="button" role="radio" aria-checked={draft.world === id}
                     className={draft.world === id ? 'is-on' : ''} onClick={() => setDraft((d) => ({ ...d, world: id }))}>
                     {label}

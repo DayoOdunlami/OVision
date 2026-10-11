@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import PondCanvas from '../pond/PondCanvas.jsx';
 import FlourishZone from '../pond/zones/FlourishZone.jsx';
 import FullZone from '../pond/zones/FullZone.jsx';
@@ -13,7 +13,10 @@ import { useScreensaver, SCREEN_CSS } from '../pond/screensaver.js';
 const WORLDS = [
   { id: 'koi', label: 'Koi pond' },
   { id: 'birds', label: 'Birds at dusk' },
+  { id: 'dusk3d', label: 'Dusk in 3D' },
 ];
+// The 3D sky is loaded only when it's chosen (three.js is its own chunk).
+const Dusk3D = lazy(() => import('../pond/worlds/Dusk3D.jsx'));
 
 // ═══════════════════════════════════════════════════════════════════
 // PosterPond — STAGE 3 rebuild.
@@ -116,11 +119,13 @@ export default function PosterPond({ board }) {
     setWorldPick(id);
     try { localStorage.setItem(worldKey, id); } catch { /* ignore */ }
   };
-  const creature = world === 'birds' ? 'birds' : 'koi';
+  const creature = world === 'koi' ? 'koi' : 'birds';
+  const [failed3d, setFailed3d] = useState(false);
+  const sky3d = world === 'dusk3d' && !failed3d;
   const contentRef = useRef(null);
   const screen = useScreensaver(contentRef);
   useEffect(() => {
-    if (world !== 'birds') return undefined;
+    if (world === 'koi') return undefined;
     const prev = document.body.style.background;
     document.body.style.background = DUSK.body;
     document.documentElement.style.background = DUSK.body;
@@ -236,6 +241,17 @@ export default function PosterPond({ board }) {
           because the Commitments zone has its own pads. When the
           admin panel has pinned per-variety counts, `mix` overrides
           the density-scaled auto mix. */}
+      {sky3d ? (
+        <Suspense fallback={null}>
+          <Dusk3D
+            fishMin={3}
+            fishMax={5}
+            mix={mixTotal > 0 ? mixCounts : null}
+            namedKoi={namedKoi}
+            onFail={() => setFailed3d(true)}
+          />
+        </Suspense>
+      ) : (
       <PondCanvas
         fishMin={3}
         fishMax={5}
@@ -243,8 +259,9 @@ export default function PosterPond({ board }) {
         mix={mixTotal > 0 ? mixCounts : null}
         namedKoi={namedKoi}
         pairToday={concepts.pairToday && namedKoi.length >= 2}
-        world={world}
+        world={world === 'dusk3d' ? 'birds' : world}
       />
+      )}
 
       {/* Content layer. position:relative + zIndex:1 so all zones sit
           above the fixed canvas. Keep plenty of vertical rhythm. */}
@@ -508,7 +525,7 @@ function PondSettingsMenu({
         <span style={{ opacity: 0.85 }}>{activeFlourish?.label || 'Bubbles'}</span>
         <span style={{ opacity: 0.55 }}>·</span>
         <span style={{ opacity: 0.85 }}>
-          {world === 'birds' ? 'Birds' : mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
+          {world === 'dusk3d' ? 'Dusk 3D' : world === 'birds' ? 'Birds' : mixTotal > 0 ? `${mixTotal} koi` : 'Auto koi'}
         </span>
       </button>
 
