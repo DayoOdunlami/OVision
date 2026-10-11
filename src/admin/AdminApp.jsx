@@ -108,6 +108,7 @@ function Header({ all, saved, onLock }) {
             <li><a href="/today/">Today</a></li>
             <li><a href="/make/">Make a board</a></li>
             <li><a href="/murmuration/">Murmuration (the board’s words, written by starlings)</a></li>
+            <li><a href="/murmuration/?write">Write it for someone (a murmuration link for each child)</a></li>
           </ul>
         </div>
 

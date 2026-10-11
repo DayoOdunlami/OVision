@@ -37,6 +37,7 @@ import { prayers } from './data/prayers.js';
 const LABS_ON = {
   amenTap: lab('pray.amenTap'),
   thenAbide: lab('pray.thenAbide'),
+  thenSky: lab('pray.thenSky'),
   calmOptions: lab('pray.calmOptions'),
 };
 
@@ -89,6 +90,8 @@ export default function PrayApp() {
   const tally = weekTally(state.prayed);
   const prayedThatDay = dayIndex <= todayDayIndex() && Boolean(state.prayed?.[isoForDayIndex(dayIndex)]);
   const isKids = state.mode === 'kids' && !state.spokenView;
+  // After Amen: this week's word, written by the murmuration.
+  const skyWord = LABS_ON.thenSky ? wordForRef(state.prayerRef).word : null;
 
   const markPrayedToday = () => {
     update({ prayed: { ...state.prayed, [isoDate()]: true } });
@@ -172,6 +175,7 @@ export default function PrayApp() {
         isKids={isKids}
         onAmen={LABS_ON.amenTap ? markPrayedToday : null}
         nextWord={LABS_ON.thenAbide ? wordForRef(state.prayerRef).word : null}
+        skyWord={skyWord}
       />
 
       <nav className="dock" aria-label="Prayer controls">
@@ -226,6 +230,7 @@ export default function PrayApp() {
             celebrate={celebrate}
             onClose={() => setOverlay(null)}
             onAmen={puzzleAmen}
+            skyWord={skyWord}
           />
         </Suspense>
       )}
@@ -236,6 +241,7 @@ export default function PrayApp() {
           celebrate={celebrate}
           onClose={() => setOverlay(null)}
           onAmen={markPrayedToday}
+          skyWord={skyWord}
         />
       )}
 

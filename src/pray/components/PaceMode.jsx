@@ -20,7 +20,7 @@ import AmenCard from './AmenCard.jsx';
 // view and the puzzle use.
 // ═══════════════════════════════════════════════════════════════════
 
-export default function PaceMode({ day, celebrate = 'recommended', onClose, onAmen }) {
+export default function PaceMode({ day, celebrate = 'recommended', onClose, onAmen, skyWord }) {
   const cards = [
     { kind: 'breath' },
     ...(day.paceSteps || day.steps).map((s) => ({ kind: 'line', ...s })),
@@ -85,7 +85,7 @@ export default function PaceMode({ day, celebrate = 'recommended', onClose, onAm
 
       <div className="pace-body">
         {done ? (
-          <AmenCard koiActive={Boolean(koi)} onCallKoi={callKoi} onDone={onClose} />
+          <AmenCard koiActive={Boolean(koi)} onCallKoi={callKoi} onDone={onClose} skyWord={skyWord} />
         ) : card.kind === 'breath' ? (
           <div key="breath" className="pace-breath">
             <div className="pace-ring"><span /></div>

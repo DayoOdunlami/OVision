@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
 import { POSITION, VELOCITY, BIRD_VS, BIRD_FS } from './flock.js';
-import { boardWords, pickWord, sampleWord } from './words.js';
+import { boardWords, pickWord, firstWord, sampleWord } from './words.js';
+import { decodeNote, readHeldNote, holdNote, noteSequence, prayerWord } from './note.js';
+import Composer from './Composer.jsx';
 import { hourNow, lightAt, paintSky, Reeds } from './sky.js';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -16,6 +18,10 @@ import { hourNow, lightAt, paintSky, Reeds } from './sky.js';
 //
 // Brush the sky and they scatter (or gather, in Options). Press and hold
 // to call the next word.
+//
+// Written for someone (?for=…, see note.js): their name, then the words
+// one by one, each flowing into the next, the sentence building beneath.
+// From a prayer (?from=pray): this week's prayer word comes first.
 // ═══════════════════════════════════════════════════════════════════
 
 const OPT_KEY = 'mm.options';
@@ -74,12 +80,25 @@ export default function MurmurationApp() {
   };
   const [panel, setPanel] = useState(false);
   const [idle, setIdle] = useState(false);
-  const [verse, setVerse] = useState(null);       // { text, ref } while showing
+  const [verse, setVerse] = useState(null);       // { caption, text, ref } while showing
   const [said, setSaid] = useState('');           // for screen readers
   const [hint, setHint] = useState('');
   const [light, setLight] = useState(() => lightAt(hourNow(), readOpts().clock));
   const [owner, setOwner] = useState('');
   const callRef = useRef(null);
+  const playRef = useRef(null);
+  const [params] = useState(() => new URLSearchParams(location.search));
+  const fromPray = params.get('from') === 'pray';
+  // A note from a link is kept on this device; otherwise the one kept.
+  const [note, setNoteRaw] = useState(() => {
+    const n = params.get('for') && decodeNote(params.get('for'));
+    if (n) { holdNote(n); return n; }
+    return readHeldNote();
+  });
+  const noteRef = useRef(note);
+  noteRef.current = note;
+  const [composer, setComposer] = useState(() => params.has('write'));
+  const backToBoard = () => { holdNote(null); setNoteRaw(null); noteRef.current = null; playRef.current?.([]); };
 
   // The chrome fades when nobody's touching.
   useEffect(() => {
@@ -267,17 +286,27 @@ export default function MurmurationApp() {
     };
 
     // The rhythm.
-    const S = { phase: 'free', t: 0, next: 9, formT: 0, holdT: 0, releaseT: -1, gatherDur: 6, holdDur: 6, releaseDur: 3, tease: false, word: null, verseShown: false, maxDelay: 2.5, calm: 0, pull: 0 };
+    const S = { queue: [], item: null, phase: 'free', t: 0, next: 7, formT: 0, holdT: 0, releaseT: -1, gatherDur: 6, holdDur: 6, releaseDur: 3, tease: false, word: null, verseShown: false, maxDelay: 2.5, calm: 0, pull: 0 };
     const freeFor = () => (optsRef.current.pace === 'generous' ? 12 + Math.random() * 10 : 22 + Math.random() * 23);
+    // What comes first: this week's prayer word, then their note.
+    S.queue = [...(fromPray ? [prayerWord()] : []), ...(noteRef.current ? noteSequence(noteRef.current) : [])];
+    if (S.queue.length) S.next = 4.5;
 
     const gather = (called = false) => {
       const o = optsRef.current;
-      if (o.words === 'none' || !words.length || !fontReady) { S.next = S.t + 4; return; }
-      const word = pickWord(words, last, o.words, portrait);
-      last = word;
+      if (!fontReady) { S.next = S.t + 1; return; }
+      // A note writes itself over and over; a call starts it again.
+      if (noteRef.current && (!S.queue.length || (called && !S.item))) S.queue = noteSequence(noteRef.current);
+      const item = S.queue.shift() || null;
+      if (!item && (o.words === 'none' || !words.length)) { S.next = S.t + 4; return; }
+      // The first word of a visit is always one that reads: short, whole.
+      const word = item || (count === 0 && o.words !== 'one' ? firstWord(words, portrait) : pickWord(words, last, o.words, portrait));
+      if (!item) last = word;
+      const first = count === 0;
       count++;
-      S.tease = !called && o.almost && count > 2 && Math.random() < 0.25;
-      const P = Math.round(N * (S.tease ? 0.5 : 0.92));
+      S.item = item;
+      S.tease = !item && !first && !called && !noteRef.current && o.almost && count > 2 && Math.random() < 0.25;
+      const P = Math.round(N * (S.tease ? 0.5 : item || first ? 0.95 : 0.92));
       // Big enough to read across a room, never edge to edge.
       const maxW = V * (portrait ? 0.88 : 0.74), maxH = Math.min(Hv * 0.26, V * 0.22);
       const pts = sampleWord(word.text, P, maxW, maxH, o.lettering);
@@ -304,11 +333,22 @@ export default function MurmurationApp() {
       S.formT = 0;
       S.releaseT = -1;
       S.gatherDur = S.maxDelay + 2.6;
-      S.holdDur = S.tease ? 1.2 : 5 + word.text.length * 0.3;
+      // Words inside a sentence hold briefly and flow on; a name or a
+      // sentence's last word holds as a board word does.
+      S.holdDur = S.tease ? 1.2
+        : item?.kind === 'word' ? 2.4 + word.text.length * 0.2
+          : item?.kind === 'name' ? 3.6
+            : 5 + word.text.length * 0.3 + (first ? 1.5 : 0);
       S.verseShown = false;
+      S.capShown = false;
       S.said = false;
     };
     callRef.current = () => { if (S.phase === 'free') gather(true); };
+    // Play these words next (a preview, or [] to stop a note).
+    playRef.current = (seq) => {
+      S.queue = seq.slice();
+      if (S.phase === 'free') S.next = Math.min(S.next, S.t + 0.4);
+    };
 
     // ── Touch: brush to scatter (or gather); press and hold to call ──
     const toWorld = (cx, cy) => {
@@ -345,13 +385,13 @@ export default function MurmurationApp() {
     // ── The guide: the word's letters, faint in the sky under the birds,
     // there only once they've arrived, so the eye can find the word. ──
     const gc = guideRef.current, gx = gc.getContext('2d');
-    let guideA = 0, guideFor = null, tinted = null;
+    let guideA = 0, guideFor = null, tinted = null, shown = null;
     const drawGuide = (L) => {
       const W = innerWidth, H = innerHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
       if (gc.width !== Math.round(W * dpr) || gc.height !== Math.round(H * dpr)) { gc.width = Math.round(W * dpr); gc.height = Math.round(H * dpr); }
       gx.setTransform(dpr, 0, 0, dpr, 0, 0);
       gx.clearRect(0, 0, W, H);
-      const g = S.guide;
+      const g = shown;
       if (!g || guideA < 0.003) return;
       if (guideFor !== g) {
         // The letters in the birds' own colour, once per word.
@@ -404,21 +444,34 @@ export default function MurmurationApp() {
         S.holdT += dt;
         // The verse beneath, once the word has settled; the hold lasts
         // long enough to read it, and the flock quietens meanwhile.
+        const cap = S.item?.caption || '';
+        if (cap && !S.capShown && S.holdT > 0.6) {
+          S.capShown = true;
+          setVerse({ caption: cap, text: '', ref: '' });
+        }
         if (!S.tease && o.verse && S.word?.verse && !S.verseShown && S.holdT > 1.4) {
           S.verseShown = true;
           S.holdDur += 3 + S.word.verse.length * 0.03;
-          setVerse({ text: S.word.verse, ref: S.word.ref });
+          setVerse({ caption: cap, text: S.word.verse, ref: S.word.ref });
         }
-        if (!S.tease && S.holdT > 0.8 && !S.said) { S.said = true; setSaid(S.word.text); }
+        if (!S.tease && S.holdT > 0.8 && !S.said) { S.said = true; setSaid(cap ? cap.replace(' …', '') : S.word.text); }
         if (S.holdT >= S.holdDur) {
-          S.phase = 'release'; S.releaseT = 0; S.releaseDur = S.maxDelay * 0.55 + 2.2;
-          setVerse(null);
+          if (S.queue[0]?.flow) {
+            // The next word of the sentence: the birds flow straight
+            // from this word into it, and the sentence stays beneath.
+            gather();
+          } else {
+            S.phase = 'release'; S.releaseT = 0; S.releaseDur = S.maxDelay * 0.55 + 2.2;
+            setVerse(null);
+          }
         }
       } else if (S.phase === 'release') {
         S.formT += dt;
         S.releaseT += dt;
         if (S.releaseT >= S.releaseDur) {
-          S.phase = 'free'; S.pull = 0; S.releaseT = -1; S.next = S.t + freeFor();
+          S.phase = 'free'; S.pull = 0; S.releaseT = -1;
+          // Within a note (after the name) the next word comes soon.
+          S.next = S.t + (S.queue.length ? 0.8 : freeFor());
           if (count === 1) {
             let hinted = false;
             try { hinted = localStorage.getItem(HINT_KEY) === '1'; } catch { /* ignore */ }
@@ -461,10 +514,14 @@ export default function MurmurationApp() {
       gpu.compute();
       birdUniforms.texturePosition.value = gpu.getCurrentRenderTarget(posV).texture;
       birdUniforms.textureVelocity.value = gpu.getCurrentRenderTarget(velV).texture;
-      const wantGuide = o.guide && !S.tease && (S.phase === 'hold' || (S.phase === 'gather' && S.formT > S.gatherDur - 1.5)) ? 1 : 0;
+      let wantGuide = o.guide && !S.tease && (S.phase === 'hold' || (S.phase === 'gather' && S.formT > S.gatherDur - 1.5)) ? 1 : 0;
+      // Flowing into a new word: the old letters fade before the new appear.
+      if (shown && S.guide !== shown && guideA > 0.003) wantGuide = 0;
+      // The letters shown change only once the old ones have faded.
+      if (guideA <= 0.003) shown = S.guide;
       const before = guideA;
       guideA += (wantGuide - guideA) * Math.min(1, dt * (wantGuide ? 0.9 : 2.2));
-      if (Math.abs(guideA - before) > 0.0005 || (before > 0.003 && guideA <= 0.003) || (guideA > 0.003 && S.guide !== guideFor)) drawGuide(L);
+      if (Math.abs(guideA - before) > 0.0005 || (before > 0.003 && guideA <= 0.003) || (guideA > 0.003 && shown !== guideFor)) drawGuide(L);
       if (o.ink && !reduced) renderer.render(fadeScene, fadeCam);
       else renderer.clear();
       renderer.clearDepth();
@@ -509,29 +566,47 @@ export default function MurmurationApp() {
 
   const night = light.night;
   return (
-    <div className={`mm-app${idle && !panel ? ' is-idle' : ''}${night ? ' is-night' : ''}`}>
+    <div className={`mm-app${idle && !panel && !composer ? ' is-idle' : ''}${night ? ' is-night' : ''}`}>
       <canvas ref={bgRef} className="mm-sky" aria-hidden="true" />
       <canvas ref={guideRef} className="mm-sky mm-guide" aria-hidden="true" />
       <canvas ref={reedsRef} className="mm-sky" aria-hidden="true" />
       <div ref={glRef} className="mm-stage" aria-hidden="true" />
 
       <header className="mm-top">
-        <a className="mm-pill" href="/">← Board</a>
-        {owner && <span className="mm-owner">{owner}</span>}
+        {fromPray ? <a className="mm-pill" href="/pray/">← Prayer</a> : <a className="mm-pill" href="/">← Board</a>}
+        {note?.for ? (
+          <span className="mm-owner">For {note.for}{note.from ? ` · from ${note.from}` : ''}</span>
+        ) : owner && <span className="mm-owner">{owner}</span>}
       </header>
 
-      <p className={`mm-verse${verse ? ' is-shown' : ''}`} aria-hidden={!verse}>
-        {verse?.text}
+      <div className={`mm-verse${verse ? ' is-shown' : ''}`} aria-hidden={!verse}>
+        {verse?.caption && <p className="mm-caption">{verse.caption}</p>}
+        {verse?.text && <p className="mm-line">{verse.text}</p>}
         {verse?.ref && <span className="mm-ref">{verse.ref}</span>}
-      </p>
+      </div>
       <p className="mm-hint" aria-live="polite">{hint}</p>
       <p className="mm-sr" aria-live="polite">{said}</p>
 
-      <button type="button" className="mm-pill mm-opts-btn" onClick={() => setPanel((p) => !p)} aria-expanded={panel}>
+      <button type="button" className="mm-pill mm-opts-btn" onClick={() => { setComposer(false); setPanel((p) => !p); }} aria-expanded={panel}>
         Options
       </button>
+      {composer && (
+        <Composer
+          onClose={() => setComposer(false)}
+          onPreview={(n, day) => { setComposer(false); playRef.current?.(noteSequence(n, day)); }}
+        />
+      )}
       {panel && (
         <section className="mm-panel" aria-label="Options">
+          <button type="button" className="mm-pill mm-write" onClick={() => { setPanel(false); setComposer(true); }}>
+            Write it for someone…
+          </button>
+          {note && (
+            <p className="mm-holding">
+              Writing {note.for ? `${note.for}’s` : 'your'} words each day.{' '}
+              <button type="button" className="mm-link" onClick={backToBoard}>Back to the board’s words</button>
+            </p>
+          )}
           <Seg label="Words" value={opts.words} set={(v) => setOpt('words', v)}
             options={[['board', 'The board’s'], ['one', 'Just one'], ['none', 'None']]} />
           <Seg label="Letters" value={opts.lettering} set={(v) => setOpt('lettering', v)}

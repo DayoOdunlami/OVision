@@ -48,6 +48,14 @@ export function pickWord(words, last, mode, narrow = false) {
   return pool[0];
 }
 
+// The first word of a visit must read: the heaviest word that's short
+// (8 letters or fewer on a phone, 10 on a wider screen), else the shortest.
+export function firstWord(words, narrow = false) {
+  const max = narrow ? 8 : 10;
+  const short = [...words].filter((w) => w.text.length <= max).sort((a, b) => b.weight - a.weight);
+  return short[0] || [...words].sort((a, b) => a.text.length - b.text.length)[0];
+}
+
 // Draw the word off screen and sample it into n points, in world units
 // relative to the word's centre, fitted within maxW × maxH. About a
 // third come from the outline (crisp letterforms), the rest from inside.

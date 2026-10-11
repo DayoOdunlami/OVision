@@ -25,6 +25,7 @@ export default function ReadingView({
   isKids,
   onAmen,          // Labs pray.amenTap: "Amen." marks today as prayed
   nextWord,        // Labs pray.thenAbide: this week's word, for "Now abide"
+  skyWord,         // Labs pray.thenSky: the same word, written by the murmuration
 }) {
   const rootRef = useRef(null);
   const today = todayDayIndex();
@@ -166,6 +167,12 @@ export default function ReadingView({
           {nextWord && prayedThatDay && dayIndex === today && (
             <a className="rv-next" href="/flourish/abide/">
               Now abide with <em>{nextWord}</em> <span aria-hidden="true">&#8594;</span>
+            </a>
+          )}
+          {skyWord && prayedThatDay && dayIndex === today && (
+            <a className={`rv-sky${nextWord ? '' : ' is-alone'}`} href="/murmuration/?from=pray">
+              {nextWord ? <>or see it written in the sky</> : <><em>{skyWord}</em>, written in the sky</>}
+              {' '}<span aria-hidden="true">&#8594;</span>
             </a>
           )}
           <Explore html={day.blessingExplain} />

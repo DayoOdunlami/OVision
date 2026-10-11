@@ -45,6 +45,32 @@ switched off.
   its sentence; after the friction word, its prayer. It appears in serif italic and fades with
   the release. While it shows, the flock is nearly still.
 
+## Written for someone
+
+A parent (or anyone) writes a few words for one person and sends a link (`?for=…`, from
+**Options → Write it for someone…**, or `/murmuration/?write`):
+- **Who:** their name (written first, so a child sees *their* name in the sky), and who it's from.
+- **What:** one to four short words, the same every day or **one set for each day of the week**,
+  with a line beneath (a verse, or something to do today). Two ready-made weeks to start from:
+  *You are loved* (loved, then love others) and *the Fruit of the Spirit*.
+- **How it plays:** the name, then the words one at a time, each flowing straight into the next,
+  with the sentence building beneath so a child can read along ("You are …", then "You are
+  loved" and the verse). Then free flight, and it writes it again.
+- **It stays:** opened once on their phone or tablet, the note is kept there, and each day it
+  writes that day's words, until someone chooses "Back to the board's words" in Options.
+- Notes you've written are kept on your device, each with its own link.
+
+## From a prayer
+
+After Amen (on the prayer page, or at the end of Pray it), a quiet link, "*See*, written in the
+sky →", opens the murmuration with this week's prayer word first, with its verse (Labs:
+`pray.thenSky`).
+
+## The first word always reads
+
+The first word of a visit is never an almost-word: it's the heaviest short word on the board (8
+letters or fewer on a phone), with nearly the whole flock, held a little longer.
+
 ## Touch
 
 - **Brush the sky:** the flock scatters from your finger, like a hawk passing. An option turns

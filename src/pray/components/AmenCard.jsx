@@ -12,7 +12,7 @@ import { useEffect, useRef } from 'react';
 // Stays until Done. Nothing here closes on its own.
 // ═══════════════════════════════════════════════════════════════════
 
-export default function AmenCard({ koiActive, onCallKoi, onDone }) {
+export default function AmenCard({ koiActive, onCallKoi, onDone, skyWord }) {
   return (
     <div className="pace-done">
       <Nudge>
@@ -33,6 +33,11 @@ export default function AmenCard({ koiActive, onCallKoi, onDone }) {
       <button className="btn btn-primary pace-done-btn" onClick={onDone} autoFocus>
         Done
       </button>
+      {skyWord && (
+        <a className="pace-sky" href="/murmuration/?from=pray">
+          <em>{skyWord}</em>, written in the sky <span aria-hidden="true">&#8594;</span>
+        </a>
+      )}
     </div>
   );
 }

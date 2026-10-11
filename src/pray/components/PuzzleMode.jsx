@@ -33,7 +33,7 @@ import AmenCard from './AmenCard.jsx';
 // the pointer position anyway to test the slot.
 // ═══════════════════════════════════════════════════════════════════
 
-export default function PuzzleMode({ day, celebrate = 'recommended', onClose, onAmen }) {
+export default function PuzzleMode({ day, celebrate = 'recommended', onClose, onAmen, skyWord }) {
   const [round, setRound] = useState(0);
   const [mode, setModeRaw] = useState(() => readPuzzleMode());
   const [complete, setComplete] = useState(false);
@@ -112,6 +112,7 @@ export default function PuzzleMode({ day, celebrate = 'recommended', onClose, on
               releaseKoi({ people: day.people || [], stay: true });
             }}
             onDone={onClose}
+            skyWord={skyWord}
           />
         </div>
       ) : (

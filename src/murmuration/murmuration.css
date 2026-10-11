@@ -40,6 +40,14 @@
 }
 .is-night .mm-verse { text-shadow: 0 0 18px rgba(10, 14, 30, 0.6); }
 .mm-verse.is-shown { opacity: 0.92; }
+.mm-verse p { margin: 0; }
+/* The sentence, building as the birds write it, so a child can read along. */
+.mm-caption {
+  font-family: var(--serif); font-style: normal; font-weight: 600; letter-spacing: 0.02em;
+  font-size: clamp(1.3rem, 1.05rem + 1vw, 1.9rem); margin-bottom: 0.35rem !important;
+}
+.mm-line { animation: mm-in 2.4s ease both; }
+@keyframes mm-in { from { opacity: 0; } to { opacity: 1; } }
 .mm-ref {
   display: block; margin-top: 0.4rem; font-family: var(--sans); font-style: normal; font-size: 0.72rem;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
@@ -79,3 +87,61 @@
 .mm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .mm-foot { margin: 10px 0 0; font-size: 0.78rem; color: var(--muted); }
 .mm-foot a { color: inherit; }
+
+/* Options: the way into writing for someone. */
+.mm-write { width: 100%; justify-content: center; margin-bottom: 12px; font-weight: 600; }
+.mm-holding { margin: -4px 0 12px; font-size: 0.85rem; color: var(--muted); }
+.mm-link {
+  font: inherit; font-size: 0.85rem; color: var(--ink); background: none; border: 0; padding: 4px 2px;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 32px;
+}
+
+/* Write it for someone */
+.mm-compose { width: min(440px, calc(100vw - 28px)); max-height: calc(100dvh - 90px); }
+.mm-compose-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mm-compose h2 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 1.5rem; }
+.mm-x {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: none;
+  color: var(--ink); font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.mm-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mm-field { display: grid; gap: 4px; margin-bottom: 10px; }
+.mm-field input, .mm-field textarea {
+  font: inherit; font-size: 16px; color: var(--ink); background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--line); border-radius: 10px; padding: 0.55rem 0.7rem; width: 100%; box-sizing: border-box;
+  resize: vertical;
+}
+.is-night .mm-field input, .is-night .mm-field textarea { background: rgba(255, 255, 255, 0.07); }
+.mm-field .mm-words { font-family: var(--serif); font-size: 1.25rem; font-weight: 600; }
+.mm-field input:focus-visible, .mm-field textarea:focus-visible, .mm-chip:focus-visible, .mm-days button:focus-visible,
+.mm-link:focus-visible, .mm-x:focus-visible, .mm-note-name:focus-visible { outline: 2px solid #9CB93A; outline-offset: 2px; }
+.mm-toggle-s { padding: 0 0 8px; }
+.mm-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 12px; }
+.mm-presets .mm-label { width: 100%; }
+.mm-chip {
+  font: inherit; font-size: 0.85rem; color: var(--ink); background: none; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.8rem; min-height: 36px;
+}
+.mm-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 0 0 12px; }
+.mm-days button {
+  font: inherit; font-size: 0.82rem; color: var(--muted); background: none; cursor: pointer; position: relative;
+  border: 1px solid var(--line); border-radius: 10px; min-height: 40px; padding: 0;
+}
+.mm-days button.has { color: var(--ink); }
+.mm-days button.today::after {
+  content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px;
+  border-radius: 50%; background: currentColor;
+}
+.mm-days button.is-on { color: #fff; background: var(--green); border-color: var(--green); }
+.mm-go { background: var(--green); color: #fff; border-color: var(--green); font-weight: 600; }
+.mm-pill:disabled { opacity: 0.45; cursor: default; }
+.mm-msg { min-height: 1.2em; margin: 6px 0 0; font-size: 0.85rem; color: var(--green); }
+.mm-notes { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.mm-notes ul { list-style: none; margin: 6px 0; padding: 0; }
+.mm-notes li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.mm-notes li.is-on .mm-note-name { font-weight: 700; }
+.mm-note-name {
+  flex: 1; min-width: 0; text-align: left; font: inherit; font-size: 0.95rem; color: var(--ink);
+  background: none; border: 0; padding: 6px 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mm-note-name span { color: var(--muted); font-size: 0.85rem; }
