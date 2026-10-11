@@ -108,26 +108,50 @@ export function paintSky(ctx, W, H, L) {
   fg.addColorStop(1, rgb(ink, 1));
   ctx.fillStyle = fg;
   ctx.fillRect(0, horizon, W, H - horizon);
-  // Reeds: thin, slightly bowed, crowding together, a few with heads.
-  ctx.strokeStyle = rgb(ink);
-  ctx.lineCap = 'round';
-  const n = Math.round(W / 3.2);
-  for (let i = 0; i < n; i++) {
-    const x = r() * W;
-    const tall = H * (0.05 + r() * 0.08);
+}
+
+// The reeds, on their own layer so they can move: thin, slightly bowed,
+// crowding together, a few with heads, stirring in one slow breeze that
+// travels across the bed from left to right. A few pixels at the tips:
+// felt more than seen.
+export class Reeds {
+  layout(W, H, L) {
+    const r = seeded(11);
+    this.W = W; this.H = H;
+    this.ink = rgb(mix(L.low, [20, 18, 24], L.night ? 0.75 : 0.62));
+    this.reeds = Array.from({ length: Math.round(W / 3.2) }, () => {
+      const tall = H * (0.05 + r() * 0.08);
+      return {
+        x: r() * W, tall, lean: (r() - 0.4) * tall * 0.35, w: 0.8 + r() * 1.2,
+        head: r() < 0.18, give: 0.6 + r() * 0.8, ph: r() * 6.28,
+      };
+    });
+  }
+
+  draw(ctx, t) {
+    const { W, H } = this;
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = this.ink;
+    ctx.lineCap = 'round';
     const base = H + 2;
-    const lean = (r() - 0.4) * tall * 0.35;
-    ctx.lineWidth = 0.8 + r() * 1.2;
-    ctx.beginPath();
-    ctx.moveTo(x, base);
-    ctx.quadraticCurveTo(x + lean * 0.3, base - tall * 0.6, x + lean, base - tall);
-    ctx.stroke();
-    if (r() < 0.18) {
-      ctx.lineWidth = 2.6;
+    for (const d of this.reeds) {
+      // The breeze: two slow waves moving left to right, so neighbours
+      // sway together, a moment apart. Taller reeds give more.
+      const wind = 0.6 * Math.sin(t * 0.45 - d.x * 0.004) + 0.4 * Math.sin(t * 0.71 - d.x * 0.009 + 1.7);
+      const sway = (0.35 + 0.65 * (0.5 + 0.5 * wind)) * d.tall * 0.035 * d.give + Math.sin(t * 1.3 + d.ph) * 0.25;
+      const tx = d.x + d.lean + sway, ty = base - d.tall;
+      ctx.lineWidth = d.w;
       ctx.beginPath();
-      ctx.moveTo(x + lean, base - tall);
-      ctx.lineTo(x + lean * 1.15, base - tall - H * 0.014);
+      ctx.moveTo(d.x, base);
+      ctx.quadraticCurveTo(d.x + d.lean * 0.3 + sway * 0.3, base - d.tall * 0.6, tx, ty);
       ctx.stroke();
+      if (d.head) {
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx + d.lean * 0.15 + sway * 0.4, ty - H * 0.014);
+        ctx.stroke();
+      }
     }
   }
 }

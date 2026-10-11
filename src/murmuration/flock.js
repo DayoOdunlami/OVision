@@ -178,7 +178,7 @@ void main() {
   float inWord0 = tg0.w >= 0.0 ? smoothstep(tg0.w + 0.6, tg0.w + 2.4, formT) * pull : 0.0;
   if (releaseT >= 0.0 && tg0.w >= 0.0) inWord0 *= 1.0 - smoothstep(tg0.w * 0.55, tg0.w * 0.55 + 0.5, releaseT);
   // Birds in the word grow a little, so they overlap like ink.
-  newPosition *= 1.0 + 0.7 * inWord0;
+  newPosition *= 1.0 + 0.6 * inWord0;
   newPosition = mat3(modelMatrix) * newPosition;
   velocity.z *= -1.0;
   float xz = length(velocity.xz);

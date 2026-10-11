@@ -84,14 +84,14 @@ switched off.
 
 Spreading birds evenly across thick letters made long words dust on a phone. What makes a word
 read:
-- **Lettering:** heavy-ish (700) upright letters with air between them.
+- **Lettering:** medium-weight (600) upright letters with air between them.
 - **More of the flock in the word:** 92% of the birds take part.
-- **Bigger birds in the word:** they grow about 70% as they arrive, so they overlap like ink.
+- **Bigger birds in the word:** they grow about 60% as they arrive, so they overlap like ink.
   The free flock stays fine.
 - **A tight hold:** jitter settles almost to nothing.
 - **Fewer long words on phones:** words over 8 letters come up a quarter as often.
-- **Faint letters** (an option, on by default): a whisper of the word in the sky under the
-  birds, there only once they've arrived.
+- **Faint letters** (an option, on by default): a bare whisper of the word in the sky under
+  the birds (about 5% strength), there only once they've arrived.
 - **The sunlit gold** is strong only against a dark sky.
 
 More birds was *not* the answer: the flocking cost grows with the square of the count.
@@ -107,8 +107,10 @@ More birds was *not* the answer: the flocking cost grows with the square of the 
   from inside.
 - **Assignment:** each bird goes to the nearest-in-order slot (both sorted left to right), so
   the flock streams in rather than crisscrossing.
-- **The sky and reeds:** painted on a plain 2D canvas behind the WebGL birds, redrawn only on
-  resize or a change of hour.
+- **The sky:** painted on a plain 2D canvas behind the WebGL birds, redrawn only on resize or
+  a change of hour.
+- **The reeds:** their own canvas, stirring in one slow breeze that travels left to right
+  (a few pixels, well under 0.5 Hz), drawn at 30fps. Still under reduced motion.
 - **Budgets:** under 16ms a frame on a mid phone; pixel density capped at 1.75.
   `prefers-reduced-motion` slows everything by half and turns off Ink.
 

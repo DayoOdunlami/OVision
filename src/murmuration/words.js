@@ -59,7 +59,7 @@ export function sampleWord(text, n, maxW, maxH, lettering = 'sans') {
   const x = c.getContext('2d', { willReadFrequently: true });
   const spec = lettering === 'serif'
     ? `italic 800 ${S}px "Fraunces", Georgia, serif`
-    : `700 ${S}px "Manrope", "Source Sans 3", system-ui, sans-serif`;
+    : `600 ${S}px "Manrope", "Source Sans 3", system-ui, sans-serif`;
   x.font = spec;
   // Letters drawn one by one with air between them, so neighbouring
   // letters made of birds don't run together.
@@ -75,7 +75,7 @@ export function sampleWord(text, n, maxW, maxH, lettering = 'sans') {
   x.textBaseline = 'middle';
   // A little stroke as well as the fill, so an italic's hairlines are
   // thick enough for birds to hold.
-  x.lineWidth = lettering === 'serif' ? S * 0.05 : S * 0.02;
+  x.lineWidth = lettering === 'serif' ? S * 0.05 : S * 0.008;
   x.lineJoin = 'round';
   let cx0 = S * 0.15;
   chars.forEach((ch, i) => {
@@ -111,7 +111,7 @@ export function sampleWord(text, n, maxW, maxH, lettering = 'sans') {
   const out = pts.map(([px, py]) => [
     (px - cx + (Math.random() - 0.5) * 2) * k,
     -(py - cy + (Math.random() - 0.5) * 2) * k,
-    (Math.random() - 0.5) * 6,
+    (Math.random() - 0.5) * 3,
   ]);
   out.guide = { canvas: c, k, cx, cy };
   return out;

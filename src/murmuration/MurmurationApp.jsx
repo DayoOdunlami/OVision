@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
 import { POSITION, VELOCITY, BIRD_VS, BIRD_FS } from './flock.js';
 import { boardWords, pickWord, sampleWord } from './words.js';
-import { hourNow, lightAt, paintSky } from './sky.js';
+import { hourNow, lightAt, paintSky, Reeds } from './sky.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // Murmuration — the board's words, written by a flock of starlings at
@@ -63,6 +63,7 @@ export default function MurmurationApp() {
   const bgRef = useRef(null);
   const glRef = useRef(null);
   const guideRef = useRef(null);
+  const reedsRef = useRef(null);
   const [opts, setOptsRaw] = useState(readOpts);
   const optsRef = useRef(opts);
   optsRef.current = opts;
@@ -117,6 +118,32 @@ export default function MurmurationApp() {
     paint();
     window.addEventListener('resize', paint);
     return () => window.removeEventListener('resize', paint);
+  }, [light]);
+
+  // The reeds stir: redrawn about 30 times a second (still, for reduced
+  // motion), laid out again when the light or the size changes.
+  useEffect(() => {
+    const c = reedsRef.current, x = c.getContext('2d');
+    const reeds = new Reeds();
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const lay = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.width = Math.round(innerWidth * dpr); c.height = Math.round(innerHeight * dpr);
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      reeds.layout(innerWidth, innerHeight, light);
+      reeds.draw(x, performance.now() / 1000);
+    };
+    lay();
+    let raf = 0, last = 0;
+    const loop = (now) => {
+      raf = requestAnimationFrame(loop);
+      if (now - last < 33) return;
+      last = now;
+      reeds.draw(x, now / 1000);
+    };
+    if (!reduced) raf = requestAnimationFrame(loop);
+    window.addEventListener('resize', lay);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', lay); };
   }, [light]);
 
   // ── The flock ────────────────────────────────────────────────────
@@ -226,7 +253,7 @@ export default function MurmurationApp() {
     let words = [], last = null, count = 0;
     let fontReady = false;
     boardWords().then((b) => { words = b.words; setOwner([b.owner, b.period].filter(Boolean).join(' · ')); });
-    Promise.all([document.fonts?.load?.('800 220px "Manrope"'), document.fonts?.load?.('italic 800 220px "Fraunces"')].filter(Boolean))
+    Promise.all([document.fonts?.load?.('600 220px "Manrope"'), document.fonts?.load?.('italic 800 220px "Fraunces"')].filter(Boolean))
       .then(() => { fontReady = true; }).catch(() => { fontReady = true; });
 
     // Where every bird is, read back from the GPU once per word, so each
@@ -340,7 +367,7 @@ export default function MurmurationApp() {
       const cY = Hv * 0.07;
       const x0 = ((-g.cx * g.k) / V + 0.5) * W;
       const y0 = (0.5 - (g.cy * g.k + cY) / Hv) * H;
-      gx.globalAlpha = guideA * (L.night ? 0.12 : 0.16);
+      gx.globalAlpha = guideA * (L.night ? 0.045 : 0.06);
       gx.drawImage(tinted, x0, y0, (g.canvas.width * g.k / V) * W, (g.canvas.height * g.k / Hv) * H);
     };
 
@@ -406,8 +433,8 @@ export default function MurmurationApp() {
       // Shimmer: loose while they arrive, settling through the hold — the
       // word comes into focus as you look at it.
       const shimmer = S.phase === 'hold'
-        ? lerp(S.tease ? 9 : 2, S.tease ? 9 : 0.15, smooth(S.holdT / Math.max(1.5, S.holdDur * 0.45)))
-        : S.tease ? 10 : 4;
+        ? lerp(S.tease ? 9 : 1.4, S.tease ? 9 : 0.05, smooth(S.holdT / Math.max(1.5, S.holdDur * 0.4)))
+        : S.tease ? 10 : 3;
       S.calm += ((S.verseShown && S.phase === 'hold' ? 1 : 0) - S.calm) * Math.min(1, dt * 1.5);
       // Breathe: the word swells on the in-breath (4s) and settles on the
       // out (6s), as in Abide.
@@ -485,6 +512,7 @@ export default function MurmurationApp() {
     <div className={`mm-app${idle && !panel ? ' is-idle' : ''}${night ? ' is-night' : ''}`}>
       <canvas ref={bgRef} className="mm-sky" aria-hidden="true" />
       <canvas ref={guideRef} className="mm-sky mm-guide" aria-hidden="true" />
+      <canvas ref={reedsRef} className="mm-sky" aria-hidden="true" />
       <div ref={glRef} className="mm-stage" aria-hidden="true" />
 
       <header className="mm-top">
