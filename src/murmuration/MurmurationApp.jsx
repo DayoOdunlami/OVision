@@ -514,13 +514,17 @@ export default function MurmurationApp() {
       gpu.compute();
       birdUniforms.texturePosition.value = gpu.getCurrentRenderTarget(posV).texture;
       birdUniforms.textureVelocity.value = gpu.getCurrentRenderTarget(velV).texture;
-      let wantGuide = o.guide && !S.tease && (S.phase === 'hold' || (S.phase === 'gather' && S.formT > S.gatherDur - 1.5)) ? 1 : 0;
+      // Only once the birds have settled into the word (well into the
+      // hold, as the shimmer dies away): a guide that arrives before
+      // them gives the word away.
+      const settled = S.phase === 'hold' && S.holdT > Math.min(1.6, S.holdDur * 0.4);
+      let wantGuide = o.guide && !S.tease && settled ? 1 : 0;
       // Flowing into a new word: the old letters fade before the new appear.
       if (shown && S.guide !== shown && guideA > 0.003) wantGuide = 0;
       // The letters shown change only once the old ones have faded.
       if (guideA <= 0.003) shown = S.guide;
       const before = guideA;
-      guideA += (wantGuide - guideA) * Math.min(1, dt * (wantGuide ? 0.9 : 2.2));
+      guideA += (wantGuide - guideA) * Math.min(1, dt * (wantGuide ? 0.7 : 2.2));
       if (Math.abs(guideA - before) > 0.0005 || (before > 0.003 && guideA <= 0.003) || (guideA > 0.003 && shown !== guideFor)) drawGuide(L);
       if (o.ink && !reduced) renderer.render(fadeScene, fadeCam);
       else renderer.clear();
