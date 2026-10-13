@@ -254,6 +254,19 @@ export class Vineyard {
 
   rowIndex(person) { return this.rows.findIndex((r) => r.key === person); }
 
+  // Put the camera at `zoom` with a vine's root (date, row) at screen
+  // (ax, ay). The gather's pull-back flies the camera with this.
+  aim(date, person, zoom, ax, ay) {
+    const r = Math.max(0, this.rowIndex(person));
+    const z = this.depth(r);
+    const s = zoom / z;
+    const base = this.horizon + (this.front - this.horizon) / z;
+    this.zoom = zoom;
+    this.camX = this.xOf(date) - (ax - this.W / 2) / s;
+    this.camY = ay - (this.front + (base - this.front) * Math.pow(zoom, 0.6));
+    return s;
+  }
+
   // Screen rect of a vine (for the gather to fly into).
   vineRect(date, person) {
     const r = Math.max(0, this.rowIndex(person));
@@ -343,24 +356,29 @@ export class Vineyard {
         const wx = this.xOf(e.date);
         const x = this.sx(wx, s);
         if (x < -80 * s || x > W + 80 * s) continue;
-        const hideK = opts.hideToday && e.date === this.today ? opts.todayAlpha : 1;
+        // Today's vine in one row can be drawn by the page instead (the
+        // vine you grew, carried into its place).
+        const own = opts.todayVine && e.date === this.today && row.key === opts.todayRow;
+        const hideK = own ? 1 : opts.hideToday && e.date === this.today ? opts.todayAlpha : 1;
         if (hideK <= 0.01) continue;
         const lit = hideK * this.lit(e, row.key) * (this.view === 'family' || this.view === 'together' ? 1 : row.key === this.view ? 1 : 0.6);
         const g = growthAt(this.ageOf(e.date));
         const ripe = this.data.learned[e.key] !== undefined;
         const spr = vineSprite(g, 1 + (e.soil === 'good' ? 1 : 0) + (g > 0.85 ? 1 : 0), ripe, this.season, this.dpr);
         ctx.globalAlpha = alpha * lit;
-        this.post(ctx, x, y, s * 0.85, tint, false);
         // Leaning a little in the one wind, from the root.
         const lean = this.wind ? this.wind.sway(x, 0.05, hash(e.date + row.key)) : 0;
-        if (lean) {
+        if (own) {
           ctx.save();
-          ctx.translate(x, y);
-          ctx.transform(1, 0, -lean, 1, 0, 0);
-          ctx.drawImage(spr.c, -spr.ox * s, -spr.oy * s, spr.w * s, spr.h * s);
+          opts.todayVine(ctx, x, y, s, lean, lit);
           ctx.restore();
         } else {
-          ctx.drawImage(spr.c, x - spr.ox * s, y - spr.oy * s, spr.w * s, spr.h * s);
+          this.post(ctx, x, y, s * 0.85, tint, false);
+          ctx.save();
+          ctx.translate(x, y);
+          if (lean) ctx.transform(1, 0, -lean, 1, 0, 0);
+          ctx.drawImage(spr.c, -spr.ox * s, -spr.oy * s, spr.w * s, spr.h * s);
+          ctx.restore();
         }
         // Together: a gold ribbon on the stake.
         if (e.who.length > 1) {
@@ -370,7 +388,11 @@ export class Vineyard {
           ctx.closePath(); ctx.fill();
         }
         // Its word, on a tag, when close enough to read.
-        if (!ghost && s > 0.62 && !underPill(x - 40 * s, y + 9 * s, 80 * s, 18 * s)) this.tag(ctx, e.word, x, y + 9 * s, s, night, lit);
+        const tagK = own ? (opts.todayTag ?? 1) : 1;
+        if (!ghost && tagK > 0.01 && s > 0.62 && !underPill(x - 40 * s, y + 9 * s, 80 * s, 18 * s)) {
+          ctx.globalAlpha = alpha * tagK;
+          this.tag(ctx, e.word, x, y + 9 * s, s, night, lit);
+        }
         this.hits.push({ x: x - 46 * s, y: y - 100 * s, w: 92 * s, h: 112 * s, e, row: row.key, r });
       }
       ctx.globalAlpha = alpha;

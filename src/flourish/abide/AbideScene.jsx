@@ -23,8 +23,10 @@ import { seasonLeaves, SeasonAir } from './season.js';
 //             you stay, paced by breath: by your own if you hold to
 //             breathe in and let go to breathe out, otherwise by a slow
 //             guided breath (in 4s, out 6s). It waits if you leave.
-//   gather    the finished vine is drawn back and set into its place on
-//             the vineyard
+//   gather    the vine stays where it grew and the camera pulls back from
+//             it until it stands in its place in the vineyard, among the
+//             days before it (?gather=fruit: the word first gathers into
+//             a cluster of grapes)
 //   vineyard  one long vine of past words: a section for each word, with
 //             a cluster of fruit for each day you abided with it. The
 //             fruit stays green until that word's prayer has been
@@ -38,7 +40,13 @@ import { seasonLeaves, SeasonAir } from './season.js';
 
 const FALL = 2.2, SINK = 0.8, REST = 0.7;
 const GROW_AT = FALL + SINK + REST;
-const GATHER_S = 3.4;
+// The gather: one continuous shot. A held beat, then the camera pulls
+// back from the vine you grew to the whole vineyard. The vine never
+// moves; the world comes into view around it.
+const GATHER_STYLE = new URLSearchParams(window.location.search).get('gather') === 'fruit' ? 'fruit' : 'word';
+const BEAT_S = GATHER_STYLE === 'fruit' ? 2.4 : 0.7;
+const PULL_S = 5;
+const GATHER_S = BEAT_S + PULL_S + 0.3;
 const BREATH_IN = 4, BREATH = 10;
 const USER_LED_S = 14;   // after your last breath, how long before the guide resumes
 
@@ -66,6 +74,7 @@ const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
 const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"], [data-no-breath]';
 
 export function skyAt(h, season) {
@@ -158,7 +167,7 @@ export default function AbideScene({
     let vyEntries = null, vyLearned = null, vyField = null, revealed = false;
     let mode = null, rt = 0, sowT = 0, growT = 0, g = 0, rate = 1, gT = 0;
     let vyAlpha = 0, breath = '', breathLed = false, lastP = -1, grownSent = false, gatheredSent = false;
-    let target = null;
+    let pull = null, pullU = 0;   // the gather's camera, and how far back it is
     let grd = null, grdLoading = false, dead = false, clearLeft = -1, clearedAt = -1, clearedSent = false;
     // Your own breath: held = breathing in.
     let held = false, lastUser = -1e9;
@@ -350,23 +359,99 @@ export default function AbideScene({
       ctx.restore();
     };
 
+    // The vine you grew, in the vineyard's world: (x, y) is its root on
+    // screen, s the row's scale there.
+    const drawPlanted = (c, x, y, s, lean, a) => {
+      const { pc, root, s0, img } = pull;
+      const k = s / s0;
+      c.globalAlpha = a;
+      c.translate(x, y);
+      if (lean) c.transform(1, 0, -lean * pullU, 1, 0, 0);
+      c.drawImage(img, (pc.x - root.x) * k, (pc.y - root.y) * k, pc.w * k, pc.h * k);
+    };
+    // During the gather the page draws it itself, over the vineyard as it
+    // fades in (the vineyard draws nothing while it's still transparent).
+    const plantedOnTop = (alpha) => {
+      const box = vy.vineRect(todayIso(), pull.row);
+      ctx.save();
+      drawPlanted(ctx, box.x + box.w / 2, box.y + box.h, box.h / 100, 0, alpha);
+      ctx.restore();
+    };
+    const noVine = () => {};
+
+    // Fruit: in the held beat the word gathers into a cluster of grapes,
+    // with the word on a tag beneath it; the camera then pulls back and
+    // it settles into today's vine.
+    const drawFruit = (night) => {
+      const { pc, root, s0, word, img, crop } = pull;
+      const box = vy.vineRect(todayIso(), pull.row);
+      const s = box.h / 100, k = s / s0;
+      const x = box.x + box.w / 2, y = box.y + box.h;
+      const b = clamp01(gT / BEAT_S);
+      const fade = 1 - smooth(0.78, 1, pullU);
+      // The word, letting go.
+      const wa = 1 - smooth(0.2, 0.75, b);
+      if (wa > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = wa;
+        ctx.drawImage(img, x + (pc.x - root.x) * k, y + (pc.y - root.y) * k, pc.w * k, pc.h * k);
+        ctx.restore();
+      }
+      // The cluster, swelling where the word was, then carried down onto
+      // today's young vine as the camera pulls back, and taken into it.
+      const on = smooth(0.35, 1, pullU);
+      const cx = x + (crop.x + crop.w / 2 - root.x) * k * (1 - on);
+      const cy = y + (crop.y + crop.h * 0.42 - root.y) * k * (1 - on) - 52 * s * on;
+      const r = clamp(Math.min(crop.w, crop.h) * 0.2, 26, 64) * k * (1 - 0.6 * on);
+      ctx.save();
+      ctx.globalAlpha = fade;
+      drawBloom(ctx, { kind: 'grapes', x: cx, y: cy, r, sx: 0, rot: 0, phase: 0 }, smooth(0.15, 0.9, b) * 1.15, rt);
+      const ta = smooth(0.55, 0.95, b) * (1 - smooth(0.4, 0.8, pullU));
+      if (ta > 0.01) {
+        ctx.globalAlpha = ta;
+        vy.tag(ctx, word, cx, cy + r * 2.9, 1.5, night, 1);
+      }
+      ctx.restore();
+    };
+
     // ── Phases ──────────────────────────────────────────────────────
     const enter = (m) => {
       if (m === 'gather') {
-        // Picture the vine as it stands, to carry it into the vineyard.
+        // Picture the vine as it stands, shoot and all, to plant it in the
+        // vineyard.
         sctx.setTransform(1, 0, 0, 1, 0, 0);
         sctx.clearRect(0, 0, snap.width, snap.height);
         sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         drawGrowing(sctx);
-        // …to its place in the vineyard: today, in the front-most row of
-        // those who abided.
+        const root = { x: seedX, y: soilY };
+        const x0 = Math.min(crop.x, root.x - 6), x1 = Math.max(crop.x + crop.w, root.x + 6);
+        const pc = { x: x0, y: crop.y, w: x1 - x0, h: root.y + 2 - crop.y };
+        // Kept in its own picture: the page may re-lay itself out later.
+        const img = document.createElement('canvas');
+        img.width = Math.ceil(pc.w * dpr); img.height = Math.ceil(pc.h * dpr);
+        img.getContext('2d').drawImage(snap, pc.x * dpr, pc.y * dpr, pc.w * dpr, pc.h * dpr, 0, 0, img.width, img.height);
+        // Its place: today, in the front-most row of those who abided.
         syncVineyard();
-        vy.focusToday();
+        vy.home();
         const rows = live.current.who.map((p) => vy.rowIndex(p)).filter((r) => r >= 0);
         const row = rows.length ? vy.rows[Math.min(...rows)].key : (vy.rows[0]?.key ?? '');
         const box = vy.vineRect(todayIso(), row);
-        const k = Math.min(box.w / crop.w, box.h / crop.h) * 1.4;
-        target = { x: box.x + (box.w - crop.w * k) / 2, y: box.y + box.h - crop.h * k, w: crop.w * k, h: crop.h * k };
+        const depth = vy.depth(Math.max(0, vy.rowIndex(row)));
+        // Its size there: a little taller than a vine, and no wider than a
+        // day and a half (it's the last in its row, with room beyond).
+        const s0 = Math.max(pc.h / 150, pc.w / 138);
+        // End with the whole word in view, clear of the zoom buttons.
+        const k1 = (vy.zoom / depth) / s0;
+        const ax = GATHER_STYLE === 'fruit' ? box.x + box.w / 2
+          : Math.min(box.x + box.w / 2, W - 72 - (pc.x + pc.w - root.x) * k1);
+        pull = {
+          row, s0, pc, root, img, word: entry.word,
+          crop: { ...crop },
+          z0: s0 * depth, z1: vy.zoom,
+          a1: { x: ax, y: box.y + box.h },
+        };
+        pullU = 0;
+        vy.aim(todayIso(), row, pull.z0, root.x, root.y);
         gT = 0;
       }
       if (m === 'ground' && !grd && !grdLoading && live.current.ground) {
@@ -511,6 +596,16 @@ export default function AbideScene({
       if (mode === 'gather') {
         gT += dt;
         if (gT >= GATHER_S && !gatheredSent) { gatheredSent = true; P.onGathered?.(); }
+        if (pull) {
+          // Back and up, on a long ease; zoom in log space so the move
+          // reads as one steady camera, not a slowing shrink.
+          const k = clamp01((gT - BEAT_S) / PULL_S);
+          pullU = reduced ? (k > 0 ? 1 : 0) : easeInOut(k);
+          const z = Math.exp(Math.log(pull.z0) + (Math.log(pull.z1) - Math.log(pull.z0)) * pullU);
+          vy.aim(todayIso(), pull.row, z,
+            pull.root.x + (pull.a1.x - pull.root.x) * pullU,
+            pull.root.y + (pull.a1.y - pull.root.y) * pullU);
+        }
       }
       if (grd) {
         if (grd.patience !== P.patience) grd.setPatience(P.patience);
@@ -530,7 +625,7 @@ export default function AbideScene({
       if (!reduced) air.step(dt, rt, wind);
 
       const sky = skyAt(P.hour, season);
-      const wantVy = mode === 'vineyard' ? 1 : mode === 'intro' ? 0 : mode === 'ground' ? 0 : mode === 'gather' ? smooth(0.15, 0.7, gT / GATHER_S) : 0;
+      const wantVy = mode === 'vineyard' ? 1 : mode === 'intro' ? 0 : mode === 'ground' ? 0 : mode === 'gather' ? smooth(0.02, 0.3, pullU) : 0;
       vyAlpha += (wantVy - vyAlpha) * (mode === 'gather' ? 1 : Math.min(1, dt * 2));
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -606,8 +701,16 @@ export default function AbideScene({
       const inVy = mode === 'vineyard' || mode === 'gather';
       vy.draw(ctx, {
         alpha: vyAlpha, night: sky.night, ghost: !inVy,
-        hideToday: mode === 'gather', todayAlpha: mode === 'gather' ? smooth(0.86, 1, gT / GATHER_S) : 1,
+        hideToday: mode === 'gather', todayAlpha: mode === 'gather' ? smooth(0.8, 1, pullU) : 1,
+        // Word: the vine you grew stands in its place, today and after.
+        todayVine: !pull || !inVy || GATHER_STYLE !== 'word' ? null : mode === 'gather' ? noVine : drawPlanted,
+        todayRow: pull?.row,
+        todayTag: mode === 'gather' ? smooth(0.85, 1, pullU) : 1,
       });
+      if (mode === 'gather' && pull) {
+        if (GATHER_STYLE === 'fruit') drawFruit(sky.night);
+        else plantedOnTop(1);
+      }
 
       // The soil (fading as the vineyard's hillside comes in), richer
       // where the thorns were taken carefully; then the field on it.
@@ -668,19 +771,6 @@ export default function AbideScene({
           }
         }
         drawGrowing(ctx);
-      }
-
-      if (mode === 'gather' && target) {
-        // The vine, drawn back into its place on the vineyard.
-        const u = easeInOut(clamp01(gT / GATHER_S));
-        const rr = {
-          x: crop.x + (target.x - crop.x) * u, y: crop.y + (target.y - crop.y) * u,
-          w: crop.w + (target.w - crop.w) * u, h: crop.h + (target.h - crop.h) * u,
-        };
-        ctx.save();
-        ctx.globalAlpha = 1 - smooth(0.86, 1, gT / GATHER_S);
-        ctx.drawImage(snap, crop.x * dpr, crop.y * dpr, crop.w * dpr, crop.h * dpr, rr.x, rr.y, rr.w, rr.h);
-        ctx.restore();
       }
 
       // The season's air, over everything but the words.
