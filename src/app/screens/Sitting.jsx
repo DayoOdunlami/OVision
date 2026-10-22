@@ -357,9 +357,11 @@ function Step({ step, sitting, day, present, phase, line, setLine, kids, first, 
               <span key={p.id} className="here-name">
                 <KoiGlyph koi={p.koi} size={40} />
                 <b>{callName(p, kids)}</b>
+                {day.words[p.id] && <i className="here-word">{day.words[p.id]}</i>}
               </span>
             ))}
           </div>
+          {day.season && <p className="room-sub">Who we’re becoming this season: <b className="gold">{day.season.family.word}</b>.</p>}
           <p className="prayer blessing" dangerouslySetInnerHTML={{ __html: step.html }} />
         </div>
       );
@@ -384,12 +386,30 @@ function Step({ step, sitting, day, present, phase, line, setLine, kids, first, 
               : sitting.kind === 'sunday' ? 'The week is closed. A new prayer comes on Monday morning.'
               : `${andNames(sitting.forPeople)}, held before God.`}
           </Nudge>
+          {sitting.notes?.length > 0 && <Notes sitting={sitting} />}
         </div>
       );
 
     default:
       return null;
   }
+}
+
+// After Amen, for anyone who wants more: the notes on the passage.
+function Notes({ sitting }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="notes">
+      <button className="link" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {open ? 'Close the notes' : `Notes on ${sitting.prayer.ref}`}
+      </button>
+      {open && (
+        <div className="notes-body">
+          {sitting.notes.map((html, k) => <p key={k} dangerouslySetInnerHTML={{ __html: html }} />)}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Names come through as HTML-free text; gold for whoever we pray for.

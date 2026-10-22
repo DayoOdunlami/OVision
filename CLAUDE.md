@@ -1,6 +1,6 @@
-# Vision Board (Pond · Pray · Flourish/Abide)
+# Quiet Waters (the pond, Pray, Play, Into the deep, This season)
 
-See README.md for the surfaces and how they share `localStorage`.
+One app at `/`. See README.md for the rooms, the previews (`?demo=1`, `?h=`, `?day=`) and the code map.
 
 **Bake-off in progress.** If you were started on a `bakeoff/` branch or given a bake-off
 letter, read `bakeoff/BRIEF.md` and `bakeoff/RULES.md` before anything else. In the
@@ -9,7 +9,7 @@ overturn with reasons. (`AGENTS.md` says the same for other tools.)
 
 ## Standards
 
-- Anything visual or animated on Flourish/Abide or the pond: follow the
+- Anything visual or animated on the pond or any room: follow the
   `abide-direction` skill (`.claude/skills/abide-direction/SKILL.md`) and run its
   director's checklist.
 - Any user-facing change: run the `product-review` skill

@@ -1,260 +1,91 @@
-# Vision Board — Pond, Flourish & Prayer
+# Quiet Waters
 
-Three surfaces that share one deploy and one `localStorage`.
+A household's daily prayer from Scripture, by the pond. One app at `/`, installable to a
+phone or tablet home screen, with no account, no server and no tracking.
 
-| Route    | Surface | Character |
-|----------|---------|-----------|
-| `/`      | **Pond** — the living identity board | Ambient, peripheral, always-on. Lives on a fridge tablet, meant to be glanced at. |
-| `/pray/` | **Prayer** — the family prayer rota | Focal, sequential, one line at a time. Meant to be *used*, then closed. |
-| `/flourish/` | **Flourish** — a word written by a growing vine | "I am the vine; you are the branches." A quiet page to watch grow. |
-| `/flourish/abide/` | **Abide** — a daily practice | Clear the ground → sow the week's word → abide while it grows at the pace of breath → answer → gather into the vineyard. |
+> "He leads me beside quiet waters, he refreshes my soul." Psalm 23:2
 
-They are deliberately **not** the same page. The pond is animated koi; the
-prayer surface is still type on paper. Putting koi behind prayer text would
-fight the exact problem the prayer surface exists to solve (a wandering mind).
+## What it is
 
-| `/make/` | **Make a board**: for you or someone else | Four short answers, with a live preview. Saves to this device, or travels as a link (`/?board=…`). |
-| `/today/` | **Today**: optional front door | Pray → Abide → Rest your eyes, with what's been done today. Each room still stands alone. |
-| `/admin/` | **Admin** (also `/labs/`) | Password `bio123`. Shows the live version, a Main/Lab switch, every change New or Classic, and links to every mode. Live at o-vision.vercel.app, deployed from `main`. |
+- **The pond** is home, the idle screen and the record. The family's word for the season
+  lies in the water, with the week's verse beneath it. Each person is a koi, and today's
+  names float beside theirs. Tap the water and it rings. Tap a koi to see whose it is and
+  their word. Double-tap or hold to feed them. A lily pad appears for every week of the
+  season, and a lotus for each verse said by heart.
+- **Pray**: one prayer a day for the household (a pair, and on Sunday everyone). The
+  sitting adapts to who's in the room:
+  - **One grown-up** (06:45, silent): three breaths, the verse read twice, twenty seconds
+    of quiet, the prayer one thought at a time with *Wandered?*, a line for them, the
+    blessing, then Amen and a held silence before their koi rise.
+  - **Children**: simple words, a different child reads each card, then "I wonder…", the
+    blessing together, Amen, then *Play the verse*.
+  - **Sunday**: the Lord's Prayer, each person held, the week's verse said together from
+    memory, and the week looked back on.
+- **Play the verse**: the verse puzzle, in four steps through the week (*Some words*,
+  *More words*, *Every word*, *By heart*). Different words fall each time. Turns are shown
+  in koi colours, and several fingers can play at once. *Today's prayer*, with the
+  family's names, is a second game.
+- **Into the deep**: confession. For a grown-up, a short examen and then one stone,
+  opened from the hand. For children, a stone (sorry) or a flower (thank you), thrown into
+  the pond. Nothing is typed or stored.
+- **This season**: the family's word and practices, each person's word, what has taken
+  root week by week, and a book of past seasons. *Begin a new season* passes the tablet
+  round.
+- **First run**: set up a household (names, grown-up or child, a koi each), or look
+  around with an example family. *Settings* makes a link that carries the household to
+  another device. The rota is worked out from the household and the date, so both devices
+  agree without sync.
 
-Design reviews, with what was changed and what to do next: `docs/abide-review.md`,
-`docs/pray-review.md`, `docs/pond-review.md`.
+## Previews
 
-## Labs (A/B)
+| Address | What |
+|---|---|
+| `/?demo=1` | An invented household with six weeks behind it (kept apart from any real one). |
+| `?h=6.75`, `?h=22` | Any hour: the light and the paper follow it. |
+| `?day=sun` | Any weekday of this week. |
+| `?season=winter` | Any season on the water. |
+| `?idle=1` | The idle screen straight away. |
+| `?away=5` | (demo) Back after five days away. |
+| `#/pray?who=sam`, `#/play`, `#/deep?who=ada,kit`, `#/season`, `#/season/new`, `#/settings` | Rooms. |
 
-`src/shared/labs.js` lists every change from a design pass. `lab('abide.breathWords')` is true
-unless it's been switched to Classic on `/labs/`. On any page:
+Old addresses (`/pray/`, `/flourish/abide/`, `/today/` and the rest) redirect here.
 
-- `?labs=classic` shows it exactly as it was.
-- `?labs=new` turns every change on.
-- `?lab=key1,key2` turns on only those changes, for a side-by-side comparison.
-
-Abide also takes `?at=intro|sow|vineyard` to open at a step (which `/labs/` compare uses), and
-`?fast=1` in development to run the after-growth timings twenty times faster.
-
-## Made boards, screensaver, murmuration
-
-Made boards are kept under `vb.boards` (`src/data/customBoards.js`). A board travels as base64url
-JSON in `?board=`, which is normalised, text only and length-capped. The screensaver is
-`?screen=1` (`src/pond/screensaver.js`). `/murmuration/` is the board's words written by a flock of starlings
-(three.js's GPU flock, MIT, extended; `src/murmuration/`, brief in `docs/murmuration-brief.md`). The bird worlds we tried and removed are recorded in `docs/birds-log.md`.
-
-## How they're joined
-
-Same origin → same `localStorage`. The prayer surface writes `familyPrayer`;
-the pond reads it (never writes) via [`src/data/prayerLink.js`](src/data/prayerLink.js).
-No API, no database, no build coupling.
-
-What crosses over:
-
-- **Today's rota → named koi.** Each family member has a koi variety. The two
-  people on today's rota get their names drawn on the water beside their fish,
-  and those two koi can swim as a pair.
-- **Consistency → the "Full" swell.** How far koi swell near the word *Full* is
-  driven by how many of this week's elapsed days you actually prayed. A good
-  week makes them fat and golden; a thin week leaves them lean.
-- **Today's pair → the `marrow` zone.** The names are shown under the word, and
-  their koi take its colour as they pass through.
-- **The masthead chip** on the pond shows today's pair and links straight to
-  `/pray/`.
-
-Both integrations are toggleable under **Pond settings → Concepts**, so they can
-be judged against the pond without them.
-
-## Abide
-
-`src/flourish/abide/`. A daily practice of about three minutes, made for a family sharing one device:
-
-0. **Who's here?** Tap who's abiding (by their koi colour); remembered for next time. Two or three of you together is one session that counts for each of you (`people.js`).
-1. **Prepare the ground**, the parable of the sower by hand (`field.js`). A heap of engraved river stones (Selfishness, Greed, Insecurity, Distraction, Laziness…) and unnamed rubble sits on the seed's spot. They're Matter.js bodies like the puzzle's words: a held stone shoves the others; the heap pulls loose pieces back (rubble most); named stones are heavy and slip from a hurried hand. Each goes to **the wall** at the far edge, where it's set into a drystone wall the family builds over the days (Isaiah 5:2). Then the thorns (`weeds.js`: dandelion, thistle, foxtail, bramble), each with a faint word (money, worry, fear…): hold steady tension until the roots loosen, lift, and lay it in **the compost basket**. Yanking, shaking or dropping sheds seed that sprouts more. Care is rewarded: a thorn taken whole leaves rich dark soil, and a field cleared without dropping a seed is **good soil**, so today's vine bears more (Mark 4:20). A **Patience** setting (Forgiving · Balanced · Exacting) scales the speeds, roots and grip. Taps only show how; Skip clears all.
-2. **Sow** this week's word (from the prayer rota) or another.
-3. **Abide**: it grows only while the page is open, paced by breath. Hold anywhere (or Space) to breathe in, let go to breathe out; otherwise a guided 4s/6s breath.
-4. **Respond**: one optional line, kept with the day.
-5. **Gather** into **the vineyard** (`vineyard.js`): a 2.5D hillside with a trellised row per person, one vine per day each person abided, placed by calendar so weeks line up. Vines grow for a week after planting; fruit ripens once that prayer is learned by heart in the Pray puzzle; good-soil days bear an extra cluster. Days shared are tied across rows with a gold garland. The family's wall runs along the front, with the compost heap and, once the wall is long, a watchtower. Views: Family, one person (others faded), Together. Pan, pinch/scroll to zoom, double-tap to look closer, tap a vine for its day. Coming back on a new day, the vineyard shows what grew overnight.
-
-Stored per device: sessions in `flourish.vineyard` (each with `who`), the family's wall/compost in `flourish.field`, the last group in `abide.who`.
-
-Previews: `?h=21` (time of day), `?season=winter`.
-
-## Feeding the koi
-
-Pond and Pray (the koi that stay after Amen): double-tap the water, or press and hold while a ring fills. A pinch of food floats, drifts and slowly sinks (~40s). Each koi has to *notice* it: nearby and curious koi first, others when they see one eating (`src/shared/koiFood.js`).
-
-## Pond surface
+## Code
 
 ```
-src/
-  App.jsx                    routes Pond ↔ Document
-  data/board.js              board content (local now, Notion-shaped adapter)
-  data/prayerLink.js         reads the prayer surface's state
-  SpineFish.js               dot-chain skeletal koi
-  pond/PondCanvas.jsx        water, koi, attractors, name labels
-  pond/water.js              palette + water painters
-  pond/pads.js               decorative pads, blossoms, ripples
-  pond/particles.js          edge-bound particles for the Flourish word
-  pond/zones/
-    FlourishZone.jsx         01 · identity — particles trace the letterforms
-    FullZone.jsx             02 · season   — proximity swell + consistency gauge
-    CommitmentsZone.jsx      03 · verbs    — lily pads that koi rock and ripple
-    MarrowZone.jsx           04 · friction — koi take the word's colour
-  views/PosterPond.jsx       the pond view + settings menu
-  views/Document.jsx         full-text fallback for everything the pond omits
+src/main.jsx                 entry: fonts, tokens, service worker
+src/app/
+  tokens.css                 the design system (day/dawn/dusk/night are settings of it)
+  app.css                    every room, on the tokens
+  App.jsx  route.js          the shell and rooms (#/pray …)
+  store.js                   the household's record (localStorage), the example family's apart
+  calendar.js                now(), the prayer day (turns at 03:00), the week (turns Monday), light
+  rota.js                    who we pray for each day, and the week's prayer (worked out, not stored)
+  today.js                   everything a screen needs about today
+  script.js                  what today's sitting consists of, by who's here
+  household.js  demo.js      people and koi; links to another device; the example family
+  content/                   prayers.js (fourteen prayers), context.js (grammar), verses.js (NIV)
+  pond/                      PondView (home), SpineFish (koi), water, paint, pads, koiFood, KoiSchool
+  play/                      Play, Round (the puzzle, matter-js), puzzle.js
+  deep/                      Into the deep and its water
+  screens/                   Home, Sitting, Season, NewSeason, Settings, Setup, Welcome, Join, Print
+public/                      manifest, service worker, icons, redirects from the old addresses
 ```
-
-`Atmosphere`, `Textured` and the old `Family` board (`KoiBoard.jsx`) were
-retired — the Family board was a second, duplicate pond with its own data model.
-
-## Prayer surface
-
-A React app with its own entry point (`pray/index.html` → `src/pray/`),
-built by the same Vite config as the pond. It's a separate page, not a
-route inside the pond, so it never carries the animated water.
-
-```
-pray/index.html            entry — fonts, meta
-src/shared/family.js       the household roster (both surfaces import it)
-src/pray/
-  PrayApp.jsx              owns state; dock; overlays
-  data/prayers.js          the fourteen prayers, blessings, prompts
-  lib/state.js             storage, weekly rota, consistency
-  lib/context.js           names → pronouns → grammar
-  lib/puzzle.js            cuts a verse into slots and falling pieces
-  lib/script.js            "what is this day's prayer?" — shared by
-                           reading view, Pray it and the puzzle
-  components/
-    ReadingView.jsx        the landing page: who, passage, prayer
-    ControlSheet.jsx       every control, in one bottom sheet
-    PaceMode.jsx           Pray it — one thought per card, then Amen
-    PuzzleMode.jsx         the verse falls apart; put it back (lazy-loaded)
-    PrintSheet.jsx         the paper rota
-  pray.css
-```
-
-- **Reading first, sized to the screen.** The prayer is the landing page, in
-  Literata. Type is fluid with window width — body ~24px on a phone, ~34px at
-  1280px, ~40px on a large laptop — and the reading column widens with it, so
-  a big screen gets bigger words rather than more empty paper. Pray it, the
-  puzzle, the Amen card and the koi all scale the same way. Options → Reading
-  adds up to 200% on top. Swipe sideways (or arrow keys) to change day.
-- **One Options sheet** for day, voice (Solo / Together / Kids), style
-  (Flowing / Spoken), text size, focus dimming, the week, "praying as",
-  new week and printing.
-- **Pray it** — a breath card, one thought per tap, then the blessing.
-  Reaching *Amen* is what records the day as prayed.
-- **Puzzle** — read the verse, let words fall into a pile, then drag (or tap)
-  them back into the next glowing slot, in order. Three cuts: *Memory* (every
-  third word — the default, for memorising), *Words*, and *Phrases* (easier for
-  children). Names never fall. Right words snap home; wrong ones bounce back —
-  no score. Physics is matter-js, loaded only when the puzzle is opened.
-- **Fourteen prayers** from Scripture, each in three registers plus an
-  **Explore** note on the Greek or Hebrew. They rotate weekly in an order that
-  alternates Paul's letters with the Psalms and Gospels (`ROTATION` in
-  `lib/state.js`); **This week's prayer** in Options lets you choose instead.
-  A ✓ marks prayers rebuilt end to end in the puzzle. Five pray the identity
-  board itself: John 15 (the anchor verse), Psalm 1 (*flourish*), Psalm 63
-  (*full*), and Psalm 121 and Luke 2:52, short enough for the children to learn.
-- **Amen brings the koi** — in Pray it and the puzzle alike. The paper is the
-  pond's surface: the koi of everyone prayed for *rise* from beneath it — faint,
-  blurred and small at first, then a pair of soft rings as each breaks the
-  surface, then clear, with their name — each at its own moment and pace. Once
-  up they drift slowly, rest often, and keep sinking a little and rising again
-  (softer and fainter when deeper), and stay until you tap Done; tapping the
-  gold ✓ calls them again. They answer a finger like pond koi — curious ones
-  come, shy ones scatter. Near the surface they visit the Amen card's words and
-  push the ✓, "Amen." and its two quiet lines aside like lily pads on an anchor
-  line — typically ~55px, gliding home over ~7–12s; the Done button never moves.
-  (`components/KoiSchool.jsx`, `components/AmenCard.jsx`.)
-- **Celebration**, set in Options: *Balanced* (default: koi at Amen; in the
-  puzzle, each verse also gets a ripple from the last word and a sweep of gold,
-  and the finished prayer gathers together), *Quiet* (no koi unless you tap the
-  ✓; ripple and gold in the puzzle) or *Grand* (as Balanced, plus a koi passing
-  after every verse). Reduced motion: no koi; the verse simply turns gold.
-- **Version** at the foot of Options is the commit the page was built from
-  (Vercel's `VERCEL_GIT_COMMIT_SHA`), so a deployed page can be matched to git.
-- Six-person rota, reshuffled weekly; Sunday is the whole household.
-
-### Stored state
-
-Everything is kept under one `localStorage` key, `familyPrayer`, in exactly the
-shape the original single-file app used — see the comment at the top of
-`src/pray/lib/state.js`. Add fields freely; never rename one. The pond reads this
-record.
-
-### A note on translations
-
-The first four prayers render their flowing prose in NIV wording. Everything
-added since is an original modern-English rendering rather than a quotation of
-any published translation, which keeps the file distributable without permission
-clearances. The `spoken` and `explain` layers were always original. Using a
-specific translation throughout is a licensing question, not a technical one.
-
-## Flourish surface
-
-`flourish/index.html` → `src/flourish/`. A word is written in a single-stroke
-script (EMS Allure, SIL OFL — `lib/allure.js`), so each letter is one pen line:
-joined strokes become one stem, detached strokes (the cross of an A) sprout as
-branches when growth passes them, and the dot of an i opens as a blossom.
-Leaves, tendrils and blossoms are placed by a generator seeded from the word, so
-a word always grows the same vine.
-
-```
-src/flourish/
-  FlourishApp.jsx          page: nav, verse, "Grow again", try-a-word (?w=…)
-  components/WordVine.jsx  canvas loop: grow, sway, ruffle, reflection
-  lib/vine.js              geometry + timing (pure; testable in node)
-  lib/draw.js              stem, leaf and blossom drawing
-  lib/allure.js            glyph data
-```
-
-Up to 40 characters, wrapped onto one to four lines (whichever writes it
-largest). **Options** (per device, `flourish.options`): pace; flowers
-(blossom, jasmine, grapes that ripen, or mixed); how many (few, some, many, or
-one per day prayed this week); reflection; and **family branches** — a branch
-per person hanging to their name, bearing a flower or cluster for each time
-they were prayed for this week (from `prayedForThisWeek()` in
-`src/data/prayerLink.js`), or a closed bud if none yet. "Family (sample)" shows
-made-up counts for devices with no prayer data.
-
-Finished stretches of stem are drawn once into their own canvas; each frame redraws only leaves,
-blossoms and growing tips. Reduced motion shows it fully grown and still.
-In development, `window.__vineStep(frames)` steps the animation by hand.
-
-## Abide (a second Flourish mode)
-
-`flourish/abide/index.html` → `/flourish/abide/` → `src/flourish/abide/`. The
-original Flourish page is untouched; a switch at the top of each moves between
-"Abide" and "Free write".
-
-The practice, for one outcome — *take in one word today, and see over time what's
-taking root*:
-
-1. **Sow** — this week's word (from the prayer rota, via `wordForRef` in
-   `abide/words.js`; any of the 14 can be chosen) falls as a seed into the soil.
-2. **Abide** — a shoot rises and writes the word. It grows only while the page is
-   open, paced to slow breathing (in 4s, out 6s); the verse appears a line at a
-   time and a question halfway.
-3. **Gather** — the finished vine is drawn back onto the vineyard.
-4. **Vineyard** — one long vine: a section per word (consecutive days with the same
-   word are one section) with a grape cluster per day abided. Stored per device
-   under `flourish.vineyard`.
-
-The sky follows the real clock (sun by day; moon and stars by night; warm dawn and
-dusk). Preview another hour with `?h=21`. In development,
-`window.__abideStep(frames)` steps the animation.
 
 ## Develop
 
 ```bash
 npm install
-npm run dev
+npm run dev      # http://localhost:5173/?demo=1
+npm run build    # static site in dist/
 ```
 
-Pond at `http://localhost:5173/`, prayer at `http://localhost:5173/pray/`,
-flourish at `http://localhost:5173/flourish/`.
+## Scripture
 
-## Deploy
+The memory verses and the confession verses are NIV (Anglicised): Scripture quotations
+taken from the Holy Bible, New International Version® Anglicised, NIV® Copyright © 1979,
+1984, 2011 by Biblica, Inc. Used by permission. All rights reserved worldwide. There are
+fewer than 30 verses, inside Biblica's General Use Guidelines. The prayers, prompts and
+notes are original modern renderings.
 
-```bash
-npm run build
-# drop dist/ on Vercel, Netlify, anywhere static
-```
+Earlier reviews of the previous surfaces are in `docs/`.

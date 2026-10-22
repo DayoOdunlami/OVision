@@ -136,5 +136,13 @@ export function buildSitting({ present, forPeople, everyone, prayerIdx, isSunday
     ? kidsPetitionPrompts[new Date().getDay() % kidsPetitionPrompts.length](callName(forPeople[0], true), callName(forPeople[1], true))
     : null;
 
-  return { kind, voice, verse, prayer, forPeople, steps, title, kidsPrompt };
+  // The notes on the passage (Greek and Hebrew), offered after Amen to
+  // anyone who wants to read more. Never during the prayer itself.
+  const notes = forPeople.length >= 2 && kind !== 'children'
+    ? prayer.sections.map((s) => s.explain(buildPrayerContext(
+      { name: forPeople[0].name, label: forPeople[0].name },
+      { name: forPeople[1].name, label: forPeople[1].name }, 'family', null)))
+    : [];
+
+  return { kind, voice, verse, prayer, forPeople, steps, title, kidsPrompt, notes };
 }

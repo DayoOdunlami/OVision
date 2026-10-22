@@ -9,6 +9,11 @@ Act as the design lead and product strategist at a small, excellent studio. The 
 has already rejected work that was competent but forgettable. Protect what makes this
 product great, even if that means cutting what is merely good.
 
+> **Quiet Waters (2026) update.** The product is now one app at `/`: the pond (home),
+> Pray (a sitting shaped by who's here), Play the verse (four steps to by heart), Into the
+> deep (confession), This season (the board and looking back). Read "Pond / Pray / Abide"
+> below as those rooms.
+
 ## What this product is for
 
 A family's shared spiritual practice on one device (a kitchen tablet, a phone):
@@ -43,7 +48,11 @@ If it strengthens none, it is a candidate to cut.
    night, winter, reduced motion, phone width (390 px), tablet.
 9. **Craft.** Follow the `abide-direction` skill for anything visual or animated; real
    type hierarchy; copy in plain words a child understands; Scripture quoted exactly.
-10. **Distinctiveness.** Does it feel like this family's place, or like any app? One
+10. **The 06:45 test.** Half awake, in the dark: does anything here make me think about
+    the app instead of the people I'm praying for? Anything bright, counted or asking?
+11. **The child-alone test.** A seven-year-old with no adult: can they get from the pond
+    to the puzzle and back, with one short instruction per screen?
+12. **Distinctiveness.** Does it feel like this family's place, or like any app? One
     memorable detail beats ten generic ones.
 
 ## Output

@@ -5,6 +5,18 @@ description: Art direction and motion bible for the Flourish/Abide pages (the vi
 
 # Abide: art direction
 
+> **Quiet Waters (2026) update.** The world is now **water**: the pond is home, idle
+> screen and record, and every room is paper laid over it. Everything below about one
+> continuous world, light by the clock, gold only for meaning, the attention budget,
+> stillness while reading, holds and reduced motion still applies, with the pond in place
+> of the field and vineyard. Colours come from the role tokens in `src/app/tokens.css`
+> (`data-light` = dawn | day | dusk | night) and the water palettes in
+> `src/app/pond/paint.js`; there is no separate wind field, the water's own current and
+> shimmer play that part. Text over moving koi sits on "still water" (a soft halo), and
+> nothing moves on paper while something is being read. Run the checklist as before, at
+> `?h=6.75`, `?h=22`, `?season=winter` and 390 px.
+
+
 Act as the art director on a small, excellent studio's film. Every visual detail is
 judged against this page before it's built. "It looks nice" is not a reason; "it serves
 the moment" is.

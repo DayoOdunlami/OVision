@@ -264,7 +264,7 @@ textarea.field, .line-field textarea { resize: vertical; }
 /* Idle: the slip and the controls sink away; the word, the verse and
    today's names stay on the water. */
 .fades { transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease); }
-.home.is-idle .fades { opacity: 0; transform: translateY(16px); pointer-events: none; }
+.home.is-idle .fades { animation: none; opacity: 0; transform: translateY(16px); pointer-events: none; }
 .home.is-idle .water-today { display: block; animation: fade var(--t-slow) var(--ease) both; }
 .home.is-idle .home-when { opacity: 0.8; }
 
@@ -368,6 +368,7 @@ textarea.field, .line-field textarea { resize: vertical; }
 .here-name { display: inline-flex; flex-direction: column; align-items: center; gap: var(--s1); }
 .here-name b { font: 400 calc(1.75rem * var(--text-scale)) var(--font-display); color: var(--gold); }
 .here-names.many .here-name b { font-size: calc(1.125rem * var(--text-scale)); color: var(--ink); }
+.here-word { font: italic var(--fs-small) var(--font-display); color: var(--ink-2); }
 .here-name.small { flex-direction: row; gap: var(--s2); }
 .here-name.small b { font-size: var(--fs-ui); color: var(--ink); }
 .set-people { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s4); margin-bottom: var(--s3); }
@@ -384,6 +385,10 @@ textarea.field, .line-field textarea { resize: vertical; }
 .amen-word { font: italic 320 calc(clamp(3.5rem, 2rem + 6vw, 7rem) * var(--text-scale)) / 1 var(--font-display); font-variation-settings: 'SOFT' 100; color: var(--ink); }
 .amen-sub { margin: var(--s4) 0 0; font: italic var(--fs-body) var(--font-read); color: var(--ink-2); max-width: 24em; }
 .amen .nudge { position: relative; will-change: transform; }
+.notes { margin-top: var(--s6); max-width: 34em; text-align: left; position: relative; z-index: 2; }
+.notes .link { display: block; margin: 0 auto; }
+.notes-body { margin-top: var(--s3); padding: var(--s4) var(--s5); border-radius: var(--r-m); background: var(--paper-2); max-height: 42vh; overflow-y: auto; animation: rise var(--t-move) var(--ease) both; }
+.notes-body p { margin: 0 0 var(--s3); font-size: var(--fs-small); line-height: 1.6; color: var(--ink); }
 .stillness { display: flex; align-items: center; gap: var(--s3); }
 .stillness-ring {
   width: 28px; height: 28px; border-radius: 50%;
