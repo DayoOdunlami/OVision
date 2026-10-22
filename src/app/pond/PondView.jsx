@@ -390,7 +390,7 @@ export default function PondView(props) {
       if (keepOut) {
         const vk = `${lKey}:${Math.round(keepOut.x0 / 8)}:${Math.round(keepOut.y0 / 8)}:${Math.round(keepOut.x1 / 8)}:${Math.round(keepOut.y1 / 8)}`;
         if (vk !== veilFor) { veilFor = vk; veil = stillWater(base, W, H, DPR, keepOut, night); }
-        ctx.drawImage(veil, 0, 0, W, H);
+        ctx.drawImage(veil.c, veil.x, veil.y, veil.w, veil.h);
       }
 
       // A koi resting under a yes pad rocks it.
@@ -464,17 +464,21 @@ function caption(ctx, text, x, y, a, night, W) {
 }
 
 // The still water over the words: the plain water, laid over whatever
-// swims beneath, strongest in the middle and fading at the edge.
+// swims beneath, strongest in the middle and fading at the edge. Only
+// the patch round the words is kept, so laying it down each frame is cheap.
 function stillWater(base, W, H, DPR, k, night) {
-  const c = document.createElement('canvas');
-  c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
-  const x = c.getContext('2d');
-  x.drawImage(base, 0, 0);
-  x.globalCompositeOperation = 'destination-in';
-  x.setTransform(DPR, 0, 0, DPR, 0, 0);
   const cx = (k.x0 + k.x1) / 2, cy = (k.y0 + k.y1) / 2;
   const rx = (k.x1 - k.x0) / 2 * 1.36 + 30, ry = (k.y1 - k.y0) / 2 * 1.36 + 30;
-  x.translate(cx, cy);
+  const x0 = Math.max(0, Math.floor(cx - rx)), y0 = Math.max(0, Math.floor(cy - ry));
+  const x1 = Math.min(W, Math.ceil(cx + rx)), y1 = Math.min(H, Math.ceil(cy + ry));
+  const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  const x = c.getContext('2d');
+  x.drawImage(base, x0 * DPR, y0 * DPR, w * DPR, h * DPR, 0, 0, w * DPR, h * DPR);
+  x.globalCompositeOperation = 'destination-in';
+  x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  x.translate(cx - x0, cy - y0);
   x.scale(rx / ry, 1);
   const g = x.createRadialGradient(0, 0, 0, 0, 0, ry);
   const a = night ? 0.72 : 0.8;
@@ -483,5 +487,5 @@ function stillWater(base, W, H, DPR, k, night) {
   g.addColorStop(1, 'rgba(0,0,0,0)');
   x.fillStyle = g;
   x.fillRect(-ry * 2, -ry * 2, ry * 4, ry * 4);
-  return c;
+  return { c, x: x0, y: y0, w, h };
 }
