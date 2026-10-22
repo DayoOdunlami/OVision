@@ -1,0 +1,52 @@
+:root {
+  --paper: #efe6d6;
+  --paper-2: #f7f1e4;
+  --ink: #241f1a;
+  --ink-soft: #4a433b;
+  --clay: #8c4a2f;
+  --gold: #8a6230;
+  --leaf: #3f6b32;
+  --line: rgba(36, 31, 26, 0.16);
+  --slip: #fbf6ec;
+  --shadow: 0 8px 18px rgba(36, 31, 26, 0.08);
+  --serif: "Cormorant Garamond", "Palatino Linotype", Palatino, Georgia, serif;
+  --text: "Literata", "Iowan Old Style", Georgia, serif;
+  --sans: "Source Sans 3", "Segoe UI", sans-serif;
+  --verse: clamp(2.15rem, 8vw, 3.4rem);
+  --prayer: clamp(1.35rem, 4.6vw, 1.9rem);
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.5rem;
+  --radius: 999px;
+  --radius-slip: 2px;
+  --motion: 200ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color-scheme: light;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+:root[data-time="night"] {
+  --paper: #161c28;
+  --paper-2: #1e2636;
+  --ink: #f3eadc;
+  --ink-soft: #c8bfb0;
+  --clay: #e0b07a;
+  --gold: #e0b07a;
+  --leaf: #b7c98a;
+  --line: rgba(243, 234, 220, 0.18);
+  --slip: #2a3344;
+  --shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  color-scheme: dark;
+}
+
+:root[data-motion="off"] {
+  --motion: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0ms;
+  }
+}

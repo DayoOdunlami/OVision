@@ -1,0 +1,20 @@
+{
+  "redirects": [
+    { "source": "/pray", "destination": "/?at=evening", "permanent": false },
+    { "source": "/pray/", "destination": "/?at=evening", "permanent": false },
+    { "source": "/flourish", "destination": "/?at=week", "permanent": false },
+    { "source": "/flourish/", "destination": "/?at=week", "permanent": false },
+    { "source": "/flourish/abide", "destination": "/?at=setdown", "permanent": false },
+    { "source": "/flourish/abide/", "destination": "/?at=setdown", "permanent": false },
+    { "source": "/today", "destination": "/", "permanent": false },
+    { "source": "/today/", "destination": "/", "permanent": false },
+    { "source": "/make", "destination": "/?at=season", "permanent": false },
+    { "source": "/make/", "destination": "/?at=season", "permanent": false },
+    { "source": "/murmuration", "destination": "/?at=glance", "permanent": false },
+    { "source": "/murmuration/", "destination": "/?at=glance", "permanent": false },
+    { "source": "/labs", "destination": "/", "permanent": false },
+    { "source": "/labs/", "destination": "/", "permanent": false },
+    { "source": "/admin", "destination": "/", "permanent": false },
+    { "source": "/admin/", "destination": "/", "permanent": false }
+  ]
+}

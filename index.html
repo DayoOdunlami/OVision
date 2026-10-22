@@ -1,49 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#F1E6D2" />
-    <title>Identity Board · Vision Board</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Fraunces + Manrope are loaded dynamically from SharedStyles so we
-         don't block first paint on fonts the Family Board doesn't need. -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#efe6d6" />
+    <meta name="description" content="One prayer for the household, this week." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon-192.png" />
+    <title>Table</title>
     <style>
-      html,
-      body,
-      #root {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-      }
-      html,
-      body {
-        min-height: 100%;
-        background: #F1E6D2;
-      }
-      body {
-        font-family: 'Manrope', 'Palatino Linotype', Palatino, 'Cormorant Garamond',
-          'Book Antiqua', Georgia, serif;
-        -webkit-font-smoothing: antialiased;
-        text-rendering: optimizeLegibility;
-      }
-      /* Kill tap-highlight for the fridge/touch use case */
-      * {
-        -webkit-tap-highlight-color: transparent;
-      }
-      /* Double-tap feeds the koi rather than zooming; pinch still zooms.
-         No long-press callout over the water either. */
-      html {
-        touch-action: manipulation;
-        -webkit-touch-callout: none;
-      }
+      html, body { margin: 0; min-height: 100%; background: #efe6d6; color: #241f1a; }
+      #root { min-height: 100%; }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/table/main.jsx"></script>
   </body>
 </html>

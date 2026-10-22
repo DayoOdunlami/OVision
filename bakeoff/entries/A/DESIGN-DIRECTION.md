@@ -100,7 +100,7 @@ Direction 1 lost because it puts the living glance in the only place that must b
 
 - **Illustration:** Hand-made and few, and all of it drawn in code so the look can continue. Glance water and koi are canvas (flat bands, a body, a tail, spots). The child's stone, the week's sprig, and the puzzle gap are SVG or CSS. Prayer is paper, not a scene. Puzzle slips are cut-paper rectangles with weight. No stock photos, no clip art, no downloaded characters, no mix of styles. The type is self-hosted and SIL Open Font License: Literata, Cormorant Garamond, Source Sans 3. NIV verses stay inside Biblica's general-use guidelines, with the notice on the screen.
 - **Type:** Cormorant Garamond italic for the verse, so the words being learned look different from everything around them. Literata for the prayer. Source Sans 3 for names, buttons, and quiet labels. Large sizes. The verse is never smaller than the chrome.
-- **Palette (day, night, season):** Day paper `#efe6d6` to `#f7f1e4`, ink `#241f1a`, names and meaning in clay `#8c4a2f`. Night is the same sheet with the lamp down: `#161c28` and `#f3eadc`, clay lightened to `#e0b07a`. The glance water changes with the clock and the season word (autumn olive, winter blue, spring green, summer teal). Night water is deep blue. Gold `#c9a15b` is only the live gap in the puzzle and a learned verse. It is not decoration.
+- **Palette (day, night, season):** Day paper `#efe6d6` to `#f7f1e4`, ink `#241f1a`, names and meaning in clay `#8c4a2f`. Night is the same sheet with the lamp down: `#161c28` and `#f3eadc`, clay lightened to `#e0b07a`. The glance water changes with the clock and the season word (autumn olive, winter blue, spring green, summer teal). Night water is deep blue. Gold is `#8a6230` by day and `#e0b07a` by night, and only the live gap in the puzzle uses it. It is not decoration, and it is dark enough to read as a line on the paper.
 - **Motion, and its attention budget:** Prayer: no ambient motion. One card replaces another. Puzzle: the loose words fall and settle; a right word snaps home; a wrong word returns. Glance: the fish move, slowly, and the water does not. At most those fish, plus food when a hand asks for it. Nothing moves while a verse card is up. Reduced motion: no fall, no swim, the words still place. Holds after Amen and after the verse is restored. No confetti, no ripple carnival, no koi on the Amen card.
 - **Sound:** None. The morning is silent on purpose. Later, a single bell at the threshold, and a human voice reading the verse for a pre-reader. Not a soundtrack, and not a synthetic voice.
 - **Touch and feel:** The whole card is the way on. Buttons and chips are at least 48 px, ink on paper, a pill only where a finger needs a target. Puzzle slips can be dragged or tapped into the gold gap. Fish come to a held finger and to food. The app ends. Amen does not open a feed. Text still works at 200% because the sheets scroll and the type is in rem.
@@ -121,7 +121,7 @@ Home-screen icon
    │    └─ children     the words fall
    ├─ Let the words fall
    ├─ Leave it open     the glance (water, the season word, feeding)
-   ├─ The weeks         who sat, what was set down, the sprig
+   ├─ The weeks         who sat, what was set down, each person's word, the sprig
    └─ This season       the family word, commitments, household
 First run: who prays here → one word → the table
 ```
