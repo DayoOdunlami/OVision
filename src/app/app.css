@@ -691,3 +691,6 @@ button.each-one { border: 0; text-align: left; font: inherit; color: inherit; mi
 .finale-line { margin: 0 0 var(--s3); font: italic var(--fs-ui) / 1.45 var(--font-read); }
 .finale-wait { margin: 0; color: var(--ink-2); font: italic var(--fs-small) var(--font-read); }
 .world-wait { background: var(--paper); }
+/* At night a chosen chip must still read as chosen. */
+:root[data-light='night'] .chip.is-on { background: var(--gold-soft); color: #16130f; }
+:root[data-light='night'] .chip.is-on .theme-pic { color: #16130f; }

@@ -325,7 +325,9 @@ export class VineScene {
 
   step(dt, { calm = 1 } = {}) {
     if (this.reduced) { this.t = 1e6; return; }
-    this.t += dt;
+    // The finale is watched by a family standing round a tablet: it
+    // grows a little faster than life.
+    this.t += dt * (this.finale ? 1.7 : 1);
     const theme = this.props?.board?.theme;
     this.wind.step(dt, { calm: calm * (theme === 'rest' ? 0.75 : 1) });
     this.amb?.step(dt, this.wind, { mode: this.props?.idle ? 'vineyard' : 'intro', quiet: false });
@@ -419,8 +421,10 @@ export class VineScene {
     });
     this.amb?.drawGrass(ctx, this.wind, night);
     // The trunk, rooted.
+    ctx.globalAlpha = this.finale ? clamp01(t / 2) : 1;
     this.drawTrunk(ctx, night);
     for (const n of this.nos) this.drawSpur(ctx, n, night);
+    ctx.globalAlpha = 1;
 
     // The word's stems: matured stretches are baked once.
     const taper = v.base * 4;

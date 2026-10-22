@@ -145,7 +145,7 @@ export default function NewSeason({ day }) {
     setBorn(true);
     setTimeout(() => playMoment('finale', world), 60);
     const n = people.length;
-    const wait = world === 'vine' ? 11000 + n * 700 : 5000 + n * 2200 + famYes.filter((y) => y.no).length * 1600;
+    const wait = world === 'vine' ? 13000 + n * 600 : 5000 + n * 2200 + famYes.filter((y) => y.no).length * 1600;
     setTimeout(() => setReady(true), Math.min(wait, 26000));
   };
   const begin = () => { playMoment(null); go('home'); };

@@ -25,25 +25,25 @@ export default function AmenVine({ people }) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     const night = document.documentElement.dataset.light === 'night';
-    const em = Math.max(60, Math.min(110, W / 6));
+    const em = Math.max(90, Math.min(140, W / 3.6));
     const rand = seeded('amen ' + people.map((p) => p.name).join());
     const n = people.length;
     const shoots = people.map((p, k) => {
       const x = W * ((k + 1) / (n + 1));
-      const top = H * (0.62 + rand() * 0.08);
+      const top = H * (0.71 + rand() * 0.06);
       const pts = [];
       const lean = (rand() - 0.5) * em * 0.6;
       for (let j = 0; j <= 40; j++) {
         const u = j / 40;
         pts.push([x + Math.sin(u * Math.PI) * lean * 0.5 + lean * u * u * 0.3, H + 4 - (H + 4 - top) * u]);
       }
-      const st = stem(pts, { w0: em * 0.05, w1: em * 0.025 });
+      const st = stem(pts, { w0: em * 0.045, w1: em * 0.022 });
       timeStem(st, 0.3 + k * 0.5, em * 2.4, em, rand);
       const at = (f) => pts[Math.round(f * 40)];
       const leaves = [0.45, 0.7].map((f, j) => {
         const [lx, ly] = at(f);
         const th = -Math.PI / 2;
-        return { x: lx, y: ly, th, ang: th + (j ? 1 : -1) * 0.95, L: em * 0.22, W: em * 0.07, pl: em * 0.03, curl: rand() - 0.5, flip: j === 1,
+        return { x: lx, y: ly, th, ang: th + (j ? 1 : -1) * 0.95, L: em * 0.3, W: em * 0.09, pl: em * 0.04, curl: rand() - 0.5, flip: j === 1,
           tone: ['#3a7443', '#65a458'], t0: st.tt[Math.round(f * 40)] + 0.3, dur: 2.4, phase: rand() * 6, off: 0, av: 0 };
       });
       const [tx, ty] = pts[40];
@@ -51,8 +51,8 @@ export default function AmenVine({ people }) {
       return {
         st, leaves, name: p.name, tx, ty,
         blooms: [
-          { kind: 'blossom', tint, x: tx - em * 0.06, y: ty, r: em * 0.11, rot: rand() * 3, t0: st.tEnd + 0.2, phase: rand() * 6 },
-          { kind: 'jasmine', x: tx + em * 0.1, y: ty + em * 0.05, r: em * 0.1, rot: rand() * 3, t0: st.tEnd + 0.8, phase: rand() * 6 },
+          { kind: 'blossom', tint, x: tx - em * 0.08, y: ty, r: em * 0.15, rot: rand() * 3, t0: st.tEnd + 0.2, phase: rand() * 6 },
+          { kind: 'jasmine', x: tx + em * 0.13, y: ty + em * 0.08, r: em * 0.13, rot: rand() * 3, t0: st.tEnd + 0.8, phase: rand() * 6 },
         ],
       };
     });
@@ -76,7 +76,7 @@ export default function AmenVine({ people }) {
           ctx.font = `italic 500 ${Math.round(Math.max(15, em * 0.2))}px "Literata Variable", Georgia, serif`;
           ctx.textAlign = 'center';
           ctx.fillStyle = night ? '#ece2cc' : '#2f3a2c';
-          ctx.fillText(s.name, s.tx, s.ty - em * 0.22);
+          ctx.fillText(s.name, s.tx, s.ty - em * 0.26);
           ctx.restore();
         }
       }
