@@ -89,6 +89,77 @@ Android sizes first; Sunday is on the tablet.
 Not this round. The app is silent by default. You may say in your pitch where sound would
 go later.
 
+## Addendum: design and UX craft (sent to all three at the same time during Gate 1)
+
+The client wants the look and the experience decided with the rigour of a world-class
+UI and UX studio, not settled at the end. These are now part of the brief. If you have
+already chosen a direction, you don't have to start again, but do the items below for it
+and its rivals.
+
+**1. Show the directions, don't just describe them.**
+- Before building, make a **style tile** for each of your two or three directions: the
+  same screen (the 06:45 prayer), actually rendered in that direction's style at 390 px.
+- Commit them as `screens/directions/<n>-<name>.png`, and put them side by side in
+  `DESIGN-DIRECTION.md` with why one won.
+- A direction that exists only as words doesn't count.
+
+**2. Research the visual craft specifically, not only the apps.**
+- **Illustration:** for example children's Bibles and picture books, devotional art,
+  printmaking and textiles, and the art of calm games.
+- **Type:** for long reading and for early readers, plus reading prayer at night.
+- **Colour:** day, night and season.
+- Record each reference and what you take from it. References inform; never copy a
+  specific artwork, character or brand.
+
+**3. A look the code can sustain.**
+- Choose an illustration method you can produce consistently across every moment: drawn
+  in code (SVG, canvas, CSS), or openly licensed assets with the licence recorded in
+  `DESIGN-DIRECTION.md`.
+- No stock-photo or clip-art patchwork, and no mix of styles.
+
+**4. One design system.**
+- Put colour, type, spacing, radius, shadow and motion in one set of tokens that every
+  screen uses, so round 2 can extend it.
+- Day and night are two settings of the same tokens, not two stylesheets.
+
+**5. The shape of the whole.**
+- In `DESIGN-DIRECTION.md`, include one simple map of the product: every room or mode,
+  and how you move between them.
+- Count the taps from the home-screen icon to the first line of today's prayer, and keep
+  it to two at most.
+
+**6. Every state, not just the happy path.**
+Design and build:
+- first run
+- an empty week
+- "already prayed today"
+- night
+- returning after a gap of several days, with no guilt
+- the transitions between moments
+
+**7. Accessible and kind to small hands.**
+- Text contrast at WCAG AA or better, by day and at night.
+- Tap targets at least 48 × 48 px.
+- Respect reduced-motion settings.
+- Text that still works at 200% size.
+- Children's screens readable by a 7-year-old: short words, one instruction at a time.
+
+**8. Words are design too.**
+- Write a short voice guide (a few lines) and hold every label, prompt and message to it.
+- Plain British English. No jargon, no exclamation marks, no guilt.
+
+**9. Fast on an ordinary Android tablet.**
+- The first screen should be usable within about two seconds.
+- Animation stays smooth.
+- Heavy pieces, such as 3D or physics, load only when they're opened.
+
+**10. Prove it with a walkthrough, and show before and after.**
+- **Walkthroughs:** walk each person through their moments as a usability test (Dad at
+  06:45, a 7-year-old and a 9-year-old after dinner, a new family on first run). Record
+  in `DIGEST.md` what they had to do, where they hesitated and what you changed.
+- **Screenshots:** in `screens/`, for each moment, a before (today's app) and an after
+  (yours).
+
 ## Existing data
 
 **Must the family's existing data (prayer history, vineyard, the wall) carry over?**
