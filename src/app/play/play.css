@@ -1,0 +1,145 @@
+/* ═══ Play: the verse puzzle ════════════════════════════════════════
+   Ported from Pray's puzzle; tokens from tokens.css. The live slot takes
+   --turn (the colour of whoever's turn it is) and falls back to gold. */
+
+.play { --kid: 1.08; }
+.play-top { align-items: center; }
+.players {
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: var(--tap); padding: 0 var(--s3) 0 var(--s2);
+  border-radius: var(--r-pill); border: 1px solid var(--line);
+  background: var(--btn-2); color: var(--ink); font: 500 var(--fs-small) var(--font-read);
+}
+.players-names { margin-left: var(--s2); }
+
+.play-choose { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: 0 var(--gutter); }
+.seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--btn-2); border: 1px solid var(--line); }
+.seg-opt {
+  min-height: 44px; padding: 0 var(--s4); border: 0; border-radius: var(--r-pill);
+  background: transparent; color: var(--ink-2); font: 500 var(--fs-small) var(--font-read); cursor: pointer;
+}
+.seg-opt.is-on { background: var(--paper); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+
+/* Four stepping stones across the week. */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--s1); }
+.step-stone {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 68px; min-height: var(--tap); padding: 4px 6px; border: 0; background: none;
+  color: var(--ink-2); font: 500 var(--fs-label) var(--font-read); letter-spacing: 0.02em; cursor: pointer;
+}
+.stone-dot {
+  width: 22px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #a39a8c, #6f675b 70%);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.18); opacity: 0.55; transition: transform var(--t-quick) var(--ease), opacity var(--t-quick);
+}
+.step-stone.is-done .stone-dot { opacity: 1; background: radial-gradient(circle at 35% 30%, #f3d58c, #b8892d 70%); }
+.step-stone.is-on { color: var(--ink); font-weight: 700; }
+.step-stone.is-on .stone-dot { opacity: 1; transform: translateY(-2px) scale(1.15); box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--gold-soft); }
+
+.play .room-foot { min-height: 76px; }
+.pz-left { font: 500 var(--fs-small) var(--font-read); color: var(--ink-2); }
+.turn { color: var(--ink); font-weight: 700; }
+.turn::before { content: ''; display: inline-block; width: 10px; height: 10px; margin: 0 6px 1px 4px; border-radius: 50%; background: var(--koi); vertical-align: middle; }
+
+/* The play area. touch-action: none so dragging a word never scrolls
+   the page or triggers pull-to-refresh. */
+.pz-stage {
+  position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  margin: 0 var(--gutter);
+}
+.pz-verse {
+  position: relative; z-index: 1; max-width: 60rem; margin: 0 auto; padding: 1rem 0.25rem 0;
+  font-family: var(--font-read); font-size: var(--pz-size, 1.4rem); line-height: 1.8; color: var(--ink);
+  text-wrap: pretty; transition: transform 0.85s var(--ease);
+}
+.pz-name { color: var(--gold); font-weight: 600; }
+.pz-slot { position: relative; display: inline-block; line-height: 1.3; border-radius: 6px; transition: background 0.2s, box-shadow 0.2s; }
+.pz-slot::after {
+  content: ''; position: absolute; left: 1px; right: 1px; bottom: -3px; height: 2px; border-radius: 1px;
+  background: var(--ink-3); transition: background 0.2s, height 0.2s;
+}
+.pz-slot-text { visibility: hidden; }
+.pz-slot.is-reading .pz-slot-text { visibility: visible; color: var(--ink); }
+.pz-slot.is-reading::after { background: var(--gold-soft); }
+.pz-slot.is-filled .pz-slot-text { visibility: visible; color: var(--ink); animation: slot-in 0.4s var(--ease) both; }
+.pz-slot.is-filled::after { background: transparent; }
+.pz-slot.is-live {
+  background: color-mix(in srgb, var(--turn, var(--gold-soft)) 18%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--turn, var(--gold-soft)) 18%, transparent);
+}
+.pz-slot.is-live::after { background: var(--turn, var(--gold-soft)); height: 3px; animation: live-pulse 1.8s ease-in-out infinite; }
+.pz-slot.is-hover-ok { box-shadow: 0 0 0 6px color-mix(in srgb, var(--turn, var(--gold-soft)) 32%, transparent); }
+.pz-slot.is-reject { animation: nope 0.4s ease; }
+.pz-verse.is-complete .pz-slot::after { background: transparent; }
+
+.pz-intro { position: absolute; z-index: 2; left: 0; right: 0; bottom: 12%; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0 1rem; text-align: center; }
+.pz-intro-text { margin: 0; max-width: 22rem; font: var(--fs-ui) / 1.5 var(--font-read); color: var(--ink-2); }
+
+.pz-pieces { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.pz-piece {
+  position: absolute; left: 0; top: 0; pointer-events: auto; display: inline-flex; align-items: center;
+  min-height: max(44px, 1.7em); padding: 0 0.5em; border-radius: 0.5em;
+  background: var(--paper-2); border: 1px solid var(--line);
+  box-shadow: 0 2px 0 var(--line), 0 6px 14px rgba(20, 14, 6, 0.14);
+  font-family: var(--font-read); font-size: var(--pz-size, 1.4rem); color: var(--ink);
+  white-space: nowrap; cursor: grab; touch-action: none; will-change: transform;
+  transition: box-shadow 0.15s, border-color 0.15s, background 0.15s;
+}
+.pz-piece:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pz-piece.is-held { cursor: grabbing; z-index: 5; border-color: var(--turn, var(--gold-soft)); box-shadow: 0 14px 28px rgba(20, 14, 6, 0.26); }
+.pz-piece.is-placing { transition: transform 0.3s var(--ease), opacity 0.2s 0.12s; opacity: 0; }
+.pz-piece.is-hint { animation: hint-glow 1.6s ease both; }
+
+.pz-ripple { position: absolute; z-index: 2; width: 0; height: 0; pointer-events: none; }
+.pz-ripple i {
+  position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--gold-soft); opacity: 0; animation: ripple-out 1.4s var(--ease) forwards;
+}
+.pz-ripple i:nth-child(2) { animation-delay: 0.16s; border-width: 1.5px; }
+.pz-ripple i:nth-child(3) { animation-delay: 0.32s; border-width: 1px; }
+.pz-verse.fx-sweep > span, .pz-verse.fx-sweep .pz-slot-text { animation: gild 1.1s ease calc(180ms + var(--i, 0) * 34ms); }
+.pz-verse.fx-still, .pz-verse.fx-still .pz-slot-text { color: var(--gold); }
+.pz-gather-ref {
+  display: block; margin-top: 0.9em; font: 600 max(0.75rem, 0.42em) var(--font-read);
+  letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-2);
+  animation: rise 0.7s 0.5s var(--ease) both;
+}
+
+/* ── By heart: stepping stones ──────────────────────────────────────── */
+.heart-stage { flex: 1 1 auto; overflow: auto; padding: var(--s4) var(--gutter); display: flex; flex-direction: column; align-items: center; }
+.heart-intro { margin: 0 0 var(--s4); font: var(--fs-ui) / 1.4 var(--font-read); color: var(--ink-2); text-align: center; }
+.heart-verse { max-width: 40rem; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 6px; }
+.heart-word {
+  min-height: 52px; min-width: 52px; padding: 0 12px; border-radius: 26px;
+  border: 1px solid var(--line); background: var(--btn-2); color: var(--ink);
+  font: calc(1.3rem * var(--text-scale)) var(--font-read); cursor: default;
+  transition: background var(--t-quick), box-shadow var(--t-quick);
+}
+.heart-word .heart-rest { color: var(--ink-3); letter-spacing: 0.04em; }
+.heart-word.is-open { background: transparent; border-color: transparent; }
+.heart-word.is-open .heart-rest { color: var(--ink); letter-spacing: 0; }
+.heart-word.is-next {
+  cursor: pointer; background: var(--paper);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--turn, var(--gold-soft)) 60%, transparent);
+  animation: live-pulse 2.2s ease-in-out infinite;
+}
+.heart-verse.is-whole .heart-word { color: var(--gold); }
+
+@keyframes ripple-out { 0% { transform: scale(0.4); opacity: 0.85; } 100% { transform: scale(9); opacity: 0; } }
+@keyframes gild { 45% { color: var(--gold); text-shadow: 0 0 16px rgba(214, 160, 70, 0.5); } }
+@keyframes slot-in { from { opacity: 0; transform: translateY(4px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes live-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes nope { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes hint-glow {
+  0%, 100% { box-shadow: 0 2px 0 var(--line), 0 6px 14px rgba(20, 14, 6, 0.14); }
+  30%, 70% { box-shadow: 0 0 0 4px var(--gold-soft), 0 0 22px rgba(185, 138, 69, 0.45); border-color: var(--gold-soft); }
+}
+
+@media (max-width: 520px) {
+  .step-stone { min-width: 58px; }
+  .seg-opt { padding: 0 var(--s3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart-word.is-next, .pz-slot.is-live::after { animation: none; }
+}

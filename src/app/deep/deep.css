@@ -1,0 +1,74 @@
+/* ═══ Into the deep ═════════════════════════════════════════════════
+   The water fills the room; the words sit on a slip of paper floating
+   on it, at the top, leaving the water below open for what's given. */
+
+.deep { background: #0b1416; color: var(--slip-ink); }
+.deep-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; touch-action: none; }
+.deep > :not(.deep-canvas) { position: relative; z-index: 1; }
+.deep .room-top .icon-btn { background: var(--slip); }
+.deep .room-top .dots { background: var(--slip); padding: 8px 12px; border-radius: var(--r-pill); }
+
+.deep-card {
+  align-self: center;
+  width: min(36rem, calc(100% - 2 * var(--gutter)));
+  margin: 0 auto;
+  flex: 0 1 auto !important;
+  padding: var(--s5) var(--s5) var(--s5);
+  border-radius: var(--r-l);
+  background: var(--slip);
+  color: var(--slip-ink);
+  box-shadow: var(--shadow);
+  animation: surface var(--t-move) var(--ease) both;
+}
+.deep-card .scripture { font-size: calc(var(--fs-body) * 1.02); }
+.deep-card .scripture.small { font-size: var(--fs-body); }
+.deep-card .prayer.short { margin-bottom: var(--s2); }
+.look { margin: var(--s2) 0 var(--s4); padding-left: 1.1em; font: var(--fs-body) / var(--lh-read) var(--font-read); }
+.look li { margin-bottom: var(--s3); }
+.look li::marker { color: var(--gold); }
+.deep .room-foot { margin-top: auto; }
+.deep .room-foot .btn-quiet { background: var(--slip); }
+
+/* The stone in the open hand, waiting above the water. */
+.held-stone {
+  position: absolute !important; left: 50%; bottom: 22%; transform: translateX(-50%);
+  filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.35));
+  animation: hover-breath 4s ease-in-out infinite;
+}
+.held-stone svg { width: 104px; height: 72px; }
+@keyframes hover-breath { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
+
+/* The bank: each child's stone and flower. */
+.bank {
+  position: absolute !important; left: 0; right: 0; bottom: 96px;
+  display: flex; justify-content: center; gap: clamp(8px, 3vw, 40px); flex-wrap: wrap;
+  padding: 0 var(--gutter);
+}
+.bank-spot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 10px 6px; border-radius: var(--r-l);
+  background: color-mix(in srgb, var(--slip) 70%, transparent);
+  box-shadow: inset 0 -3px 0 var(--koi);
+}
+.bank-name { font: 600 var(--fs-small) var(--font-read); color: var(--slip-ink); letter-spacing: 0.04em; }
+.bank-things { display: flex; gap: 6px; align-items: center; min-height: 76px; }
+.bank-thanks { font: italic var(--fs-ui) var(--font-read); color: var(--slip-ink); padding: 0 var(--s3); }
+.throwable {
+  width: var(--tap-child); height: var(--tap-child); min-width: 72px; min-height: 72px;
+  display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: grab;
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  transition: transform 0.25s var(--ease);
+}
+.throwable svg { width: 64px; height: auto; pointer-events: none; }
+.throwable.is-held { transition: none; cursor: grabbing; z-index: 5; filter: drop-shadow(0 12px 10px rgba(0,0,0,0.35)); }
+.throwable:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 50%; }
+
+@media (max-width: 520px) {
+  .bank { bottom: 92px; }
+  .throwable { min-width: 64px; min-height: 64px; }
+  .throwable svg { width: 54px; }
+  .deep-card { padding: var(--s4); }
+}
+@media (max-height: 700px) {
+  .bank { bottom: 84px; }
+}

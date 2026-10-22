@@ -1,46 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#F1E6D2" />
-    <title>Identity Board · Vision Board</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Fraunces + Manrope are loaded dynamically from SharedStyles so we
-         don't block first paint on fonts the Family Board doesn't need. -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Quiet Waters</title>
+    <meta name="description" content="A household's daily prayer from Scripture, by the pond." />
+    <meta name="theme-color" content="#0f3a3e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Quiet Waters" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <style>
-      html,
-      body,
-      #root {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-      }
-      html,
-      body {
-        min-height: 100%;
-        background: #F1E6D2;
-      }
-      body {
-        font-family: 'Manrope', 'Palatino Linotype', Palatino, 'Cormorant Garamond',
-          'Book Antiqua', Georgia, serif;
-        -webkit-font-smoothing: antialiased;
-        text-rendering: optimizeLegibility;
-      }
-      /* Kill tap-highlight for the fridge/touch use case */
-      * {
-        -webkit-tap-highlight-color: transparent;
-      }
-      /* Double-tap feeds the koi rather than zooming; pinch still zooms.
-         No long-press callout over the water either. */
-      html {
-        touch-action: manipulation;
-        -webkit-touch-callout: none;
-      }
+      /* Before the app's own CSS arrives: the right colour for the hour,
+         so a 06:45 open never flashes white. */
+      html, body { margin: 0; background: #0f3a3e; }
+      html.night, html.night body { background: #0b1426; }
     </style>
+    <script>
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search).get('h');
+          var h = q != null ? parseFloat(q) : new Date().getHours();
+          if (h < 7 || h >= 19) document.documentElement.className = 'night';
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -16,22 +16,9 @@ function buildId() {
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Two surfaces, two HTML entry points, one build:
-//
-//   index.html       → /        the Pond
-//   pray/index.html  → /pray/   the Prayer surface
-//   flourish/index.html → /flourish/  the Vine (a word grown by a vine)
-//   flourish/abide/index.html → /flourish/abide/  Abide (sow, stay, gather)
-//   labs/index.html  → /labs/   each design change, New or Classic (A/B)
-//   make/index.html  → /make/   make a board, for you or someone else
-//   admin/index.html → /admin/  version, Main/Lab switch, every change (/labs/ too)
-//   murmuration/index.html → /murmuration/  experiment: a murmuration at dusk
-//   today/index.html → /today/  optional: today's prayer, word and board in one place
-//
-// They're separate documents on purpose (the prayer page must never
-// carry the animated pond), but they share an origin — and therefore
-// localStorage — plus any modules under src/shared/. Vite splits code
-// both pages use into a common chunk, so React is only downloaded once.
+// One app, one entry point. The old addresses (/pray/, /flourish/abide/,
+// /today/ …) are tiny redirect pages in public/, so a family's bookmarks
+// and home-screen icons still land somewhere sensible.
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -46,17 +33,7 @@ export default defineConfig({
     sourcemap: false,
     target: 'es2020',
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        pray: resolve(__dirname, 'pray/index.html'),
-        flourish: resolve(__dirname, 'flourish/index.html'),
-        abide: resolve(__dirname, 'flourish/abide/index.html'),
-        labs: resolve(__dirname, 'labs/index.html'),
-        make: resolve(__dirname, 'make/index.html'),
-        admin: resolve(__dirname, 'admin/index.html'),
-        today: resolve(__dirname, 'today/index.html'),
-        murmuration: resolve(__dirname, 'murmuration/index.html'),
-      },
+      input: { main: resolve(__dirname, 'index.html') },
     },
   },
 });

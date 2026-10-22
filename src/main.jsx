@@ -1,19 +1,29 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
-
-// "Start the day on Today" (Admin): the first visit to the pond in a
-// session goes to /today/ instead. A plain / only — never a link with a
-// board, a world or the screensaver in it.
-try {
-  if (localStorage.getItem('vb.home') === 'today' && !location.search && !sessionStorage.getItem('todaySeen')) {
-    sessionStorage.setItem('todaySeen', '1');
-    location.replace('/today/');
-  }
-} catch { /* ignore */ }
+import '@fontsource-variable/fraunces/full.css';
+import '@fontsource-variable/fraunces/full-italic.css';
+import '@fontsource-variable/literata/opsz.css';
+import '@fontsource-variable/literata/opsz-italic.css';
+import './app/tokens.css';
+import './app/app.css';
+import App from './app/App.jsx';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
 );
+
+// Chrome's own "install" moment, kept for the button in Settings.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.__installPrompt = e;
+});
+
+// Offline, and instant on the second open. Only in a real build: the
+// dev server's modules change under it.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
