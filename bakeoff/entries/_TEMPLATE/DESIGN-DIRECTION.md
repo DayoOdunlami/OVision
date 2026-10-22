@@ -17,6 +17,9 @@ Two or three genuinely different directions: structure, look, and idea of the pr
 ### Direction 2:
 ### Direction 3 (optional):
 
+## Style tiles
+The 06:45 prayer rendered in each direction at 390 px (`screens/directions/`), side by side.
+
 ## The decision
 Which direction won, and why the others lost.
 
@@ -27,6 +30,15 @@ Which direction won, and why the others lost.
 - **Motion, and its attention budget:**
 - **Sound:**
 - **Touch and feel:**
+
+## Design tokens
+Where they live, and how day and night are two settings of them.
+
+## Map of the product
+Every room or mode, and how you move between them. Taps from the home-screen icon to the first line of today's prayer:
+
+## Voice guide
+A few lines on how the app speaks.
 
 ## Defaults we rejected
 | The default | What we chose instead | Why |
