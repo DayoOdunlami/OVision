@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>Direction 3 · Quiet Waters · 06:45</title>
+<style>
+@font-face{font-family:Fraunces;font-weight:100 900;src:url(fonts/fraunces-latin-full-normal.woff2)}
+@font-face{font-family:Fraunces;font-weight:100 900;font-style:italic;src:url(fonts/fraunces-latin-full-italic.woff2)}
+@font-face{font-family:Literata;font-weight:200 900;src:url(fonts/literata-latin-opsz-normal.woff2)}
+@font-face{font-family:Literata;font-weight:200 900;font-style:italic;src:url(fonts/literata-latin-opsz-italic.woff2)}
+:root{--paper:#16130f;--ink:rgba(236,226,204,.88);--ink-2:rgba(236,226,204,.62);--ink-3:rgba(236,226,204,.24);--gold:#d9b46a;--line:rgba(236,226,204,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:390px;height:844px;background:var(--paper);color:var(--ink);font-family:Literata,serif;overflow:hidden;position:relative}
+/* the water beneath the paper: night pond showing through at the foot */
+.under{position:absolute;left:0;right:0;bottom:0;height:300px;background:radial-gradient(120% 100% at 40% 100%,rgba(30,52,78,.55),rgba(22,19,15,0) 70%)}
+svg.koi{position:absolute;left:150px;bottom:120px;opacity:.16;filter:blur(3px)}
+.top{position:absolute;top:22px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center}
+.dots{display:flex;gap:7px}.dots i{width:6px;height:6px;border-radius:50%;background:var(--ink-3)}.dots i.on{background:var(--gold)}
+.x{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2);font-size:20px}
+.label{position:absolute;top:96px;left:28px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
+h1{position:absolute;top:116px;left:28px;font-family:Fraunces;font-weight:380;font-size:34px;font-variation-settings:"SOFT" 100,"opsz" 72;color:var(--ink)}
+h1 .n{color:var(--gold)}
+.card{position:absolute;top:212px;left:28px;right:28px;font-size:23px;line-height:1.52;font-variation-settings:"opsz" 24}
+.card .n{color:var(--gold)}
+.card .them{font-style:italic}
+.next{position:absolute;top:470px;left:28px;right:28px;font-size:23px;line-height:1.52;color:var(--ink-3)}
+.foot{position:absolute;bottom:26px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center}
+.wander{font-size:16px;color:var(--ink-2);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:5px;padding:14px 8px}
+.btn{min-width:124px;height:56px;border-radius:28px;background:rgba(236,226,204,.1);border:1px solid rgba(217,180,106,.45);color:var(--ink);font-size:18px;display:grid;place-items:center;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.rings{position:absolute;left:210px;bottom:200px}
+</style></head><body>
+<div class="under"></div>
+<svg class="koi" width="160" height="70" viewBox="0 0 160 70"><path d="M8 35 C30 12 80 10 112 26 C126 32 136 30 152 18 C146 34 146 38 152 54 C136 42 126 40 112 46 C80 60 30 58 8 35Z" fill="#e8b874"/><circle cx="26" cy="31" r="2.4" fill="#16130f"/></svg>
+<svg class="rings" width="120" height="40" viewBox="0 0 120 40"><ellipse cx="60" cy="20" rx="56" ry="16" fill="none" stroke="rgba(236,226,204,.07)"/><ellipse cx="60" cy="20" rx="34" ry="10" fill="none" stroke="rgba(236,226,204,.09)"/></svg>
+<div class="top"><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i></div><div class="x">×</div></div>
+<div class="label">Thursday · before dawn</div>
+<h1><span class="n">Ada</span> &amp; <span class="n">Kit</span></h1>
+<p class="card">I keep asking that you, the God of our Lord Jesus Christ, the glorious Father, would give <span class="them">them</span> the Spirit of wisdom and revelation, so that <span class="them">they</span> may know you better.</p>
+<p class="next">I pray that the eyes of their hearts may be enlightened, in order that they may know the hope to which you have called them…</p>
+<div class="foot"><span class="wander">Wandered?</span><span class="btn">Next</span></div>
+</body></html>

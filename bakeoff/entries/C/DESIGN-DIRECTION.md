@@ -64,6 +64,40 @@ We read every doc in `docs/`, the code for every surface, and walked the app at 
 | **Monument Valley / Alto's Odyssey / Sky** | Light that follows the clock; play without words; *giving light to others* (Sky). Praying for someone raises *their* koi: you give, they rise. | Endless play, grind. |
 | **Humane design** (Center for Humane Technology; Weiser's calm technology) | Clear stopping cues ("That's it. Amen."). Periphery, not centre. Paper where paper is better. No feeds, no badges, no notifications. | Variable rewards, autoplay, infinite anything. |
 
+### Visual craft research
+
+References inform the choices; no specific artwork, character or brand is copied.
+
+| Reference | Area | What we take |
+|---|---|---|
+| Japanese koi and bird-and-flower painting and woodblock prints (the nihonga and *kachō-e* traditions; Hiroshige's night and moon scenes) | Illustration, colour | Water as negative space; a few shapes doing all the work; night as indigo with one warm light. Ripples drawn as print-like rings, not effects. |
+| Indigo dyeing (*aizome*, shibori) and printed textiles | Colour, texture | The night palette: layered indigo rather than black, so the dark pond still has depth. The idea of a pattern that *accumulates* (lily pads over a season). |
+| Illuminated manuscripts and Books of Hours | Type, colour | **Gold leaf is reserved for what is holy or meant.** Our rule: gold only for the names being prayed for, the place you are, a word placed correctly and a lotus that has opened. Rubrics: one quiet instruction in the margin. |
+| Icons (the gold ground) | Colour | Gold as light rather than decoration: a warm gold (`#d9b46a`) at night, a deeper gold (`#87591a`) by day, so it still reads at AA. |
+| Children's Bibles that treat light as meaning, and picture books with limited palettes and textured flat shapes | Illustration | Restraint: four or five colours per scene, warmth from light rather than saturation, humour and life from *behaviour* (a curious koi) rather than faces. No cartoon mascots. |
+| Calm games (Alto's Odyssey's sky by the clock, Sky's giving light, Monument Valley's "every screen is a picture", koi-pond games) | Motion, colour | Time of day changes the whole world together; play needs no text; every screen should work as a picture on the wall. |
+| **Literata** (designed for long reading on screens) | Type | The reading face for Scripture and prayer: high x-height, sturdy serifs that survive small sizes and dark mode, optical sizes. |
+| Early-reader type research (single-storey *a* and *g*, generous spacing, larger sizes, short lines) | Type | The children are about 7 and 9 and can read. We keep Literata but set it larger (+15%), with wider spacing and lines of six to nine words. A pre-reader face (SIL's Andika) is backlog, for the youngest. |
+| Dark-mode reading (halation, glare) | Type, colour | At night: never pure white (parchment at 88%), slightly lighter weight, +0.01em tracking, line-height 1.55, no full-brightness elements, and gold dimmed. |
+| **Fraunces** (a soft, "wonky" old-style display serif) | Type | The words in the water and the headings: warm and hand-made rather than corporate. Its SOFT axis rounds the serifs so the word sits *in* water. |
+| Real ponds through the year (maple leaves in autumn, ice at the margin in winter, blossom in spring, lotus in summer; koi lie deep and slow in the cold) | Colour, season | One seasonal detail on the water at a time, and the koi behave truthfully: fewer at the surface in winter. |
+
+### Illustration method, and licences
+
+Everything is **drawn in code**: canvas for the water, koi, lily pads, lotus, stones,
+flowers and leaves, and CSS for paper and controls. There are no images, clip art,
+stock photography or icon sets, so every moment is drawn the same way.
+
+- Koi: `src/SpineFish.js`, adapted from akeatk/fish-pond (MIT), extended in this repo.
+- Physics for the puzzle and stones: matter-js (MIT); the stones use a small custom
+  throw-and-sink instead.
+- Type: Fraunces and Literata (SIL Open Font License 1.1), self-hosted through
+  `@fontsource-variable`. The style tiles also use EB Garamond, IM Fell English SC and
+  Cormorant Garamond (all SIL OFL 1.1) to render the losing directions.
+- Scripture: NIV (Anglicised): the fourteen memory verses plus Psalm 139:23–24, Micah
+  7:19 and 1 John 1:9 in confession. That is fewer than 30 verses, well inside Biblica's
+  General Use Guidelines, and the acknowledgement is shown in the app.
+
 ## Directions explored
 
 ### Direction 1: *The Book of Hours*: a page by the bed
@@ -113,6 +147,34 @@ Every practice begins *from* the water and returns *to* it:
 
 **Structure:** a home and four short sittings that open over it and close back into it.
 **Look:** the koi pond, re-lit by the clock and the season, with prayer on still paper.
+
+## Style tiles
+
+The same screen in each direction: **06:45, Dad's phone, praying for Ada and Kit**, the
+second thought of the prayer, rendered at 390 px. The HTML sources are in
+`directions/src/` and the renders in `screens/directions/`.
+
+<table><tr>
+<td align="center"><img src="screens/directions/1-book.png" width="250"><br><b>1 · The Book of Hours</b></td>
+<td align="center"><img src="screens/directions/2-vineyard.png" width="250"><br><b>2 · The Vineyard</b></td>
+<td align="center"><img src="screens/directions/3-quiet-waters.png" width="250"><br><b>3 · Quiet Waters</b></td>
+</tr></table>
+
+(Also as one image: `screens/directions/side-by-side.png`.)
+
+What the tiles show that the words didn't:
+
+- **The Book** is the most beautiful page, but at 06:45 it is a lit page in a dark room.
+  A book needs light, so it can never really be night paper: dimming parchment only makes
+  it muddy. Its rubrics ("turn the page when the sentence has been prayed, not read") are
+  the best single line of instruction we wrote. That idea survives as *Wandered?*
+- **The Vineyard** puts a meter, a counter and "+1 leaf for every line prayed" above a
+  prayer. Seeing it rendered settles the argument: it makes prayer a mechanic, which is
+  what the client asked us not to do. The gold button also shouts at a sleeping house.
+- **Quiet Waters** is the only one that is genuinely dark at 06:45. Gold appears on the
+  two names and the place you are, nowhere else. The next thought waits faintly below,
+  the water and a koi sit under the paper, and the only controls are a way back to
+  attention (*Wandered?*) and *Next*.
 
 ## The decision
 
@@ -201,6 +263,110 @@ redirect into the one app, so nothing the family has bookmarked breaks.
   rewards speed. The long-press menu is switched off over the water, so holding a stone
   or a word never brings up Android's copy menu. Several fingers can drag at once, so
   three children can share the tablet.
+
+## Design tokens
+
+Every token lives in one file, `src/app/tokens.css`, and every screen uses it.
+
+- **Roles, not colours.** Tokens are roles (`--paper`, `--ink`, `--ink-2`, `--gold`,
+  `--line`, `--slip`, `--on-water`, `--shadow`), plus type (`--font-display`,
+  `--font-read`, a fluid size scale `--fs-*`, `--lh-*`), space (`--s1`…`--s8`, a 4 px
+  base), radius (`--r-s`, `--r-m`, `--r-l`, `--r-pill`), touch (`--tap: 48px`,
+  `--tap-child: 64px`) and motion (`--ease`, `--t-quick`, `--t-move`, `--t-slow`).
+- **Day and night are two settings of the same tokens.** The root element carries
+  `data-light="dawn|day|dusk|night"`, worked out from the real clock and the month, or from
+  `?h=`. Each value only reassigns the role tokens. There is no second stylesheet, and no
+  component knows what time it is.
+- **The canvas reads the same tokens.** The pond painter takes its water palette from the
+  same light value, so the paper and the water always change together.
+- **Text size** is one multiplier (`--text-scale`, 1 to 2) applied to the type scale, so
+  200% is a token change, not a layout.
+
+## Map of the product
+
+```
+ Home-screen icon
+      │  tap 1
+      ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │  THE POND  (home; also the idle screen after a minute)     │
+ │  family word · week's verse · today's names on the koi     │
+ │  tap water = feed · tap a koi = their name and word        │
+ └─────────────────────────────────────────────────────────────┘
+   │ tap 2: Pray      │ Play the verse   │ Into the deep   │ This season      │ ⚙
+   ▼                  ▼                  ▼                 ▼                  ▼
+ Who's here?*       PLAY               INTO THE DEEP     THIS SEASON        Settings
+   ▼                verse: 4 steps      adult: examen,    board + words,     household,
+ SITTING            or today's prayer   one stone         what's taken       this device,
+ still → verse →    with our names      with children:    root, book of      the week's prayer,
+ prayer… → Amen     (puzzle)            stone or flower   seasons            another device,
+   │  (children) ──▶ PLAY                each                ▼                print the week,
+   ▼                                                      NEW SEASON         about and NIV
+ back to the pond (every room closes back into it)
+
+ First run: WELCOME ─▶ set up the household ─▶ the pond
+            or "Look around with an example family" (= ?demo=1)
+ * Who's here is asked once; after that it's remembered per device and time of day,
+   and shown as a small "Praying: Dad · change" on the first card.
+```
+
+**Taps from the home-screen icon to the first line of today's prayer: two.** Icon, then
+*Pray*. The sitting opens straight onto its first words: today's names and the week's
+breath prayer, which flows into the verse. The first time a device is used, *Who's here?*
+adds one tap, and is then remembered.
+
+## Every state
+
+| State | What it looks like |
+|---|---|
+| First run | A clear pond with one koi. "Quiet Waters" and one line. Two doors: *Set up your household* and *Look around with an example family*. |
+| Empty week (new household or new season) | No lily pads yet; the board says "This season begins today." Nothing reads as missing. |
+| Already prayed today | The slip says "Dad prayed for Ada and Kit this morning." *Pray* stays available, now quieter, for the next person; the children's evening sitting opens with "Dad prayed for you this morning. Now it's our turn." |
+| Night | Night water, night paper, dimmed gold. The home and every sitting change together. |
+| Returning after a gap | "Welcome back." and today. Nothing mentions the gap; every week still has its lily pad; nothing withers. |
+| Sunday | The pond reads "Sunday · all of us"; the sitting is the household's. |
+| Saturday evening | *Into the deep* is gently offered on the slip ("Saturday evening: a time to put things down"). Other days it is a quiet link. |
+| End of a season | Two weeks before the season's end, the slip offers "Look back, and choose next season's words." |
+| Transitions | The water stills into paper (paper rises 12 px and sharpens out of a blur, 600 ms, eased out), and the paper sinks back into the water when you close. Under reduced motion it is a plain cross-fade. |
+| Reduced motion | Still water, koi resting, no rises, the puzzle's tiles laid out instead of falling. Everything still works. |
+
+## Accessibility and small hands
+
+- **Contrast:** every text role is AA or better in both settings (checked by script and
+  recorded in `DIGEST.md`). By day the word in the water is deep-teal ink, not white on
+  pale water; at night it is parchment.
+- **Targets:** 48 × 48 px minimum; 64 px on children's screens (faces, the puzzle's tiles,
+  the stones).
+- **Reduced motion** is respected everywhere (see above).
+- **200% text:** sizes are in `rem` × `--text-scale`; layouts wrap and scroll rather than
+  clip. A text-size control is in Settings.
+- **Children's screens:** one instruction, under ten words, plain words ("Put the words
+  back."), and their own names and colours as the way to find themselves.
+
+## Fast on an ordinary Android tablet
+
+- The first screen is HTML and type, painted immediately. The pond canvas and koi load
+  next, as their own chunk.
+- The puzzle (matter-js) and *Into the deep* load only when they are opened.
+- Fonts are self-hosted Latin subsets. A service worker caches the app after the first
+  visit, so later opens are instant and offline.
+- The pond caps itself at device-pixel-ratio 2 and redraws only what moves. While a
+  sitting is open over it, it pauses.
+
+## Voice guide
+
+- **Speak like a quiet friend at the kitchen table.** Short sentences, plain British
+  English (colour, favour, Mum).
+- **One instruction at a time.** For children, under ten words.
+- **Never** use exclamation marks, "great job", "streak", "don't break", "you missed",
+  "unlock", "level up" or "oops". Never guilt, never hurry.
+- **After a gap:** "Welcome back." Nothing else about it.
+- **God acts; the app doesn't.** "He casts it into the depths." "God heard you." Never
+  "you completed".
+- **Scripture is quoted exactly**, with its reference. Everything around it is plain.
+- **Labels are verbs or plain nouns:** Pray, Play the verse, Into the deep, This season,
+  Done.
+- **People by the household's own names.** The children see "Dad" and "Mum".
 
 ## Defaults we rejected
 

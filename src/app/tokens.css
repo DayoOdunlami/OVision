@@ -1,0 +1,115 @@
+/* ═══════════════════════════════════════════════════════════════════
+   tokens.css — the one design system. Every screen uses these.
+
+   Roles, not colours. `data-light` on <html> (dawn | day | dusk |
+   night, from the real clock or ?h=) reassigns the role tokens; no
+   component knows what time it is. The pond painter reads the same
+   value for its water, so paper and water always change together.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Type ─────────────────────────────────────────────────────── */
+  --font-display: 'Fraunces Variable', Fraunces, Georgia, serif;
+  --font-read: 'Literata Variable', Literata, Georgia, serif;
+  --text-scale: 1;                 /* 1 → 2, Settings › Text size */
+  --kid: 1;                        /* 1.15 on children's screens */
+  --fs-label: calc(0.75rem * var(--text-scale));
+  --fs-small: calc(0.9375rem * var(--text-scale));
+  --fs-ui: calc(1.0625rem * var(--text-scale));
+  --fs-body: calc(clamp(1.1875rem, 0.95rem + 0.9vw, 1.75rem) * var(--text-scale) * var(--kid));
+  --fs-pray: calc(clamp(1.375rem, 1.05rem + 1.2vw, 2.125rem) * var(--text-scale) * var(--kid));
+  --fs-title: calc(clamp(1.875rem, 1.4rem + 1.8vw, 3rem) * var(--text-scale));
+  --fs-word: calc(clamp(3.5rem, 2rem + 7vw, 8.5rem) * var(--text-scale));
+  --lh-read: 1.52;
+  --lh-tight: 1.12;
+  --track-label: 0.16em;
+  --track-read: 0;
+
+  /* ── Space (4px base) ─────────────────────────────────────────── */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+  --gutter: clamp(16px, 4vw, 40px);
+  --measure: 34em;                 /* reading column */
+
+  /* ── Radius ───────────────────────────────────────────────────── */
+  --r-s: 10px; --r-m: 16px; --r-l: 24px; --r-pill: 999px;
+
+  /* ── Touch ────────────────────────────────────────────────────── */
+  --tap: 48px;
+  --tap-child: 64px;
+
+  /* ── Motion ───────────────────────────────────────────────────── */
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --t-quick: 160ms;
+  --t-move: 600ms;
+  --t-slow: 1200ms;
+
+  /* ── Colour roles: day (the default setting) ──────────────────── */
+  --paper: #f6f0e4;
+  --paper-2: #ece3d1;
+  --ink: #2a241c;
+  --ink-2: #5d5447;                /* 6.4:1 on paper */
+  --ink-3: #8a8070;                /* decoration only, never text */
+  --line: rgba(42, 36, 28, 0.14);
+  --gold: #87591a;                 /* 5.0:1 on paper — meaning only */
+  --gold-soft: #d9b46a;
+  --slip: rgba(248, 243, 233, 0.95);
+  --slip-ink: #2a241c;
+  --on-water: #0c3437;             /* the word in the water, by day */
+  --on-water-2: rgba(12, 52, 55, 0.82);
+  --water-veil: rgba(236, 246, 241, 0.0);
+  --btn: #1f3b3a;                  /* primary action */
+  --btn-ink: #f6f0e4;
+  --btn-2: rgba(42, 36, 28, 0.06);
+  --shadow: 0 10px 30px rgba(8, 28, 30, 0.22), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  --shadow-press: 0 4px 12px rgba(8, 28, 30, 0.2);
+  --focus: #b07a1f;
+  --theme: #8ec9c0;                /* browser chrome */
+  color-scheme: light;
+}
+
+:root[data-light='dawn'] {
+  --paper: #f5eee6;
+  --paper-2: #eadfd4;
+  --on-water: #2b2a3a;
+  --on-water-2: rgba(43, 42, 58, 0.84);
+  --btn: #3a3550;
+  --theme: #d9c4c4;
+}
+
+:root[data-light='dusk'] {
+  --paper: #f3eadb;
+  --paper-2: #e8dbc4;
+  --on-water: #fff6e6;
+  --on-water-2: rgba(255, 246, 230, 0.86);
+  --btn: #2d2a22;
+  --theme: #3f5a58;
+}
+
+:root[data-light='night'] {
+  --paper: #16130f;
+  --paper-2: #201c17;
+  --ink: rgba(236, 226, 204, 0.9);
+  --ink-2: rgba(236, 226, 204, 0.66);
+  --ink-3: rgba(236, 226, 204, 0.3);
+  --line: rgba(236, 226, 204, 0.14);
+  --gold: #d9b46a;
+  --gold-soft: #a88a4e;
+  --slip: rgba(24, 22, 19, 0.92);
+  --slip-ink: rgba(236, 226, 204, 0.92);
+  --on-water: rgba(236, 226, 204, 0.92);
+  --on-water-2: rgba(236, 226, 204, 0.7);
+  --btn: rgba(236, 226, 204, 0.1);
+  --btn-ink: rgba(236, 226, 204, 0.94);
+  --btn-2: rgba(236, 226, 204, 0.06);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-press: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --focus: #d9b46a;
+  --theme: #0b1426;
+  --track-read: 0.01em;
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-move: 1ms; --t-slow: 1ms; }
+}
