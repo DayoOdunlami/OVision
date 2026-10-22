@@ -2197,3 +2197,5 @@ select {
 /* Secondary labels retain the audited contrast instead of opacity dimming. */
 .action-detail{opacity:1;color:var(--muted)}
 .primary .action-detail{color:inherit}
+/* Focus moves to the reading for screen readers; only actionable controls need a ring. */
+.prayer-leaf:focus{outline:none}

@@ -1,0 +1,334 @@
+{
+  "candidate_cache": "75475e5880783ac1",
+  "profiles": [
+    {
+      "marks": [
+        {
+          "name": "tend-home-button-visible",
+          "start": 2003.6000000000931
+        },
+        {
+          "name": "tend-home-button-frame",
+          "start": 2078.5
+        }
+      ],
+      "paint": [
+        {
+          "name": "first-paint",
+          "start": 776
+        },
+        {
+          "name": "first-contentful-paint",
+          "start": 2648
+        }
+      ],
+      "navigation": [
+        {
+          "domContentLoaded": 785.5,
+          "responseStart": 97.70000000018626
+        }
+      ],
+      "fonts_status": "loaded",
+      "resources": [
+        {
+          "path": "/fonts/fonts.css",
+          "bytes": 1255,
+          "start": 296.8000000002794,
+          "end": 335,
+          "duration": 38.1999999997206
+        },
+        {
+          "path": "/assets/main-0GvVVFSI.js",
+          "bytes": 63183,
+          "start": 316.3000000002794,
+          "end": 445,
+          "duration": 128.6999999997206
+        },
+        {
+          "path": "/assets/main-DMc79Snr.css",
+          "bytes": 7188,
+          "start": 332.90000000037253,
+          "end": 396.70000000018626,
+          "duration": 63.799999999813735
+        },
+        {
+          "path": "/fonts/cormorant-garamond-normal.woff2",
+          "bytes": 37940,
+          "start": 1280.6000000000931,
+          "end": 1342.7000000001863,
+          "duration": 62.10000000009313
+        },
+        {
+          "path": "/fonts/dm-sans-normal.woff2",
+          "bytes": 37232,
+          "start": 1281.4000000003725,
+          "end": 1407.9000000003725,
+          "duration": 126.5
+        },
+        {
+          "path": "/fonts/cormorant-garamond-italic.woff2",
+          "bytes": 23960,
+          "start": 1282.1000000000931,
+          "end": 1389,
+          "duration": 106.89999999990687
+        },
+        {
+          "path": "/fonts/literata-normal.woff2",
+          "bytes": 20720,
+          "start": 1298,
+          "end": 1408.2000000001863,
+          "duration": 110.20000000018626
+        },
+        {
+          "path": "/assets/GardenScene-fdgjw3gE.js",
+          "bytes": 5632,
+          "start": 2810.4000000003725,
+          "end": 2917.2000000001863,
+          "duration": 106.79999999981374
+        },
+        {
+          "path": "/assets/GardenScene-DYk_xVR_.css",
+          "bytes": 1388,
+          "start": 2824.5,
+          "end": 2993,
+          "duration": 168.5
+        }
+      ],
+      "profile": "cold-local",
+      "visible_selector_check_ms": 3947.9000000003725,
+      "cpu_rate": 1,
+      "latency_ms": 0,
+      "down_mbps": null,
+      "page_errors": [],
+      "external_requests": [],
+      "browser_metrics": {
+        "Nodes": 492,
+        "LayoutDuration": 0.85305,
+        "RecalcStyleDuration": 0.075035,
+        "ScriptDuration": 0.815532,
+        "TaskDuration": 3.543324
+      },
+      "home_action_works": true
+    },
+    {
+      "marks": [
+        {
+          "name": "tend-home-button-visible",
+          "start": 8560.299999999814
+        },
+        {
+          "name": "tend-home-button-frame",
+          "start": 8845.19999999972
+        }
+      ],
+      "paint": [
+        {
+          "name": "first-paint",
+          "start": 3024
+        },
+        {
+          "name": "first-contentful-paint",
+          "start": 10336
+        }
+      ],
+      "navigation": [
+        {
+          "domContentLoaded": 2846.2999999998137,
+          "responseStart": 90.10000000009313
+        }
+      ],
+      "fonts_status": "loaded",
+      "resources": [
+        {
+          "path": "/fonts/fonts.css",
+          "bytes": 1255,
+          "start": 409.39999999990687,
+          "end": 1563.5,
+          "duration": 1154.1000000000931
+        },
+        {
+          "path": "/assets/main-0GvVVFSI.js",
+          "bytes": 63183,
+          "start": 434.89999999990687,
+          "end": 2485.399999999907,
+          "duration": 2050.5
+        },
+        {
+          "path": "/assets/main-DMc79Snr.css",
+          "bytes": 7188,
+          "start": 441.29999999981374,
+          "end": 2315.1999999997206,
+          "duration": 1873.8999999999069
+        },
+        {
+          "path": "/fonts/cormorant-garamond-normal.woff2",
+          "bytes": 37940,
+          "start": 6831,
+          "end": 7075.100000000093,
+          "duration": 244.10000000009313
+        },
+        {
+          "path": "/fonts/dm-sans-normal.woff2",
+          "bytes": 37232,
+          "start": 6843.199999999721,
+          "end": 7058.5,
+          "duration": 215.3000000002794
+        },
+        {
+          "path": "/fonts/cormorant-garamond-italic.woff2",
+          "bytes": 23960,
+          "start": 6857.899999999907,
+          "end": 7093.299999999814,
+          "duration": 235.39999999990687
+        },
+        {
+          "path": "/fonts/literata-normal.woff2",
+          "bytes": 20720,
+          "start": 6910,
+          "end": 7109.600000000093,
+          "duration": 199.60000000009313
+        },
+        {
+          "path": "/assets/GardenScene-fdgjw3gE.js",
+          "bytes": 0,
+          "start": 11015.100000000093,
+          "end": 11061.100000000093,
+          "duration": 46
+        },
+        {
+          "path": "/assets/GardenScene-DYk_xVR_.css",
+          "bytes": 0,
+          "start": 11024.399999999907,
+          "end": 11066.399999999907,
+          "duration": 42
+        }
+      ],
+      "profile": "cold-cpu4x-10mbps-80ms",
+      "visible_selector_check_ms": 11953.899999999907,
+      "cpu_rate": 4,
+      "latency_ms": 80,
+      "down_mbps": 10,
+      "page_errors": [],
+      "external_requests": [],
+      "browser_metrics": {
+        "Nodes": 492,
+        "LayoutDuration": 1.91951,
+        "RecalcStyleDuration": 0.610522,
+        "ScriptDuration": 4.096295,
+        "TaskDuration": 11.763712
+      },
+      "home_action_works": true
+    }
+  ],
+  "offline": {
+    "play": {
+      "status": 200,
+      "title": "Verse play \u00b7 Tend",
+      "data_retained": true,
+      "lazy_game_works": true,
+      "word_pieces": 12
+    },
+    "prayer": {
+      "status": 200,
+      "title": "Pray \u00b7 Tend",
+      "data_retained": true
+    },
+    "garden": {
+      "status": 200,
+      "title": "Our garden \u00b7 Tend",
+      "data_retained": true,
+      "feed_control": 1
+    },
+    "season": {
+      "status": 200,
+      "title": "Our season \u00b7 Tend",
+      "data_retained": true
+    }
+  },
+  "limitations": [
+    "Local desktop Chromium proxy, not real Android hardware.",
+    "Single cold sample per profile; shared execution host scheduling can affect timing.",
+    "Native home-screen installation not physically exercised."
+  ],
+  "manifest": {
+    "errors": [],
+    "parsed": {
+      "backgroundColor": "rgba(243,240,229,1)",
+      "description": "Scripture, held together. A quiet household prayer book, a verse to learn and a garden to return to.",
+      "display": "kStandalone",
+      "icons": [
+        {
+          "url": "http://localhost:4173/icons/tend-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "url": "http://localhost:4173/icons/tend-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        },
+        {
+          "url": "http://localhost:4173/icons/tend-maskable-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "url": "http://localhost:4173/icons/tend-maskable-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ],
+      "id": "http://localhost:4173/",
+      "name": "Tend \u2014 Household prayer",
+      "orientation": "ANY",
+      "preferRelatedApplications": false,
+      "scope": "http://localhost:4173/",
+      "startUrl": "http://localhost:4173/?source=homescreen",
+      "themeColor": "rgba(243,240,229,1)"
+    },
+    "installability": {
+      "installabilityErrors": []
+    }
+  },
+  "cache": {
+    "name": "tend-app-75475e5880783ac1",
+    "paths": [
+      "/",
+      "/admin/index.html",
+      "/assets/GardenScene-DYk_xVR_.css",
+      "/assets/GardenScene-fdgjw3gE.js",
+      "/assets/VersePlay-DIYOCZBM.js",
+      "/assets/VersePlay-Do_OCeJJ.css",
+      "/assets/main-0GvVVFSI.js",
+      "/assets/main-DMc79Snr.css",
+      "/flourish/abide/index.html",
+      "/flourish/index.html",
+      "/fonts/Cormorant-Garamond-OFL.txt",
+      "/fonts/DM-Sans-OFL.txt",
+      "/fonts/Literata-OFL.txt",
+      "/fonts/cormorant-garamond-italic.woff2",
+      "/fonts/cormorant-garamond-normal.woff2",
+      "/fonts/dm-sans-normal.woff2",
+      "/fonts/fonts.css",
+      "/fonts/literata-italic.woff2",
+      "/fonts/literata-normal.woff2",
+      "/icons/apple-touch-icon.png",
+      "/icons/tend-192.png",
+      "/icons/tend-512.png",
+      "/icons/tend-maskable-192.png",
+      "/icons/tend-maskable-512.png",
+      "/icons/tend-maskable.svg",
+      "/icons/tend.svg",
+      "/index.html",
+      "/labs/index.html",
+      "/make/index.html",
+      "/manifest.webmanifest",
+      "/murmuration/index.html",
+      "/pray/index.html",
+      "/today/index.html"
+    ]
+  },
+  "offline_errors": [],
+  "failed_resources": [],
+  "external_requests": []
+}
