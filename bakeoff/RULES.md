@@ -1,3 +1,5 @@
+> **Round 1, closed.** Kept as history. Round 2's brief is `bakeoff/round2/BRIEF.md`.
+
 # Bake-off rules
 
 Three studios, one brief (`bakeoff/BRIEF.md`), one starting point. These rules keep it

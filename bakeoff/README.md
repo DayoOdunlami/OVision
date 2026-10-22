@@ -1,6 +1,8 @@
 # Bake-off
 
-A three-way design and build competition on this app. Round 1 is in progress.
+A design and build competition on this app.
+
+**Round 2 is in progress: see `round2/`.** Round 1 is closed; its files below are kept as history. Its winner, Quiet Waters, is the base for round 2.
 
 | File | For | What |
 |---|---|---|

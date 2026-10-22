@@ -1,3 +1,5 @@
+> **Round 1, closed.** Kept as history. Round 2's brief is `bakeoff/round2/BRIEF.md`.
+
 # Bake-off, round 1: make this the app a family would choose
 
 You are one of three independent design and engineering studios given the same

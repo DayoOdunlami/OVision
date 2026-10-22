@@ -2,9 +2,10 @@
 
 One app at `/`. See README.md for the rooms, the previews (`?demo=1`, `?h=`, `?day=`) and the code map.
 
-**Bake-off in progress.** If you were started on a `bakeoff/` branch or given a bake-off
-letter, read `bakeoff/BRIEF.md` and `bakeoff/RULES.md` before anything else. In the
-bake-off the standards below are the current studio's, which you may adopt, adapt or
+**Bake-off round 2 in progress.** If you were started on a `bakeoff/r2-` branch or given a
+round 2 letter, read `bakeoff/round2/BRIEF.md`, `bakeoff/round2/FEEDBACK.md` and
+`bakeoff/round2/RULES.md` before anything else. (Round 1's files in `bakeoff/` are history.)
+In the bake-off the standards below are the current studio's, which you may adopt, adapt or
 overturn with reasons. (`AGENTS.md` says the same for other tools.)
 
 ## Standards
