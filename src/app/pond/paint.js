@@ -181,10 +181,18 @@ export function layoutPads(weeks, W, H) {
   const rx = W * (portrait ? 0.47 : 0.45);
   const ry = H * (portrait ? 0.46 : 0.44);
   const base = Math.max(22, Math.min(56, Math.min(W, H) * 0.06));
+  // Golden-angle steps round the ellipse, so pads spread out evenly
+  // however many there are, skipping the bottom middle, where the slip
+  // of paper floats.
+  const angles = [];
+  for (let k = 0; angles.length < weeks.length && k < 200; k++) {
+    const a = -Math.PI * 0.62 + k * 2.39996;
+    const d = Math.atan2(Math.sin(a - Math.PI / 2), Math.cos(a - Math.PI / 2));
+    if (Math.abs(d) < (portrait ? 0.95 : 0.7)) continue;
+    angles.push(a);
+  }
   return weeks.map((w, i) => {
-    // Golden-angle steps round the ellipse, so pads spread out evenly
-    // however many there are.
-    const a = -Math.PI * 0.62 + i * 2.39996;
+    const a = angles[i];
     const wob = ((i * 0.618) % 1) * 0.08;
     return {
       key: w.week,
