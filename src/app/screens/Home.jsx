@@ -118,7 +118,7 @@ export default function Home({ day, idleNow }) {
         <p className="water-today">
           {day.isSunday ? 'Sunday · all of us' : <>Today · <b>{names}</b></>}
         </p>
-        {feedHint && <p className="water-hint fades">Tap the water. Double-tap to feed the koi.</p>}
+        {feedHint && day.part !== 'morning' && day.light !== 'night' && <p className="water-hint fades">Tap the water. Double-tap to feed the koi.</p>}
       </section>
 
       <section className="slip fades" aria-label="Today">
@@ -156,7 +156,7 @@ export default function Home({ day, idleNow }) {
         )}
         <nav className="slip-links">
           {!day.saturdayEvening && <button className="link" onClick={() => go('deep')}>Into the deep</button>}
-          <button className="link" onClick={() => go('season')}>This season</button>
+          {day.season && <button className="link" onClick={() => go('season')}>This season</button>}
         </nav>
       </section>
     </main>

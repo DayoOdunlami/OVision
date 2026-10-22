@@ -69,7 +69,7 @@ export default function Deep({ day, query }) {
           </div>
         </>
       ) : children.length ? (
-        <Together key={who.join()} day={day} kids={children} onChange={() => setChoosing(true)} />
+        <Together key={who.join()} day={day} kids={children} grownUp={present.some((p) => !isChild(p))} onChange={() => setChoosing(true)} />
       ) : (
         <Alone key={who.join()} day={day} onChange={() => setChoosing(true)} present={present} />
       )}
@@ -200,19 +200,20 @@ function Quiet({ seconds, onDone }) {
   return (
     <div className="stillness">
       {!ready && <span className="stillness-ring" style={{ '--secs': `${seconds}s` }} aria-label="A moment of quiet" />}
-      <button className={'btn btn-big ' + (ready ? 'btn-primary' : 'btn-quiet')} onClick={onDone}>{ready ? 'Next' : 'Stay a moment'}</button>
+      <button className={'btn btn-big ' + (ready ? 'btn-primary' : 'btn-quiet')} onClick={onDone}>{ready ? 'Next' : 'Skip the quiet'}</button>
     </div>
   );
 }
 
 // ── With children ───────────────────────────────────────────────────
-function Together({ day, kids, onChange }) {
+function Together({ day, kids, grownUp, onChange }) {
+  const reads = grownUp ? 'A grown-up reads this out loud' : 'Read this out loud together';
   const [i, setI] = useState(0);
   const [thrown, setThrown] = useState({});       // id → 'stone' | 'flower'
   const steps = ['begin', 'ask', 'throw', 'grace', 'sorry'];
   const step = steps[i];
   const next = () => setI((n) => Math.min(steps.length - 1, n + 1));
-  const allThrown = kids.every((c) => thrown[c.id]);
+  const anyThrown = kids.some((c) => thrown[c.id]);
 
   return (
     <>
@@ -228,13 +229,13 @@ function Together({ day, kids, onChange }) {
         )}
         {step === 'begin' && (
           <>
-            <p className="label">A grown-up reads this out loud</p>
+            <p className="label">{reads}</p>
             <p className="prayer">Let’s be still. God loves us very much. He wants us to be honest with him.</p>
           </>
         )}
         {step === 'ask' && (
           <>
-            <p className="label">A grown-up reads this out loud</p>
+            <p className="label">{reads}</p>
             <p className="prayer">Was there a time today when you weren’t kind? Or something you wish you hadn’t done?</p>
             <p className="room-sub">Tell God in a whisper. You don’t have to say it out loud.</p>
           </>
@@ -247,7 +248,7 @@ function Together({ day, kids, onChange }) {
         )}
         {step === 'grace' && (
           <>
-            <p className="label">A grown-up reads this out loud</p>
+            <p className="label">{reads}</p>
             <p className="prayer">Jesus has carried it all away. It’s gone, deep in the sea.</p>
             <blockquote className="scripture small">{JOHN}</blockquote>
             <p className="scripture-ref">1 John 1:9</p>
@@ -270,7 +271,7 @@ function Together({ day, kids, onChange }) {
         {step === 'sorry' ? (
           <button className="btn btn-primary btn-big" onClick={() => { tick(14); home(); }}>Amen</button>
         ) : (
-          <button className="btn btn-primary btn-big" onClick={next} disabled={step === 'throw' && !allThrown}>
+          <button className="btn btn-primary btn-big" onClick={next} disabled={step === 'throw' && !anyThrown}>
             {step === 'begin' ? 'Begin' : 'Next'}
           </button>
         )}

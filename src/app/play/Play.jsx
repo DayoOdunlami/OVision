@@ -234,7 +234,7 @@ export default function Play({ day, query }) {
               ) : left != null ? (
                 <>
                   <span className="pz-left">
-                    {left} to go
+                    <span className="pz-how">Drag or tap the next word. </span>{left} to go
                     {turnPlayer && <> · <span className="turn" style={{ '--koi': turnColor }}>{callName(turnPlayer, true)}’s turn</span></>}
                   </span>
                   <button className="btn btn-quiet" onClick={() => hintRef.current?.()}>Hint</button>

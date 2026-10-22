@@ -322,6 +322,8 @@ textarea.field, .line-field textarea { resize: vertical; }
   font-size: var(--fs-small); color: var(--ink-2);
 }
 .who-chip-change { margin-left: 4px; text-decoration: underline; text-underline-offset: 3px; }
+.who-chip.is-kids { min-height: var(--tap); gap: 6px; padding: 4px var(--s4) 4px var(--s2); font-size: var(--fs-ui); color: var(--ink); }
+.who-chip.is-kids .who-chip-change { margin-left: var(--s2); color: var(--ink-2); }
 
 /* ── Who's here ──────────────────────────────────────────────────── */
 .faces { display: flex; flex-wrap: wrap; gap: var(--s3); margin: var(--s4) 0; }

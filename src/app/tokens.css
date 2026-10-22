@@ -85,7 +85,7 @@
   --on-water-2: rgba(255, 246, 230, 0.86);
   --btn: #2d2a22;
   --theme: #3f5a58;
-  --halo: rgba(18, 26, 28, 0.45);
+  --halo: rgba(18, 26, 28, 0.58);
 }
 
 :root[data-light='night'] {

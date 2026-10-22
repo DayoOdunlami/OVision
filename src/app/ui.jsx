@@ -69,8 +69,8 @@ export function CloseButton({ onClick, label = 'Back to the pond' }) {
 export function Gear() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-      <circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M16.44 8.56 L18.49 8.63 L18.49 11.37 L16.44 11.44 L15.57 13.54 L16.97 15.03 L15.03 16.97 L13.54 15.57 L11.44 16.44 L11.37 18.49 L8.63 18.49 L8.56 16.44 L6.46 15.57 L4.97 16.97 L3.03 15.03 L4.43 13.54 L3.56 11.44 L1.51 11.37 L1.51 8.63 L3.56 8.56 L4.43 6.46 L3.03 4.97 L4.97 3.03 L6.46 4.43 L8.56 3.56 L8.63 1.51 L11.37 1.51 L11.44 3.56 L13.54 4.43 L15.03 3.03 L16.97 4.97 L15.57 6.46 Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   );
 }

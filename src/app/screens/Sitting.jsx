@@ -77,7 +77,7 @@ function WhoHere({ day, initial, onBegin }) {
       <div className="room-foot">
         <span />
         <button className="btn btn-primary btn-big" disabled={!sel.length} onClick={() => onBegin(sel)}>
-          Begin
+          Done
         </button>
       </div>
     </>
@@ -251,7 +251,7 @@ function Stillness({ seconds, onDone }) {
     <div className="stillness">
       {!ready && <span className="stillness-ring" style={{ '--secs': `${seconds}s` }} aria-label="A moment of quiet" />}
       <button className={'btn btn-big ' + (ready ? 'btn-primary' : 'btn-quiet')} onClick={onDone}>
-        {ready ? 'Continue' : 'Stay a moment'}
+        {ready ? 'Continue' : 'Skip the quiet'}
       </button>
     </div>
   );
@@ -260,8 +260,10 @@ function Stillness({ seconds, onDone }) {
 // ── One step ─────────────────────────────────────────────────────────
 function Step({ step, sitting, day, present, phase, line, setLine, kids, first, onChange, onHeart }) {
   const chip = first && !day.isSunday && (
-    <button className="who-chip" onClick={onChange}>
-      Praying: {andNames(present, kids)} <span className="who-chip-change">· change</span>
+    <button className={'who-chip' + (kids ? ' is-kids' : '')} onClick={onChange}>
+      {kids && present.map((p) => <KoiGlyph key={p.id} koi={p.koi} size={24} />)}
+      <span>{kids ? `Here: ${andNames(present, true)}` : `Praying: ${andNames(present)}`}</span>
+      <span className="who-chip-change">{kids ? 'Not right? Change' : '· change'}</span>
     </button>
   );
 

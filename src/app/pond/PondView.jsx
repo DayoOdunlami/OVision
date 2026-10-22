@@ -48,6 +48,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     const cur = { ...FAR };
     let curUntil = 0;
     let stillKey = '';
+    let keepOut = null;
     let base = null, over = null, sprite = null, layersFor = '';
 
     const resize = () => {
@@ -196,6 +197,27 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
 
       // Pads' shadows sit on the water, under the fish.
       for (const p of padLayout) paintPadShadowFast(ctx, p.rx * W, p.ry * H, p.r, p.rot, t, p.phase);
+
+      // Koi may pass under the words, but don't rest there: a resting
+      // place inside the words' still water is moved out to its side.
+      if (t % 20 === 0) {
+        const el = document.querySelector('.water-words');
+        const r0 = canvas.getBoundingClientRect();
+        const r = el?.getBoundingClientRect();
+        keepOut = r && r.width > 0 ? { x0: r.left - r0.left + r.width * 0.12, x1: r.right - r0.left - r.width * 0.12, y0: r.top - r0.top + r.height * 0.18, y1: r.bottom - r0.top - r.height * 0.18 } : null;
+      }
+      if (keepOut) {
+        for (const k of koi) {
+          const f = k.fish;
+          const tg = f.target;
+          if (!tg || f.feedTarget || bowl.wants(f) || f.fleeCooldown > 0) continue;
+          if (tg.x > keepOut.x0 && tg.x < keepOut.x1 && tg.y > keepOut.y0 && tg.y < keepOut.y1) {
+            const toLeft = tg.x - keepOut.x0 < keepOut.x1 - tg.x;
+            tg.x = toLeft ? Math.max(40, keepOut.x0 - 70) : Math.min(W - 40, keepOut.x1 + 70);
+            if (f.idleCenter) { f.idleCenter.x = tg.x; f.idleCenter.y = tg.y; }
+          }
+        }
+      }
 
       // Fish.
       bowl.update(koi.map((k) => k.fish));

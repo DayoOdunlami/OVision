@@ -46,7 +46,7 @@ export const prayers = [
     flowing: {
       solo: (c) => `Father, I pray that out of your glorious riches you may strengthen ${c.pair} with power through your Spirit in ${c.theirP} inner being, so that Christ may dwell in ${c.theirP} hearts through faith.\n\nAnd I pray that ${c.pairSubj}, being rooted and established in love, may have power, together with all the Lord's holy people, to grasp how wide and long and high and deep is the love of Christ, and to know this love that surpasses knowledge \u2014 that ${c.theyP} may be filled to the measure of all the fullness of God.`,
       family: (c) => `Father, we pray that out of your glorious riches you may strengthen ${c.pair} with power through your Spirit in ${c.theirP} inner being, so that Christ may dwell in ${c.theirP} hearts through faith.\n\nAnd we pray that ${c.pairSubj}, being rooted and established in love, may have power, together with all the Lord's holy people, to grasp how wide and long and high and deep is the love of Christ, and to know this love that surpasses knowledge \u2014 that ${c.theyP} may be filled to the measure of all the fullness of God.`,
-      kids: (c) => `God, please make ${c.pair} strong on the inside by your Spirit.\n\nHelp Jesus to live deep in ${c.theirP} hearts.\n\nHelp ${c.themP} to know how wide and long and high and deep your love is \u2014 even though it's so big we can never fully understand it.`
+      kids: (c) => `God, please make ${c.pair} strong on the inside by your Spirit.\n\nPlease let Jesus live deep in ${c.theirP} hearts.\n\nHelp ${c.themP} to know how wide and long and high and deep your love is \u2014 even though it's so big we can never fully understand it.`
     },
     sections: [
       {
