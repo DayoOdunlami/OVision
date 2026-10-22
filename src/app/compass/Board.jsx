@@ -100,8 +100,8 @@ export default function Board({ day, query = {}, homeMode = false, idleNow = fal
     <section className="compass-stage" aria-label="Our chosen direction">
       <div className="compass-heading">
         {person && <button className="family-return" onClick={() => select()}>← Our family · {family.word || 'our shared direction'}</button>}
-        <p className="compass-eyebrow">{person ? `${person.name} is becoming` : 'We are becoming'}</p>
-        <h1 className={board.word.length > 13 ? 'is-long' : ''}>{board.word || (person ? 'A word of your own' : 'Who shall we become?')}</h1>
+        <p className="compass-eyebrow">{hasWord ? (person ? `${person.name} is becoming` : 'We are becoming') : 'A season to begin'}</p>
+        <h1 className={board.word.length > 13 ? 'is-long' : ''}>{board.word || (person ? 'Your word' : 'Our compass')}</h1>
         <button className="meaning-button" onClick={() => showMeaning('meaning')} aria-label={`What ${board.word || 'our word'} means here`}>{hasWord ? story[0] : 'Choose a direction for this season'} <span aria-hidden="true">↗</span></button>
       </div>
 

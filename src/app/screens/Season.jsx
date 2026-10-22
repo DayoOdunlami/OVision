@@ -45,8 +45,9 @@ export default function Season({ day }) {
       <div className="room-body scroll">
         <p className="label">{season.name} · since {niceDate(season.start)}</p>
         <h1 className="season-word">{season.family.word}</h1>
-        {season.family.line && <p className="season-line">{season.family.line}</p>}
-        {season.family.practices?.length > 0 && (
+        {!season.compass && season.family.line && <p className="season-line">{season.family.line}</p>}
+        {season.compass && <div className="compass-book-intentions"><p className="label">Make room for</p><p>{season.compass.family?.yes || 'Still to choose'}</p><p className="label">Leave behind</p><p>{season.compass.family?.no || 'Still to choose'}</p></div>}
+        {!season.compass && season.family.practices?.length > 0 && (
           <div className="practices">
             <p className="label">We will</p>
             <ul>{season.family.practices.map((p, k) => <li key={k}>{p}</li>)}</ul>
@@ -114,7 +115,7 @@ export default function Season({ day }) {
                   </button>
                   {openPast === s.id && (
                     <div className="past-body">
-                      {s.family.line && <p className="season-line">{s.family.line}</p>}
+                      {s.compass ? <><p>Make room for {s.compass.family?.yes || 'what matters'}.</p><p>Leave behind {s.compass.family?.no || 'what crowds it out'}.</p></> : s.family.line && <p className="season-line">{s.family.line}</p>}
                       <p className="past-words">
                         {day.people.filter((p) => s.words?.[p.id]).map((p) => `${p.name}: ${s.words[p.id]}`).join(' · ')}
                       </p>

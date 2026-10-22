@@ -116,3 +116,9 @@
 @media (prefers-reduced-motion: reduce) {
   :root { --t-move: 1ms; --t-slow: 1ms; }
 }
+
+/* Living compass world roles */
+:root{--land:#e6e7d6;--land-light:#f4f1dc;--land-ink:#263d33;--land-muted:#50604d;--land-line:#263d332a;--bank:#eff0df;--seed-halo:#edf0db;--compass-title:clamp(3.25rem,7vw,6.7rem);--scene-radius:48% 52% 49% 51%/47% 46% 54% 53%;--scene-shadow:0 15px 55px #263d3325;--compass-small:calc(.78rem * var(--text-scale))}
+:root[data-light='dawn']{--land:#dedfd3;--land-light:#eeead7;--land-ink:#343b3b;--land-muted:#555d58;--bank:#e7e7da;--seed-halo:#e7e6da}
+:root[data-light='dusk']{--land:#3b4940;--land-light:#67705a;--land-ink:#f2e8cf;--land-muted:#d9d3be;--land-line:#e9e0c13c;--bank:#3b4940;--seed-halo:#586350}
+:root[data-light='night']{--land:#182521;--land-light:#293b2e;--land-ink:#e4ddc4;--land-muted:#c1c2ab;--land-line:#dce1c12e;--bank:#1c2b25;--seed-halo:#293b2e;--scene-shadow:0 15px 55px #0003}

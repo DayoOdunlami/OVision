@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { pondTarget } from '../compass/pondBehaviours.js';
+import { pondTarget, boardFishScale } from '../compass/pondBehaviours.js';
 import { paintCurrents, paintGodRays, paintShimmer } from './water.js';
 import { WATER, Drifter, layoutPads } from './paint.js';
 import { drawPad, Ripple } from './pads.js';
@@ -32,7 +32,8 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { alpha: false });
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    let reduced = motionPreference?.matches || false;
     let W = 0, H = 0, DPR = 1;
     let raf = 0;
     let dead = false;
@@ -49,14 +50,17 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     const cur = { ...FAR };
     let curUntil = 0;
     let stillKey = '';
+    const onMotionPreference = event => { reduced = event.matches; stillKey = ''; };
+    motionPreference?.addEventListener('change', onMotionPreference);
     let keepOut = null;
     let base = null, over = null, sprite = null, layersFor = '';
+    let waterBed = null, waterCtx = null, lastWater = -1;
 
     const resize = () => {
       const r = canvas.getBoundingClientRect();
       W = Math.max(1, Math.round(r.width));
       H = Math.max(1, Math.round(r.height));
-      DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      DPR = Math.max(1, Math.min(live.current.intention ? 1.5 : 2, window.devicePixelRatio || 1));
       canvas.width = Math.round(W * DPR);
       canvas.height = Math.round(H * DPR);
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -85,7 +89,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
         const prev = old.get(p.id);
         if (prev && prev.koi === p.koi) return prev;
         const [v] = buildPondMixFromCounts({ [p.koi]: 1 });
-        const scale = (v.sizeScale || 1) * size * (p.kind === 'child' ? 0.82 : 1.05);
+        const scale = boardFishScale(v.sizeScale || 1, size, p.kind === 'child');
         const fish = new SpineFish(W, H, { ...v, sizeScale: scale });
         return { id: p.id, koi: p.koi, fish, label: null, shown: 0 };
       });
@@ -190,12 +194,24 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
         base = baseLayer(W, H, DPR, pal, night);
         over = overLayer(W, H, DPR, pal, night, L.season === 'winter');
         sprite = causticSprite(pal.caustic);
+        waterBed = document.createElement('canvas');
+        waterBed.width = Math.round(W * DPR); waterBed.height = Math.round(H * DPR);
+        waterCtx = waterBed.getContext('2d');
+        waterCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        lastWater = -1;
       }
-      ctx.drawImage(base, 0, 0, W, H);
-      paintCurrents(ctx, W, H, ts, pal);
-      if (L.light === 'day' || L.light === 'dawn') paintGodRays(ctx, W, H, ts, pal);
-      const caustics = Math.round(Math.min(40, Math.max(14, (W * H) / 26000)) * (night ? 0.4 : 1) * (lite ? 0.5 : 1));
-      paintCausticsFast(ctx, W, H, ts, sprite, caustics, pal.sparkle);
+      // Slow water changes need not recreate additive gradients at the koi's
+      // frame rate. Cache this quiet layer; the living skeletons still move
+      // every frame. Ten water updates a second suffice for these slow currents.
+      if (lastWater < 0 || !L.intention || t - lastWater >= 6) {
+        lastWater = t;
+        waterCtx.drawImage(base, 0, 0, W, H);
+        paintCurrents(waterCtx, W, H, ts, pal);
+        if (L.light === 'day' || L.light === 'dawn') paintGodRays(waterCtx, W, H, ts, pal);
+        const caustics = Math.round(Math.min(40, Math.max(14, (W * H) / 26000)) * (night ? 0.4 : 1) * (lite ? 0.5 : 1));
+        paintCausticsFast(waterCtx, W, H, ts, sprite, caustics, pal.sparkle);
+      }
+      ctx.drawImage(waterBed, 0, 0, W, H);
 
       // Pads' shadows sit on the water, under the fish.
       for (const p of padLayout) paintPadShadowFast(ctx, p.rx * W, p.ry * H, p.r, p.rot, t, p.phase);
@@ -309,6 +325,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
       dead = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
+      motionPreference?.removeEventListener('change', onMotionPreference);
       offFeed();
       window.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointerup', onUp);

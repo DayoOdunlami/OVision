@@ -26,3 +26,9 @@ export function pondTarget(theme, index, count, seconds, width, height, focus = 
   }
   return { x: Math.max(24, Math.min(width - 24, x * width)), y: Math.max(24, Math.min(height - 24, y * height)), depth, rest };
 }
+
+// The original dorsal renderer expects at least five spine parts. At tiny
+// masses the unmodified constructor can make four; keep the board above that
+// boundary rather than changing its proven skeleton or hiding draw errors.
+export const boardFishScale = (varietyScale, sceneScale, child) =>
+  Math.max(.3, varietyScale * sceneScale * (child ? .82 : 1.05));

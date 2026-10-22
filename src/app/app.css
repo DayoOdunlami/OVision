@@ -281,7 +281,7 @@ textarea.field, .line-field textarea { resize: vertical; }
 .room > .pz-koi { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity 0.6s ease; }
 .room > .pz-koi.is-leaving { opacity: 0; }
 :root[data-light='night'] .room > .pz-koi:not(.is-leaving) { opacity: 0.8; }
-.room > :not(.pz-koi):not(.deep-canvas) { position: relative; z-index: 1; }
+.room > :not(.pz-koi):not(.deep-canvas):not(.compass-amen-grove) { position: relative; z-index: 1; }
 .room-top {
   display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
   padding: max(var(--s4), env(safe-area-inset-top)) var(--gutter) var(--s2);
