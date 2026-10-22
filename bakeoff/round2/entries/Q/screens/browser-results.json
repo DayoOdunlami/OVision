@@ -1,0 +1,117 @@
+[
+  {
+    "state": "pond family phone day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond personal phone day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond family phone night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond personal phone night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond home phone",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove family phone day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove personal phone day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove family phone night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove personal phone night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove home phone",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond family tablet day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond personal tablet day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond family tablet night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond personal tablet night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "pond home tablet",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove family tablet day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove personal tablet day",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove family tablet night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove personal tablet night",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "grove home tablet",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "200 percent phone",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "200 percent tablet",
+    "errors": 0,
+    "undersized": 0
+  },
+  {
+    "state": "empty season",
+    "errors": 0,
+    "undersized": 0
+  }
+]

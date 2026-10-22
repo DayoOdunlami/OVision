@@ -1,0 +1,86 @@
+[
+  {
+    "world": "pond",
+    "size": "tablet",
+    "recording": false,
+    "cadence": {
+      "frames": 47,
+      "elapsed": 4469.49999999851,
+      "median": 16.799999999999272,
+      "p95": 516.6000000000004,
+      "mean": 95.38936170212766,
+      "fps": 10.515717641797888
+    },
+    "normal_changed_fraction": 0.29109260911223445,
+    "reduced_changed_fraction": 0.0
+  },
+  {
+    "world": "pond",
+    "size": "phone",
+    "recording": false,
+    "cadence": {
+      "frames": 240,
+      "elapsed": 4002.1000000000004,
+      "median": 16.69999999999891,
+      "p95": 16.799999999999272,
+      "mean": 16.66583333333334,
+      "fps": 59.96851652882236
+    },
+    "normal_changed_fraction": 0.0,
+    "reduced_changed_fraction": 0.0,
+    "valid": false,
+    "reason": "Identical URL fragment navigation retained the previous reduced-motion mount; the zero normal pixel delta identifies this invalid normal-motion sample."
+  },
+  {
+    "world": "grove",
+    "size": "tablet",
+    "recording": false,
+    "cadence": {
+      "frames": 64,
+      "elapsed": 4042.8999999999996,
+      "median": 50.099999999999454,
+      "p95": 100,
+      "mean": 63.27812499999999,
+      "fps": 15.830220881050733
+    },
+    "normal_changed_fraction": 0.11459878068874609,
+    "reduced_changed_fraction": 0.0
+  },
+  {
+    "world": "grove",
+    "size": "phone",
+    "recording": false,
+    "cadence": {
+      "frames": 74,
+      "elapsed": 4027.800000001491,
+      "median": 50,
+      "p95": 100.10000000000036,
+      "mean": 54.728378378378395,
+      "fps": 18.372312428614286
+    },
+    "normal_changed_fraction": 0.10788655133843066,
+    "reduced_changed_fraction": 0.0
+  },
+  {
+    "world": "pond",
+    "size": "phone",
+    "motion": "normal",
+    "cadence": {
+      "frames": 63,
+      "elapsed": 3001.699999999255,
+      "median": 16.700000000000728,
+      "p95": 50.100000000000364,
+      "mean": 47.88253968253969,
+      "fps": 20.988106739519484
+    },
+    "canvas": [
+      367,
+      333
+    ],
+    "motion_changed_fraction": 0.4743190056541555,
+    "mean_channel_delta": 11.397645602005275,
+    "recording": false,
+    "valid": true,
+    "note": "Earlier independent fresh normal-motion context, after the pond cache change; use instead of the invalid identical-URL phone sample."
+  }
+]

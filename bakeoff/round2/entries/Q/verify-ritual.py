@@ -1,7 +1,8 @@
-import json
+import json, sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-out=Path('/tmp/q-ritual');out.mkdir(exist_ok=True)
+base=sys.argv[1] if len(sys.argv)>1 else 'http://localhost:5190'
+out=Path(sys.argv[2] if len(sys.argv)>2 else '/tmp/q-ritual');out.mkdir(parents=True,exist_ok=True)
 def live(page):
  return page.evaluate("JSON.parse(localStorage.getItem('qw.demo.v1')).seasons.find(s=>!s.end)")
 def snap(page,label):
@@ -11,7 +12,7 @@ with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
  errors=[]
  c=b.new_context(viewport={'width':390,'height':844},timezone_id='Europe/London',service_workers='block');page=c.new_page();page.set_default_timeout(30000);page.on('pageerror',lambda e:errors.append(str(e)))
- page.goto('http://localhost:5190/?demo=1&world=pond&h=22#/season/new?person=ada&edit=1',wait_until='domcontentloaded',timeout=60000)
+ page.goto(base+'/?demo=1&world=pond&h=22#/season/new?person=ada&edit=1',wait_until='domcontentloaded',timeout=60000)
  room=page.get_by_role('dialog',name="Choose Ada's direction",exact=True);room.wait_for()
  room.get_by_label('My word',exact=True).fill('Ubuntu')
  room.get_by_label('Make room for',exact=True).fill('Ask who needs a friend')
@@ -25,7 +26,7 @@ with sync_playwright() as p:
  assert live(page)['compass']['people']['sam']['word']=='Steady'
  print('personal persisted after reload; other boards retained',flush=True);c.close()
  c=b.new_context(viewport={'width':1180,'height':820},timezone_id='Europe/London',service_workers='block');page=c.new_page();page.set_default_timeout(30000);page.on('pageerror',lambda e:errors.append(str(e)))
- page.goto('http://localhost:5190/?demo=1&world=grove&h=12#/season/new',wait_until='domcontentloaded',timeout=60000)
+ page.goto(base+'/?demo=1&world=grove&h=12#/season/new',wait_until='domcontentloaded',timeout=60000)
  page.get_by_role('button',name='Choose our family’s direction',exact=False).click()
  page.get_by_label('A term, or the months ahead',exact=True).fill('Winter together')
  page.get_by_role('button',name='Continue',exact=True).click()
@@ -38,7 +39,7 @@ with sync_playwright() as p:
  assert live(page)['compass']['people']=={}
  print('direct family save archives previous season and needs no personal boards',flush=True);c.close()
  c=b.new_context(viewport={'width':1180,'height':820},timezone_id='Europe/London',service_workers='block');page=c.new_page();page.set_default_timeout(30000);page.on('pageerror',lambda e:errors.append(str(e)))
- page.goto('http://localhost:5190/?demo=1&world=pond&h=12#/season/new',wait_until='domcontentloaded',timeout=60000)
+ page.goto(base+'/?demo=1&world=pond&h=12#/season/new',wait_until='domcontentloaded',timeout=60000)
  page.get_by_role('button',name='Pass the tablet round',exact=False).click();page.get_by_role('button',name='Continue',exact=True).click()
  for word,yes,no in [('Steady','Listen before answering','Rushing an answer'),('Welcome','Invite someone to join','Leaving someone out')]:
   page.get_by_label('My word',exact=True).fill(word);page.get_by_label('Make room for',exact=True).fill(yes);page.get_by_label('Leave behind',exact=True).fill(no)
