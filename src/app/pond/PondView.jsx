@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { paintWater, paintCurrents, paintGodRays, paintCaustics, paintVignette, paintShimmer } from './water.js';
-import { WATER, paintMoon, paintIce, Drifter, layoutPads } from './paint.js';
-import { drawPad, drawPadShadow, Ripple } from './pads.js';
+import { paintCurrents, paintGodRays, paintShimmer } from './water.js';
+import { WATER, Drifter, layoutPads } from './paint.js';
+import { drawPad, Ripple } from './pads.js';
+import { baseLayer, overLayer, causticSprite, paintCausticsFast, paintPadShadowFast } from './layers.js';
 import { FoodBowl, feedGesture, markFed } from './koiFood.js';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -29,7 +30,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let W = 0, H = 0, DPR = 1;
     let raf = 0;
@@ -47,6 +48,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     const cur = { ...FAR };
     let curUntil = 0;
     let stillKey = '';
+    let base = null, over = null, sprite = null, layersFor = '';
 
     const resize = () => {
       const r = canvas.getBoundingClientRect();
@@ -90,6 +92,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     import('./SpineFish.js').then((m) => {
       if (dead) return;
       fishMod = m;
+      m.ShadowQuality.blur = true;
       buildKoi();
       if (reduced) {
         // Let them settle into place, then hold still.
@@ -134,10 +137,27 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     window.addEventListener('pointerup', onUp, { passive: true });
 
     // ── The frame ─────────────────────────────────────────────────────
-    const frame = () => {
+    // Adaptive quality: if frames run slow once the koi are swimming, drop
+    // the blurred shadows and half the caustic light. Nobody chooses this.
+    let lite = false;
+    const times = [];
+    let lastT = 0;
+    const watch = (now) => {
+      if (lite || !fishMod || koi.length === 0) { lastT = now; return; }
+      if (lastT) times.push(now - lastT);
+      lastT = now;
+      if (times.length === 40) {
+        const sorted = [...times].sort((a, b) => a - b);
+        if (sorted[20] > 24) { lite = true; fishMod.ShadowQuality.blur = false; }
+        times.length = 0;
+      }
+    };
+
+    const frame = (now) => {
       raf = requestAnimationFrame(frame);
       const L = live.current;
-      if (L.paused) return;
+      if (L.paused) { lastT = 0; return; }
+      watch(now);
       // Reduced motion: a still pond, redrawn only when something changes.
       if (reduced) {
         const key = `${W}x${H}:${koi.length}:${L.light}:${L.todayIds.join()}:${L.pads.length}`;
@@ -160,15 +180,22 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
         drifters = Array.from({ length: n }, (_, i) => new Drifter(W, H, kind, (i + 1) * 0.1371));
       }
 
-      paintWater(ctx, W, H, pal);
+      // What doesn't move is painted once (see layers.js).
+      const lKey = `${W}x${H}x${DPR}:${L.light}:${L.season}`;
+      if (lKey !== layersFor) {
+        layersFor = lKey;
+        base = baseLayer(W, H, DPR, pal, night);
+        over = overLayer(W, H, DPR, pal, night, L.season === 'winter');
+        sprite = causticSprite(pal.caustic);
+      }
+      ctx.drawImage(base, 0, 0, W, H);
       paintCurrents(ctx, W, H, ts, pal);
       if (L.light === 'day' || L.light === 'dawn') paintGodRays(ctx, W, H, ts, pal);
-      const caustics = Math.round(Math.min(44, Math.max(14, (W * H) / 26000)) * (night ? 0.4 : 1));
-      paintCaustics(ctx, W, H, ts, pal, caustics);
-      if (night) paintMoon(ctx, W, H, ts);
+      const caustics = Math.round(Math.min(40, Math.max(14, (W * H) / 26000)) * (night ? 0.4 : 1) * (lite ? 0.5 : 1));
+      paintCausticsFast(ctx, W, H, ts, sprite, caustics, pal.sparkle);
 
       // Pads' shadows sit on the water, under the fish.
-      for (const p of padLayout) drawPadShadow(ctx, p.rx * W, p.ry * H, p.r, p.rot, t, p.phase);
+      for (const p of padLayout) paintPadShadowFast(ctx, p.rx * W, p.ry * H, p.r, p.rot, t, p.phase);
 
       // Fish.
       bowl.update(koi.map((k) => k.fish));
@@ -188,12 +215,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
       }
 
       paintShimmer(ctx, W, H, ts, pal);
-      if (L.season === 'winter') paintIce(ctx, W, H, night);
-      paintVignette(ctx, W, H, pal);
-      if (night) {
-        ctx.fillStyle = 'rgba(4, 8, 20, 0.22)';
-        ctx.fillRect(0, 0, W, H);
-      }
+      ctx.drawImage(over, 0, 0, W, H);
 
       // Names: today's in gold, always; anyone else's for a moment when
       // their koi is tapped, with their word.

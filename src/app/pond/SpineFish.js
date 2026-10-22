@@ -29,6 +29,10 @@
 //   'legacy'      — original per-side hardcoded (port dark / starboard cream);
 //                   kept for A/B comparison — reproduces the pre-fix artifact
 export const ShadingMode = { current: 'auto' };
+// Shadow quality: a real blur by default; a host that finds frames running
+// slow (an ordinary tablet drawing many koi) can switch to a soft two-pass
+// shadow that needs no canvas filter.
+export const ShadowQuality = { blur: true };
 // Sun direction in world space for 'directional' mode. π/4 = incoming rays
 // pointing lower-right, i.e. sun is in the upper-left of the pond.
 const LIGHT_ANGLE = Math.PI / 4;
@@ -936,12 +940,27 @@ export default class SpineFish {
     const shadowAlpha = 0.28 * (1 - depth * 0.55);
     const shadowOffset = 1 + depth * 0.9;
     ctx.globalAlpha = shadowAlpha;
-    if (ctx.filter !== undefined) ctx.filter = `blur(${7 + depth * 4}px)`;
+    const blur = ShadowQuality.blur && ctx.filter !== undefined;
+    if (blur) ctx.filter = `blur(${7 + depth * 4}px)`;
     ctx.translate(7 * shadowOffset, 16 * shadowOffset);
     ctx.fillStyle = 'rgba(0, 18, 16, 0.85)';
-    this.tracePondShadow(ctx);
-    ctx.fill();
-    if (ctx.filter !== undefined) ctx.filter = 'none';
+    if (blur) {
+      this.tracePondShadow(ctx);
+      ctx.fill();
+      ctx.filter = 'none';
+    } else {
+      // Soft without a filter: a wider, fainter pass under a tighter one.
+      const hx = this.head.x, hy = this.head.y;
+      ctx.globalAlpha = shadowAlpha * 0.45;
+      ctx.save();
+      ctx.translate(hx, hy); ctx.scale(1.12, 1.12); ctx.translate(-hx, -hy);
+      this.tracePondShadow(ctx);
+      ctx.fill();
+      ctx.restore();
+      ctx.globalAlpha = shadowAlpha * 0.55;
+      this.tracePondShadow(ctx);
+      ctx.fill();
+    }
     ctx.restore();
 
     // ── Body block: scaled around the head so deeper fish appear smaller ──

@@ -172,7 +172,7 @@ textarea.field, .line-field textarea { resize: vertical; }
   text-transform: uppercase;
   color: var(--on-water-2);
 }
-.home-gear { background: color-mix(in srgb, var(--slip) 55%, transparent); border-color: transparent; color: var(--slip-ink); backdrop-filter: blur(4px); }
+.home-gear { background: color-mix(in srgb, var(--slip) 55%, transparent); border-color: transparent; color: var(--slip-ink); }
 
 .water-words {
   flex: 1 1 auto;
@@ -244,7 +244,6 @@ textarea.field, .line-field textarea { resize: vertical; }
   color: var(--slip-ink);
   box-shadow: var(--shadow);
   text-align: center;
-  backdrop-filter: blur(6px);
   animation: surface var(--t-move) var(--ease) both;
 }
 .slip-welcome { margin: 0 0 var(--s1); font: italic var(--fs-ui) var(--font-read); color: var(--ink-2); }

@@ -8,7 +8,7 @@
 // ── Shared pad motion ───────────────────────────────────────────────
 // `t` is the frame counter (st.current.tick), not milliseconds.
 // Coefficients are frame-based: 0.02 * 60fps ≈ 1.2 rad/s → ~5s period.
-function padMotion(t, phase) {
+export function padMotion(t, phase) {
   const bob =
     Math.sin(t * 0.020 + phase) * 4.5 +
     Math.sin(t * 0.048 + phase * 1.7) * 1.4;
