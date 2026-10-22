@@ -100,11 +100,82 @@ board, in a pond, a garden or a sky.
 - **The prayer stays paper.** The sitting itself shows no world. At most it takes the
   world's palette.
 
-### Reuse proven motion
+### Motion, metaphor and behaviour
 
-Lifelike motion has been the hardest thing in this project. Before you invent motion,
-use what already works or find a reference. You may lift code, with credit in your
-digest, from:
+This is where round 2 will be won or lost. Treat it as seriously as the board itself.
+
+**1. Motion serves meaning, never itself.**
+- Every movement should carry a metaphor the family would recognise from the life of
+  faith, for example:
+  - growth
+  - abiding and rest
+  - connection and belonging
+  - light
+  - fruit
+  - gathering
+  - letting go
+  - being known
+  - returning
+- A movement that only decorates is a candidate to cut.
+- Calm is the default: the attention budget in the house art direction skill still
+  applies.
+
+**2. A bank of behaviours, not a metaphor per word.**
+- Families will write words nobody can anticipate ("Brave", "Steady", "Hospitality",
+  "Sabbath"), so don't hand-craft a behaviour for each word.
+- For each world, design a **bank of behaviours**, each tied to a theme. For example:
+  - **Koi:** gather, rest, swell, circle, pair, follow, glow, rise.
+  - **A garden:** sprout, lean to the light, bud, bloom, ripen, intertwine, seed,
+    weather a storm.
+- Decide how a word gets its behaviours:
+  - a small lexicon of themes;
+  - the person choosing what their word means to them;
+  - a gentle default;
+  - or a mix.
+- Add enough variation that the board never feels like a loop.
+- Any word must work and look intended. Document the bank and the mapping rule in
+  `DIGEST.md`.
+
+**3. Upgrade or downgrade, honestly.** The old vine that grows and writes a word
+(`src/flourish/lib/` on `main`) is a real asset. Three choices are equally welcome:
+- use it;
+- improve it;
+- replace it with a mechanic of your own.
+
+The same goes for the koi, the starlings and Tend's garden art. But whatever you replace
+must be **better**, and you must show it: put the existing version and yours side by side
+in `screens/`, and say in one line why yours is an upgrade. Round 1's flat cut-out fish
+were a downgrade the client noticed at once.
+
+**4. Research before you invent.** Don't assume you have to write lifelike motion from
+nothing. Search for the best existing work and learn from it, or adapt it:
+- open-source generative art and creative coding;
+- organic growth algorithms (for example L-systems, space colonisation,
+  differential growth);
+- flocking and schooling;
+- water, wind and light;
+- illustrators and games that do living worlds beautifully.
+
+Prefer adapting proven, openly licensed code to inventing your own, and record every
+source and licence in `DIGEST.md`. References inform; never copy a specific artwork,
+character or brand.
+
+**5. You may rethink the look.**
+- If you find something more compelling, you may replace Tend's garden, improve the koi
+  animation, or change the illustration style altogether: more realistic, more organic,
+  more painterly.
+- Whatever you choose must be consistent across every room that shows a world, and
+  sustainable in code.
+- The client is genuinely curious about a more realistic, organic take, so show it if
+  you can make it beautiful.
+
+**The bar:** delight and elegance. Ask whether someone would stop and watch it for a
+moment, and whether it means something when they do.
+
+### Proven code you may reuse
+
+Lifelike motion has been the hardest thing in this project. You may lift code, with
+credit in your digest, from:
 - **The koi:** `src/app/pond/` on this branch.
 - **The vine and its word writer:** `src/flourish/lib/vine.js`, `allure.js` and `draw.js`
   on `main`.

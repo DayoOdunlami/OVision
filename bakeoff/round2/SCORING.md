@@ -12,6 +12,8 @@ the side, then on your phone. Lines marked ★ count double.
 | | **The ritual.** Setting a new season feels like something the family does together. | | | |
 | | **Two worlds, each at its best.** The second world isn't the pond with the fish swapped out. Each plays to its strengths. | | | |
 | | **The switch makes sense.** Who chooses the world, and when, feels right, and it carries through the app. | | | |
+| | **Motion that means something.** Movements carry metaphors (growth, connection, rest), any word looks intended, and it never feels like a loop. | | | |
+| | **Upgrade, not downgrade.** Anything replaced (koi, vine, garden art) is visibly better than what was there. | | | |
 | | **Craft and calm.** Lifelike motion, nothing covering the words, no scroll bars, nothing busy. | | | |
 | | **Fits Quiet Waters.** It feels like the same app, ready to become the foundation. | | | |
 | | **Total** | | | |
