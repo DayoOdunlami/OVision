@@ -92,7 +92,11 @@ function Run({ day, present, onChange }) {
     const who = peopleOf(day.household, s[0].who);
     const h = Number(String(s[0].at).slice(0, 2));
     const when = h < 12 ? 'this morning' : h < 17 ? 'this afternoon' : 'this evening';
-    return `${andNames(who, true)} prayed for ${andNames(day.forPeople, true)} ${when}. Now it’s your turn.`;
+    // If whoever prayed is one of today's two, don't say "Dad prayed for Dad".
+    const self = who.some((p) => day.forPeople.some((f) => f.id === p.id));
+    return self
+      ? `${andNames(who, true)} prayed ${when} too. Now it’s your turn.`
+      : `${andNames(who, true)} prayed for ${andNames(day.forPeople, true)} ${when}. Now it’s your turn.`;
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const sitting = useMemo(() => buildSitting({

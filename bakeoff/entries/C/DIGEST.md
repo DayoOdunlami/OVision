@@ -32,7 +32,7 @@ All in one working session. The order is visible in `git log`.
 2. **One prayer a day, many sittings.**
    - Per the Q&A, moments 1 and 2 are two sittings of the same prayer.
    - Each Amen records who prayed (`sittings[].who`). A morning Amen marks only Dad.
-   - The evening sitting says "Dad prayed for Kit and Mum this morning. Now it's your
+   - The evening sitting says, for example, "Dad prayed for Ada and Mum this morning. Now it's your
      turn."
 3. **Who's here decides how to pray, so there are no settings for it.**
    - One grown-up: silent, first person, the verse twice and stillness.
@@ -110,9 +110,9 @@ moment.
 | # | Moment | How it's served | Deep link |
 |---|---|---|---|
 | 1 | 06:45, Dad, phone, bedside | Night pond, then *Pray*: two taps from the icon. Night paper. Three breaths, the verse twice with its word in gold, 20 s of quiet, the prayer one thought at a time with *Wandered?* (the week's word and breath prayer), a line for them, the blessing, Amen, three seconds of held silence, then their koi rise. Notes on the passage are offered after Amen. | `/?demo=1&h=6.75` then *Pray* · straight in: `/?demo=1&h=6.75#/pray` |
-| 2 | After dinner, children, tablet | Who's here is remembered. "Dad prayed for Kit and Mum this morning. Now it's your turn." The verse read together, simple words, each card read by a different child (koi colour), "I wonder…", the blessing together, Amen and the koi (feed them), then *Play the verse*: four steps, different words each time, turns in koi colours, several fingers at once, a hint after 8 s. *Today's prayer* (with names) is the second game. | `/?demo=1&h=19#/pray` · `/?demo=1&h=19#/play` |
+| 2 | After dinner, children, tablet | Who's here is remembered, and shown on the first card with each child's koi and "Not right? Change". It opens with "Dad prayed for … this morning. Now it's your turn." The verse read together, simple words, each card read by a different child (koi colour), "I wonder…", the blessing together, Amen and the koi (feed them), then *Play the verse*: four steps, different words each time, turns in koi colours, several fingers at once, a hint after 8 s. *Today's prayer* (with names) is the second game. | `/?demo=1&h=19#/pray` · `/?demo=1&h=19#/play` |
 | 3 | Sunday, household, one screen | The Lord's Prayer; everyone held, each with their season word; the week's verse said together from first letters ("We said it by heart" opens a lotus); the week looked back on; Amen with everyone's koi. | `/?demo=1&h=17&day=sun#/pray` |
-| 4 | A glance in passing | After a minute the slip sinks away. The idle pond shows the family's word, the week's verse and "Today · Kit and Jo", with the names beside their koi. It changes with the clock (dawn, day, dusk, night) and the season. Settings → *Keep the screen on* holds a wake lock. | `/?demo=1&h=21&idle=1` · by day: `/?demo=1&h=11&idle=1` |
+| 4 | A glance in passing | After a minute the slip sinks away. The idle pond shows the family's word, the week's verse and "Today · …" with today's two names, which also float beside their koi. It changes with the clock (dawn, day, dusk, night) and the season. Settings → *Keep the screen on* holds a wake lock. | `/?demo=1&h=21&idle=1` · by day: `/?demo=1&h=11&idle=1` |
 | 5 | Clearing the ground | *Into the deep* (see decision 7). Offered on the slip on Saturday evenings; a quiet link otherwise. | grown-up: `/?demo=1&h=21.5#/deep?who=sam` · children: `/?demo=1&h=19#/deep?who=ada,kit,noor` · the offer: `/?demo=1&h=20&day=sat` |
 | 6 | Looking back | The pond after six weeks: seven pads and four lotuses. *This season*: the words, the weeks with their verses and lotuses, the lines written in the morning, and the book of seasons. | `/?demo=1&h=12` · `/?demo=1&h=12#/season` |
 | 7 | New term or season | *Begin a new season*: name it, pass the tablet to each person for one word (children tap, nobody has to type), choose the family's word and practices, review, begin. The old season goes into the book; the pond starts clear. Two weeks before a season's end, the slip offers the look back. | `/?demo=1&h=12#/season/new` |
@@ -120,7 +120,8 @@ moment.
 
 Other states:
 - Returning after a gap: `/?demo=1&h=8.5&away=5`.
-- Already prayed today: `/?demo=1&h=21`, where *Pray* has gone quiet.
+- Already prayed today: `/?demo=1&h=21`, where *Pray* has gone quiet for whoever usually prays at
+  that time.
 - Winter: `&season=winter`.
 - Printed card: `/?demo=1#/print`.
 
@@ -138,7 +139,7 @@ evening), and `21` to `22` (night), plus `season=winter`.
 
 | Check | Result | Fixed |
 |---|---|---|
-| Every room loads at both sizes with no console or page errors | Pass | — |
+| Every room loads at both sizes with no console or page errors | Pass, ours and the independent walkthrough | — |
 | The 06:45 sitting, end to end | Pass. Two taps from the icon to its first words. | — |
 | The children's sitting, end to end, then Play | Pass | — |
 | Sunday, end to end | Pass | The verse's stepping stones crowded together, so they are now laid out word by word. |
@@ -164,7 +165,69 @@ Android tablet has GPU canvas.
 
 ## Walkthroughs (usability test)
 
-*(Filled in from the independent walkthrough, below.)*
+A fresh reviewer, with no access to our reasoning, drove the running app by tapping
+visible controls only, as three people. There were no console or page errors. Here is
+what they found, and what we did.
+
+**Dad at 06:45 (phone).**
+- Two taps from the pond to the first words: the breath prayer and the names. The
+  intercession itself comes after the verse and the stillness, which is by design. Ten
+  taps from pond to pond.
+- Nothing glaring at night.
+- Hesitations:
+  - "Stay a moment" skipped the stillness when tapped, the opposite of what it says.
+    **Fixed:** it now reads *Skip the quiet*, and *Continue* when the twenty seconds are
+    up.
+  - The Settings icon read as a sun or brightness toggle. **Fixed:** a real gear.
+  - "Tap the water. Double-tap to feed the koi." is app talk at dawn. **Fixed:** the
+    hint no longer shows in the morning or at night.
+  - Koi and their name tags crossed the verse. **Fixed:** koi no longer rest on the
+    words; their resting places are moved to the side of the still water. They still
+    cross beneath.
+- **Not changed:** "Read it again" and "Be still" as button names. The reviewer wanted
+  "Next". We think the instruction *is* the step at 06:45, and the eyebrow label says the
+  same. A judgement call.
+- **Not changed:** *Wandered?* under each prayer card. It is the quiet way back the
+  spiritual director asked for.
+
+**Two children, 7 and 9, after dinner (tablet).**
+- The sitting opened on "Praying: Ada, Kit and Noor" from the last evening, and the small
+  "· change" wasn't noticed. **Fixed:**
+  - On children's sittings the first card shows each child's koi, "Here: …" and a full
+    "Not right? Change" button.
+  - The picker's button says *Done* and goes straight on.
+- "Help Jesus to live deep in their hearts" read as asking God to help Jesus. **Fixed:**
+  "Please let Jesus live deep in their hearts."
+- In the puzzle:
+  - Nothing said what to do. **Fixed:** "Drag or tap the next word."
+  - The live slot glowed red (Ada's koi colour) and looked like an error. **Fixed:** the
+    slot is gold, and the turn colour is only its underline.
+  - Dragging, tapping and finishing a round all worked.
+- In *Into the deep*:
+  - Next stayed disabled until every listed child had thrown, so an absent child blocked
+    the others. **Fixed:** any child can finish.
+  - "A grown-up reads this out loud" showed with no grown-up present. **Fixed:** it says
+    "Read this out loud together" unless a grown-up is among those here.
+- **Not changed:**
+  - "Well done!" at the end of a round. The voice guide bans exclamation marks, and the
+    gold sweep and the passing koi are the celebration.
+  - Giving the shortest line to the youngest reader (a good idea; noted for another day).
+
+**A new family on first run (phone).**
+- Setup was smooth.
+- *This season* was offered twice on the pond (the offer and the link). **Fixed:** the
+  link is hidden while the offer shows.
+- After beginning a season, the first button on the result was "Begin a new season".
+  **Fixed:** *Back to the pond* comes first.
+- Dusk text on the pond looked low-contrast over the sunlit centre. **Fixed:** the dusk
+  water's centre is darker and its still-water halo is stronger.
+- **Not changed:**
+  - A child whose own name is in today's pair hears the prayer for them while reading it.
+    That is the household's rota, and we kept it.
+  - Children are asked "this term" and grown-ups "this season". This is deliberate.
+
+Our own persona walks before that (Playwright, the same three people plus Sunday) led to
+the earlier fixes listed under Testing.
 
 ## Self-critique: what we cut and why
 
