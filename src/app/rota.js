@@ -56,25 +56,28 @@ export function rotaForWeek(household, monday) {
   if (ids.length === 1) return [...Array(6).fill(all), all];
   if (ids.length === 2) return [...Array(6).fill(all), all];
 
-  // Follow on from where last week's sequence ended, so over the weeks
-  // everyone is prayed for about equally (an odd household doesn't
+  // One endless sequence per household: round after round of everyone,
+  // each round in its own (seeded) order. Week w takes the twelve places
+  // from w × 12 on, so the weeks follow on from each other and, over
+  // time, everyone comes round equally often (an odd household doesn't
   // leave the same person out every week).
-  const wk = weekNumber(monday);
-  const rand = rng(hash(`${household.id}:${ids.join(',')}:${wk}`));
+  const n = ids.length;
+  const round = (r) => shuffled(ids, rng(hash(`${household.id}:${ids.join(',')}:${r}`)));
+  const start = weekNumber(monday) * 12;
+  let r = Math.floor(start / n);
+  let k = start % n;
+  let cur = round(r);
   const seq = [];
-  let guard = 0;
-  while (seq.length < 12 && guard++ < 20) {
-    let round = shuffled(ids, rand);
-    // Never the same person twice in a row (which would pair them with
-    // themselves across the join).
-    if (seq.length && round[0] === seq[seq.length - 1]) round = [...round.slice(1), round[0]];
-    seq.push(...round);
+  while (seq.length < 13) {
+    if (k >= n) { r += 1; k = 0; cur = round(r); }
+    seq.push(cur[k++]);
   }
   const pairs = [];
-  for (let i = 0; pairs.length < 6; i += 2) {
-    let a = seq[i];
-    let b = seq[i + 1];
-    if (a === b || b == null) b = ids.find((x) => x !== a);
+  for (let i = 0; i < 6; i++) {
+    const a = seq[i * 2];
+    let b = seq[i * 2 + 1];
+    // Where two rounds meet, the same person can come up twice running.
+    if (b === a) b = seq[i * 2 + 2] !== a ? seq[i * 2 + 2] : ids.find((x) => x !== a);
     pairs.push([a, b]);
   }
   return [...pairs, all];
