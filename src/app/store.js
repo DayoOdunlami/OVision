@@ -3,11 +3,17 @@
 //
 // One record under one key, in a shape that would sync cleanly later
 // (a household, its seasons, and append-only sittings), plus a small
-// per-device record (text size, keep-awake, who usually prays here).
+// per-device record (text size, keep-awake, who usually prays here,
+// and which world this screen shows, if not the family's choice).
 //
 //   household  { id, name, people: [{ id, name, short, kind, koi }] }
-//   seasons    [{ id, name, start, end|null, family: { word, line,
-//                  practices[] }, words: { [personId]: word } }]
+//   seasons    [{ id, name, start, until, end|null, world,
+//                  family: { word, line, theme?, yes: [{ text, no }] },
+//                  people: { [personId]: { word, theme?, yes, no } },
+//                  words: { [personId]: word }, lookBack? }]
+//                The family's board for the season (studio P): its word,
+//                up to three yeses and the no each protects; each
+//                person's own board; and where the board lives.
 //   sittings   [{ id, date, at, who[], for[], week, prayer, kind, line? }]
 //                one per Amen: who prayed, for whom, which week
 //   heart      { [week]: { date, who[] } }   the verse said by heart
@@ -35,7 +41,7 @@ const KEY = isDemo ? 'qw.demo.v1' : 'qw.v1';
 const DEVICE_KEY = isDemo ? 'qw.demo.device' : 'qw.device';
 
 export const EMPTY = { v: 1, household: null, seasons: [], sittings: [], heart: {}, play: {}, pick: null };
-const DEVICE = { textScale: 1, keepAwake: false, lastWho: {}, quietKoi: false };
+const DEVICE = { textScale: 1, keepAwake: false, lastWho: {}, quietKoi: false, world: null };
 
 function read(key, fallback) {
   try {

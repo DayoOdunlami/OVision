@@ -55,6 +55,15 @@ export default function Settings({ day }) {
         </section>
 
         <section className="set">
+          <h2 className="section-title">Where our board lives</h2>
+          <p className="room-sub">
+            {day.world === 'vine' ? 'The vine' : 'The pond'} on this screen.
+            {' '}The family chooses when you set a new season together; any screen can show the other.
+          </p>
+          <button className="btn btn-secondary" onClick={() => go('world')}>Choose the world</button>
+        </section>
+
+        <section className="set">
           <h2 className="section-title">This week’s prayer</h2>
           <p className="room-sub">It changes every Monday morning, as a small surprise. You can choose this week’s instead.</p>
           <select
@@ -83,7 +92,7 @@ export default function Settings({ day }) {
             <input type="checkbox" checked={Boolean(device.keepAwake)} onChange={(e) => setDevice((d) => ({ ...d, keepAwake: e.target.checked }))} />
             <span>
               <b>Keep the screen on</b>
-              <small>For a tablet on the side: the pond stays awake, showing the family’s word and today.</small>
+              <small>For a tablet on the side: the board stays awake, showing our word and today’s yes.</small>
             </span>
           </label>
           {!installed && (

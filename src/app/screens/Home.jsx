@@ -1,20 +1,25 @@
+import { lowerFirst } from '../board.js';
 import { useEffect, useRef, useState } from 'react';
 import { go } from '../route.js';
 import { WEEKDAYS } from '../calendar.js';
 import { useDevice, getState } from '../store.js';
 import { andNames, peopleOf, listNames } from '../household.js';
 import { wantsFeedHint } from '../pond/koiFood.js';
-import { Gear } from '../ui.jsx';
+import { Gear, WorldMark } from '../ui.jsx';
 
 // ═══════════════════════════════════════════════════════════════════
-// Home — the pond, with today on it.
+// Home — the family's board, living in its world (studio P).
 //
-// The family's word lies in the water, with the week's verse beneath it
-// (touch it to play). A slip of paper floats at the foot: who we pray
-// for today, who already has, and the two things to do: Pray, and Play
-// the verse. Left alone for a minute, the slip and the controls sink
-// away and the pond becomes the idle screen: the word, the verse and
-// today's names on the water.
+// The glance: who we're becoming this season (the word, lying in the
+// pond's still water, or written by the vine), and one line for today:
+// which of our yeses it's a day for. Never a no, never a tick. Then who
+// we pray for, and the week's verse (touch it to play).
+//
+// A slip of paper floats at the foot: who we pray for today, who
+// already has, and the two things to do: Pray, and Play the verse; and
+// the way to the whole board, and to weighing a decision against it.
+// Left alone for a minute, the slip and the controls sink away and the
+// board is the idle screen.
 // ═══════════════════════════════════════════════════════════════════
 
 const IDLE_MS = 60000;
@@ -91,35 +96,67 @@ export default function Home({ day, idleNow }) {
   }, [device.keepAwake]);
 
   const season = day.season;
-  const word = season?.family?.word || day.verse.word;
+  const board = day.board;
+  const vine = day.world === 'vine';
+  const word = board?.word || day.verse.word;
   const wordLabel = season ? `${season.name} · our word` : 'This week’s word';
   const names = day.isSunday ? 'all of us' : andNames(day.forPeople);
   const prayed = prayedLine(day);
   // Whoever usually prays here at this time has prayed: Pray stays, quieter,
   // for the next person.
   const done = day.lastWho.length > 0 && day.lastWho.every((id) => day.prayed.includes(id));
+  const yes = day.todayYes;
+
+  const pray = (
+    <p className="water-today">
+      {day.isSunday ? 'Sunday · we pray for all of us' : <>We pray for <b>{names}</b></>}
+    </p>
+  );
+  const verse = (
+    <button className="water-verse" onClick={() => go('play')} aria-label={`Play this week's verse, ${day.verse.ref}`} data-no-feed>
+      <span className="water-verse-ref">This week · {day.verse.ref}</span>
+    </button>
+  );
 
   return (
-    <main className={'home' + (idle ? ' is-idle' : '')} aria-label="The pond">
+    <main className={'home board-home in-' + day.world + (idle ? ' is-idle' : '')} aria-label={vine ? 'Our board, on the vine' : 'Our board, in the pond'}>
       <header className="home-top">
         <p className="home-when">{whenLabel(day)}</p>
-        <button className="icon-btn home-gear fades" onClick={() => go('settings')} aria-label="Settings" title="Settings">
-          <Gear />
-        </button>
+        <div className="home-marks fades">
+          <WorldMark world={day.world} onClick={() => go('world')} />
+          <button className="icon-btn home-gear" onClick={() => go('settings')} aria-label="Settings" title="Settings">
+            <Gear />
+          </button>
+        </div>
       </header>
 
       <section className="water-words">
         <p className="water-label">{wordLabel}</p>
-        <h1 className="water-word">{word}</h1>
-        <button className="water-verse" onClick={() => go('play')} aria-label={`Play this week's verse, ${day.verse.ref}`} data-no-feed>
-          <span className="water-verse-text">{day.verse.verse}</span>
-          <span className="water-verse-ref">{day.verse.ref}</span>
-        </button>
-        <p className="water-today">
-          {day.isSunday ? 'Sunday · all of us' : <>Today · <b>{names}</b></>}
-        </p>
-        {feedHint && day.part !== 'morning' && day.light !== 'night' && <p className="water-hint fades">Tap the water. Double-tap to feed the koi.</p>}
+        <h1 className={vine ? 'water-word sr-only' : 'water-word'}>{word}</h1>
+        {board?.line && <p className="board-line">{board.line}</p>}
+        {yes && (
+          <p className="board-yes">
+            <span className="board-today">Today</span>
+            Yes to {lowerFirst(yes.text)}
+          </p>
+        )}
+        {!vine && pray}
+        {!vine && verse}
+        {feedHint && !vine && day.part !== 'morning' && day.light !== 'night' && <p className="water-hint fades">Touch a koi, a pad or the water. Double-tap to feed.</p>}
+        {board && (
+          <ul className="sr-only">
+            {board.yes.map((y) => <li key={y.text}>Yes to {lowerFirst(y.text)}{y.no ? `, so no to ${lowerFirst(y.no)}` : ''}</li>)}
+            {board.people.filter((p) => p.word).map((p) => <li key={p.id}>{p.name}: {p.word}</li>)}
+          </ul>
+        )}
       </section>
+
+      {vine && (
+        <section className="field-foot">
+          {pray}
+          {verse}
+        </section>
+      )}
 
       <section className="slip fades" aria-label="Today">
         {day.welcomeBack && !prayed && <p className="slip-welcome">Welcome back.</p>}
@@ -146,19 +183,21 @@ export default function Home({ day, idleNow }) {
         )}
         {!day.season && (
           <button className="slip-offer" onClick={() => go('season/new')}>
-            Choose a word for this season, together <span aria-hidden="true">→</span>
+            Set our way for this season, together <span aria-hidden="true">→</span>
           </button>
         )}
         {day.seasonEnding && (
-          <button className="slip-offer" onClick={() => go('season')}>
-            The season is nearly over. Look back, and choose new words <span aria-hidden="true">→</span>
+          <button className="slip-offer" onClick={() => go('season/new')}>
+            The season is nearly over. Look back, and set the next one together <span aria-hidden="true">→</span>
           </button>
         )}
         <nav className="slip-links">
+          {day.season && <button className="link" onClick={() => go('season')}>Our way</button>}
+          {day.season && <button className="link" onClick={() => go('weigh')}>Weighing a decision?</button>}
           {!day.saturdayEvening && <button className="link" onClick={() => go('deep')}>Into the deep</button>}
-          {day.season && <button className="link" onClick={() => go('season')}>This season</button>}
         </nav>
       </section>
     </main>
   );
 }
+

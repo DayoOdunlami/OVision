@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import PondView from './pond/PondView.jsx';
+import World from './World.jsx';
 import Home from './screens/Home.jsx';
 import Sitting from './screens/Sitting.jsx';
 import Welcome from './screens/Welcome.jsx';
@@ -8,7 +8,10 @@ import Season from './screens/Season.jsx';
 import NewSeason from './screens/NewSeason.jsx';
 import Settings from './screens/Settings.jsx';
 import Join from './screens/Join.jsx';
-import { useStore, useDevice, isDemo, replaceAll, getState, forgetDemo } from './store.js';
+import Person from './screens/Person.jsx';
+import Weigh from './screens/Weigh.jsx';
+import WorldSheet from './screens/WorldSheet.jsx';
+import { useStore, useDevice, isDemo, replaceAll, getState, forgetDemo, setDevice } from './store.js';
 import { deriveToday } from './today.js';
 import { buildDemo } from './demo.js';
 import { useRoute, go } from './route.js';
@@ -34,6 +37,12 @@ if (isDemo) {
     try { sessionStorage.setItem('qw.demo.sig', sig); } catch {}
   }
 }
+// ?world=vine (or pond): show this screen's board in that world, and
+// remember it on this device, as the switch would.
+{
+  const w = new URLSearchParams(window.location.search).get('world');
+  if (w === 'pond' || w === 'vine') setDevice((d) => (d.world === w ? d : { ...d, world: w }));
+}
 
 const THEME = { day: '#8ec9c0', dawn: '#c9c3cc', dusk: '#4a6261', night: '#0b1426' };
 
@@ -53,20 +62,30 @@ export default function App() {
 
   const day = useMemo(() => deriveToday(state, device), [state, device, tick]);
 
+  // A phone shows fewer words in the world than a tablet (the budget).
+  const [compact, setCompact] = useState(() => window.innerWidth < 700);
+  useEffect(() => {
+    const on = () => setCompact(window.innerWidth < 700);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.light = day.light;
+    root.dataset.world = day.world;
     root.className = day.light === 'night' ? 'night' : '';
     root.style.setProperty('--text-scale', String(device.textScale || 1));
     root.dataset.big = (device.textScale || 1) >= 1.5 ? '1' : '';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME[day.light]);
-  }, [day.light, device.textScale]);
+  }, [day.light, day.world, device.textScale]);
 
   // A household carried over from another device.
   const join = new URLSearchParams(window.location.search).get('join');
 
   let screen = null;
-  let overlay = false;      // a paper room over the pond: pause the water
+  let overlay = false;      // a paper room over the world: pause it
+  let focus = null;         // someone's own board: the world turns to them
   const path = route.path;
 
   if (join) {
@@ -91,7 +110,15 @@ export default function App() {
     overlay = true;
   } else if (path === 'season/new') {
     screen = <NewSeason day={day} />;
+    overlay = !route.query.finale;
+  } else if (path === 'me') {
+    screen = <Person day={day} id={route.query.p} />;
+    focus = day.people.some((p) => p.id === route.query.p) ? route.query.p : null;
+  } else if (path === 'weigh') {
+    screen = <Weigh day={day} />;
     overlay = true;
+  } else if (path === 'world') {
+    screen = <WorldSheet day={day} />;
   } else if (path === 'settings') {
     screen = <Settings day={day} />;
     overlay = true;
@@ -104,17 +131,9 @@ export default function App() {
 
   return (
     <div className={'app' + (isDemo ? ' is-demo' : '')}>
-      <PondView
-        people={day.people}
-        todayIds={day.todayIds}
-        words={day.words}
-        pads={day.pads}
-        light={day.light}
-        season={day.seasonName}
-        paused={overlay}
-      />
+      <World day={day} paused={overlay} focus={focus} compact={compact} />
       <Suspense fallback={<div className="room-loading" />}>{screen}</Suspense>
-      {isDemo && !overlay && <DemoRibbon />}
+      {isDemo && !overlay && (path === 'home' || path === '') && <DemoRibbon />}
     </div>
   );
 }

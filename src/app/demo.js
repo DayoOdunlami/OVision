@@ -86,14 +86,27 @@ export function buildDemo() {
   });
   play[week] = 1;   // "Some words" done earlier this week
 
+  // The board for each season (studio P): the family's word, its yeses
+  // and the no each protects, and each person's own: a word, what it
+  // means to them, a yes, and (for grown-ups) a no kept on their board.
   const seasons = [
     {
       id: 'summer',
       name: 'Summer 2026',
       start: addDays(start, -7 * 14),
       end: addDays(start, -1),
-      family: { word: 'Welcome', line: 'An open door and a spare chair.', practices: ['Have someone round each week', 'Say grace together'] },
+      world: 'pond',
+      family: {
+        word: 'Welcome', line: 'An open door and a spare chair.',
+        yes: [{ text: 'Someone round each week', no: 'A full diary' }, { text: 'Saying grace together', no: '' }],
+      },
+      people: {
+        sam: { word: 'Patient', yes: 'Listening first' }, jo: { word: 'Rest', yes: 'An afternoon off' },
+        ada: { word: 'Bold', yes: 'Swimming club' }, kit: { word: 'Honest', yes: 'Saying sorry' },
+        noor: { word: 'Helpful', yes: 'Laying the table' }, pip: { word: 'Kind', yes: 'Sharing my toys' },
+      },
       words: { sam: 'Patient', jo: 'Rest', ada: 'Bold', kit: 'Honest', noor: 'Helpful', pip: 'Kind' },
+      lookBack: 'The neighbours who came for tea, and stayed.',
     },
     {
       id: 'autumn',
@@ -101,12 +114,25 @@ export function buildDemo() {
       start,
       until: addDays(start, 7 * 15 - 3),
       end: null,
+      world: 'pond',
       family: {
         word: 'Rooted',
         line: 'Rooted in love, and open-handed with it.',
-        practices: ['Eat together, phones away', 'Pray for each other every day', 'Keep Sunday for rest'],
+        yes: [
+          { text: 'Slow dinners together', no: 'Phones at the table' },
+          { text: 'Sunday kept for rest', no: 'Weekend errands' },
+          { text: 'Praying for each other', no: '' },
+        ],
       },
-      words: { sam: 'Steady', jo: 'Present', ada: 'Brave', kit: 'Kind', noor: 'Joyful', pip: 'Gentle' },
+      people: {
+        sam: { word: 'Steady', theme: 'steadfast', yes: 'Home by six', no: 'Work email after supper' },
+        jo: { word: 'Present', theme: 'rest', yes: 'A walk on my own', no: 'Saying yes to everything' },
+        ada: { word: 'Brave', theme: 'growing', yes: 'Trying out for the play' },
+        kit: { word: 'Kind', theme: 'together', yes: 'Helping Pip with Lego' },
+        noor: { word: 'Joyful', theme: 'shining', yes: 'Singing in the choir' },
+        pip: { word: 'Helpful', theme: 'giving', yes: 'Laying the table' },
+      },
+      words: { sam: 'Steady', jo: 'Present', ada: 'Brave', kit: 'Kind', noor: 'Joyful', pip: 'Helpful' },
     },
   ];
 

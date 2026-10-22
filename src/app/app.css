@@ -541,3 +541,153 @@ select.field { appearance: auto; }
 @media (max-height: 520px) {
   .water-verse { display: none; }
 }
+
+/* ═══ The board (studio P) ═══════════════════════════════════════════ */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* No scroll bars breaking the calm: rooms still scroll, quietly. */
+.room-body, .home, .sheet-card { scrollbar-width: none; }
+.room-body::-webkit-scrollbar, .home::-webkit-scrollbar, .sheet-card::-webkit-scrollbar { display: none; }
+
+.home-marks { display: flex; gap: var(--s2); }
+.world-mark { background: color-mix(in srgb, var(--slip) 55%, transparent); border-color: transparent; color: var(--slip-ink); }
+
+.board-line { margin: 0 0 var(--s2); max-width: 26em; font: italic 400 var(--fs-ui) / 1.4 var(--font-read); color: var(--on-water-2); }
+.board-yes { margin: var(--s2) 0 0; max-width: 22em; font: 400 var(--fs-body) / 1.3 var(--font-read); color: var(--on-water); }
+.board-today { display: block; margin-bottom: var(--s1); font: 600 var(--fs-label) var(--font-read); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--on-water-2); }
+.board-home .water-today { display: block; margin-top: var(--s4); }
+.board-home .water-today b { color: var(--gold); }
+:root[data-light='night'] .board-home .water-today b, :root[data-light='dusk'] .board-home .water-today b { color: #f0d08a; }
+.board-home .water-verse { margin-top: var(--s1); }
+.board-home .water-verse-ref { margin-top: 0; text-transform: none; letter-spacing: 0.02em; font: italic 400 var(--fs-small) var(--font-read); }
+.board-home:not(.is-idle) .water-today { display: none; }
+
+/* A phone shows fewer words in the world: the line lives on the tablet
+   and on the paper of "Our way". */
+@media (max-width: 699px) {
+  .board-home .board-line { display: none; }
+  .board-home .water-word { font-size: calc(clamp(3rem, 2rem + 7vw, 4.6rem) * var(--text-scale)); }
+}
+
+/* ── The vine: words in the sky, the field below ───────────────────── */
+:root[data-world='vine'] {
+  --on-water: #263222;
+  --on-water-2: rgba(38, 50, 34, 0.8);
+  --halo: rgba(246, 242, 230, 0.6);
+  --paper: #f5efe2;
+  --paper-2: #ebe2cf;
+  --btn: #34452c;
+  --theme: #e8eee6;
+}
+:root[data-world='vine'][data-light='dusk'] { --on-water: #2c2418; --on-water-2: rgba(44, 36, 24, 0.82); --halo: rgba(248, 230, 210, 0.55); }
+:root[data-world='vine'][data-light='night'] {
+  --on-water: rgba(240, 232, 212, 0.94);
+  --on-water-2: rgba(240, 232, 212, 0.74);
+  --halo: rgba(20, 24, 40, 0.5);
+  --paper: #17150f;
+  --paper-2: #221e17;
+  --btn: rgba(236, 226, 204, 0.1);
+}
+.in-vine .water-words { flex: 0 0 auto; justify-content: flex-start; padding-top: var(--s1); }
+.in-vine .water-words::before { height: 120%; }
+.in-vine .water-word.sr-only + .board-line { margin-top: var(--s2); }
+.field-foot { margin-top: auto; text-align: center; position: relative; padding-bottom: var(--s1); }
+.field-foot .water-today { color: rgba(250, 244, 228, 0.94); text-shadow: 0 1px 8px rgba(30, 24, 12, 0.7); }
+.field-foot .water-today b { color: #f6d98e; }
+.field-foot .water-verse-ref { color: rgba(250, 244, 228, 0.86); text-shadow: 0 1px 8px rgba(30, 24, 12, 0.7); }
+.home.in-vine:not(.is-idle) .field-foot { display: none; }
+.home.in-vine .slip { margin-top: auto; }
+.home.in-vine.is-idle .slip { position: absolute; }
+
+/* ── Someone's own board ───────────────────────────────────────────── */
+.person-board .water-words { justify-content: center; }
+.person-board.in-vine .water-words { justify-content: flex-start; }
+.back-to { min-height: var(--tap); background: color-mix(in srgb, var(--slip) 70%, transparent); color: var(--slip-ink); }
+.board-meaning { display: inline-flex; align-items: center; gap: var(--s2); margin: var(--s2) 0 0; padding: var(--s1) var(--s3); border-radius: var(--r-pill); background: color-mix(in srgb, var(--slip) 60%, transparent); color: var(--slip-ink); font: italic var(--fs-small) var(--font-read); }
+.board-no { margin: var(--s3) 0 0; font: italic var(--fs-ui) var(--font-read); color: var(--on-water-2); }
+.board-no small { display: block; font: 600 var(--fs-label) var(--font-read); font-style: normal; letter-spacing: 0.06em; opacity: 0.8; }
+.person-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2); margin-top: auto; padding-top: var(--s3); }
+.person-chip { display: inline-flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: 0 var(--s4) 0 var(--s2); border: 0; border-radius: var(--r-pill); background: var(--slip); color: var(--slip-ink); box-shadow: var(--shadow-press); font: 500 var(--fs-small) var(--font-read); }
+.person-chip:last-child { padding-left: var(--s4); }
+
+/* ── Our way (paper) ───────────────────────────────────────────────── */
+.practices .yes-list, .yes-list { list-style: none; margin: var(--s2) 0 0; padding: 0; display: grid; gap: var(--s2); }
+.yes-list li { display: flex; flex-direction: column; padding: var(--s3) var(--s4); border-radius: var(--r-m); background: var(--paper-2); }
+.yes-list b { font: 500 var(--fs-ui) var(--font-read); }
+.yes-list span { font: italic var(--fs-small) var(--font-read); color: var(--ink-2); }
+button.each-one { border: 0; text-align: left; font: inherit; color: inherit; min-height: var(--tap); }
+.each-yes { grid-column: 1 / -1; margin-top: var(--s1); font: italic var(--fs-small) var(--font-read); color: var(--ink-2); }
+
+/* ── Weighing a decision ───────────────────────────────────────────── */
+.centred-col { display: flex; flex-direction: column; justify-content: safe center; }
+.weigh-list { margin: var(--s4) 0; padding-left: 1.3em; display: grid; gap: var(--s4); font-size: var(--fs-body); }
+.weigh-list li::marker { color: var(--gold); font-weight: 600; }
+.weigh-list b { display: block; font-weight: 500; line-height: 1.3; }
+.weigh-list span { display: block; margin-top: var(--s1); font: italic var(--fs-small) var(--font-read); color: var(--ink-2); }
+
+/* ── The switch: a sheet over the living world ─────────────────────── */
+.sheet { position: absolute; inset: 0; z-index: 3; display: flex; align-items: flex-end; justify-content: center; padding: var(--s3); pointer-events: none; }
+.sheet-card {
+  pointer-events: auto; width: min(36rem, 100%); max-height: 92%; overflow-y: auto;
+  padding: var(--s4) var(--s5) var(--s5); border-radius: var(--r-l);
+  background: var(--slip); color: var(--slip-ink); box-shadow: var(--shadow);
+  animation: surface var(--t-move) var(--ease) both;
+}
+.sheet-top { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); }
+.sheet-title { margin: 0; font: 500 calc(1.375rem * var(--text-scale)) var(--font-display); }
+.sheet-note { margin: var(--s3) 0; font: italic var(--fs-small) var(--font-read); color: var(--ink-2); }
+.sheet-card > .btn { width: 100%; }
+.world-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--s3); margin: var(--s4) 0 var(--s2); }
+.world-tile {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: var(--s3); row-gap: var(--s1);
+  align-items: center; text-align: left; min-height: 88px; padding: var(--s4);
+  border-radius: var(--r-m); border: 2px solid transparent; background: var(--paper-2); color: var(--ink); font: inherit;
+}
+.world-tile.is-on { border-color: var(--btn); background: color-mix(in srgb, var(--btn) 10%, var(--paper-2)); }
+:root[data-light='night'] .world-tile.is-on { border-color: var(--gold); }
+.world-tile-mark { grid-row: span 2; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--paper); color: var(--ink); }
+.world-tile-name { font: 500 var(--fs-ui) var(--font-read); }
+.world-tile-name small { font-size: var(--fs-label); color: var(--ink-2); font-style: italic; }
+.world-tile-line { font: italic var(--fs-small) / 1.4 var(--font-read); color: var(--ink-2); }
+
+/* ── The ritual ────────────────────────────────────────────────────── */
+.theme-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--s3); margin: var(--s4) 0; }
+.theme-tile {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s1);
+  min-height: var(--tap-child); padding: var(--s4) var(--s2);
+  border-radius: var(--r-m); border: 2px solid transparent; background: var(--paper-2); color: var(--ink); font: inherit;
+}
+.theme-tile b { font: 500 var(--fs-ui) var(--font-read); }
+.theme-tile small { font: italic var(--fs-label) / 1.3 var(--font-read); color: var(--ink-2); text-align: center; }
+.theme-tile.is-on { border-color: var(--btn); background: color-mix(in srgb, var(--btn) 12%, var(--paper-2)); }
+:root[data-light='night'] .theme-tile.is-on { border-color: var(--gold); }
+.chip { display: inline-flex; align-items: center; gap: var(--s2); }
+.chip-quiet { font-size: var(--fs-small); }
+.chip.is-on .theme-pic { color: var(--btn-ink); }
+.no-box { margin-top: var(--s5); padding-top: var(--s3); border-top: 1px solid var(--line); }
+.look-back { margin: var(--s4) 0; padding: var(--s4); border-radius: var(--r-m); background: var(--paper-2); }
+.season-word.small { font-size: calc(2.4rem * var(--text-scale)); margin: var(--s1) 0; }
+.look-yes { margin: 0; font: italic var(--fs-small) var(--font-read); color: var(--ink-2); }
+.small-field { display: block; margin-top: var(--s5); }
+.small-field span { display: block; margin-bottom: var(--s1); font-size: var(--fs-small); color: var(--ink-2); }
+.yes-rows { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: var(--s2); }
+.yes-rows li { padding: var(--s3); border-radius: var(--r-m); background: var(--paper-2); }
+.yes-rows b { display: block; font: 500 var(--fs-ui) var(--font-read); }
+.yes-rows label { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s2); }
+.yes-rows label span { flex: none; font: italic var(--fs-small) var(--font-read); color: var(--ink-2); }
+.yes-rows .field { margin: 0; flex: 1; background: var(--paper); }
+.creature { flex: none; }
+
+/* The finale: the paper lifts, and the world plays it. */
+.finale { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: var(--s4) var(--gutter) max(var(--s5), env(safe-area-inset-bottom)); pointer-events: none; }
+.finale-words { position: absolute; inset: 22% var(--gutter) auto; flex: none; animation: fade 2.4s var(--ease) both; }
+.finale-card {
+  pointer-events: auto; width: min(32rem, 100%); padding: var(--s5); border-radius: var(--r-l);
+  background: var(--slip); color: var(--slip-ink); box-shadow: var(--shadow); text-align: center;
+  animation: surface var(--t-move) var(--ease) both;
+}
+.finale-title { margin: var(--s2) 0 var(--s4); font: 400 var(--fs-pray) / 1.3 var(--font-read); }
+.finale-go { width: 100%; min-height: var(--tap-child); }
+.finale-line { margin: 0 0 var(--s3); font: italic var(--fs-ui) / 1.45 var(--font-read); }
+.finale-wait { margin: 0; color: var(--ink-2); font: italic var(--fs-small) var(--font-read); }
+.world-wait { background: var(--paper); }

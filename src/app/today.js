@@ -6,7 +6,9 @@
 import { now, today, lightAt, partOfDay, seasonAt, weekOf, addDays, daysBetween } from './calendar.js';
 import { rotaForWeek, prayerForWeek } from './rota.js';
 import { VERSES } from './content/verses.js';
-import { peopleOf } from './household.js';
+import { peopleOf, KOI } from './household.js';
+import { boardOf, todaysYes } from './board.js';
+import { tintFor } from './vine/tint.js';
 import { currentSeason, prayedToday } from './store.js';
 
 export function deriveToday(state, device) {
@@ -35,8 +37,22 @@ export function deriveToday(state, device) {
   const away = last ? daysBetween(last, t.date) : 0;
   const part = partOfDay(d);
 
+  // The board (studio P): the family's way this season, every word's
+  // theme worked out; today's yes; how far into the season we are.
+  const board = household ? boardOf(season, people) : null;
+  if (board) for (const p of board.people) p.tint = tintFor(KOI[p.koi] || KOI.kohaku);
+  const todayYes = board ? todaysYes(board, t.date) : null;
+  const span = season?.until ? Math.max(7, daysBetween(season.start, season.until)) : 84;
+  const progress = season ? Math.max(0, Math.min(1, daysBetween(season.start, t.date) / span)) : 0;
+  const world = device.world || season?.world || 'pond';
+
   return {
     ...t,
+    board,
+    todayYes,
+    progress,
+    world,
+    heartCount: pads.filter((p) => p.lotus).length,
     clock: d,
     light: lightAt(d),
     part,
@@ -49,7 +65,7 @@ export function deriveToday(state, device) {
     forPeople: peopleOf(household, todayIds),
     prayerIdx,
     verse: VERSES[prayerIdx],
-    words: season?.words || {},
+    words: board ? Object.fromEntries(board.people.filter((p) => p.word).map((p) => [p.id, p.word])) : {},
     pads: household ? pads : [],
     prayed,
     // Back after a few days away: say welcome, and nothing else about it.
