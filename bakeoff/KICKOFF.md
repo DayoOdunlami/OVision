@@ -66,7 +66,7 @@ Carry on through the remaining phases in bakeoff/BRIEF.md without stopping until
 ```
 Gate 2 is open. Follow the Gate 2 row in bakeoff/RULES.md.
 Fetch the other two entry branches (from bakeoff/r1-a, bakeoff/r1-b and bakeoff/r1-c, all except your own).
-Open each one's preview from its DONE.md and click through it at phone and tablet size before reading its documents.
+Previews are behind my Vercel sign-in, so check out each branch into its own folder, run it locally (npm install, npm run dev), use its demo link, and click through at phone and tablet size before reading its documents.
 Then write your REVIEW.md from bakeoff/REVIEW-TEMPLATE.md, push it to your own branch, and stop.
 Don't change your product.
 ```
