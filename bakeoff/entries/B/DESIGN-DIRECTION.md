@@ -71,3 +71,75 @@ This keeps the silence of direction 2 and the welcome of direction 1 without for
 ## Scope decisions before code
 
 Use a direct family board now; personal boards feeding it remain backlog. No import of legacy data. Use an eight-week rotation with Monday boundaries and the same passage on Sunday. New devices can choose a believable fictional demonstration or a minimal household setup. Full prayer, play and saved records should remain available after an online visit without a backend. A protected hosted preview is not a substitute for local browser evidence.
+
+## Addendum: rendered directions and visual craft
+
+The addendum arrived after the direction commit and the first code pass. Implementation paused immediately. These are three actual 390 × 844 browser renders of the same 06:45 Scripture-reading state, made before resuming the build. The reproducible HTML study is beside them. They are direction studies, not screenshots passed off as finished software.
+
+| 1. Living garden | 2. Household order | 3. Household fieldbook — selected |
+|---|---|---|
+| ![Living garden prayer](screens/directions/1-living.png) | ![Household order prayer](screens/directions/2-order.png) | ![Household fieldbook prayer](screens/directions/3-field.png) |
+
+The garden direction puts a literal landscape behind prayer and feels welcoming but competes with silent attention. The order direction is beautifully economical, but its permanent liturgical binding and heading make every moment feel like a formal service. The fieldbook gives the verse most of the page, quiet progress, one margin mark and a clear next action. It can also open into a garden without pretending that the garden is prayer. Keep the chosen direction; make its navigation and small-print controls larger than these exploratory studies to meet the new 48 px rule.
+
+### Visual craft references
+
+| Reference read | What it informs | What we do not copy |
+|---|---|---|
+| [Carle Museum: Artistic Process](https://carlemuseum.org/about/about-eric-carle/artistic-process) | Layering a small vocabulary of coloured shapes can make a consistent picture-book world. Our original SVG leaves, stones and fish use cut-paper silhouettes and sparse hatching. | No Carle character, palette, painted paper or composition is reproduced. |
+| [V&A: William Morris and wallpaper](https://www.vam.ac.uk/articles/william-morris-and-wallpaper-design/) | Observe botanical shapes and repeat related forms; keep the relation between pattern and negative space. Our olive leaf and branch supply the whole family's visual vocabulary. | No Morris pattern; no dense ornament behind words. |
+| [US Web Design System: Typography](https://designsystem.digital.gov/components/typography/) | Reading depends on measure, size, leading and hierarchy together. A serif can serve sustained adult reading. Keep prayer columns short, left aligned and unhurried. | A font name is not an accessibility claim. Do not shrink text to preserve a screenshot. |
+| [Dyslexia Scotland: typed formats](https://dyslexiascotland.org.uk/dyslexia-friendly-typed-formats/) | There is no universal special font; spacing, plain forms and individual preference matter. Children's instructions use clear sans type, one instruction at a time; verse words stay large with generous targets. | Do not claim that a font solves dyslexia or decorate children's instructions with italics/caps. |
+| [W3C contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) and [resize text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html) | Audit actual token combinations at day/night; allow 200% text with reflow. | Do not treat decorative low-contrast rules as accessible control outlines. |
+
+Illustration is original SVG and CSS, consistently used on Today, Garden, Season and welcome. No external illustration assets or generative imagery. Font files are self-hosted; genuine SIL Open Font Licences are in public/fonts. No source artwork is embedded.
+
+### One token system
+
+One central tokens file supplies paper, ink, accent, muted, soft and elevated surfaces; display/reading/control type; spacing steps; square controls, organic illustration radii; one restrained panel shadow; fast press/slow ambient durations and the 48 px touch minimum. Night changes semantic colour values, not component structure or a separate screen stylesheet. Winter/spring/summer/autumn alter the garden's botanical accent, not contrast in reading. Secondary colours may be decorative only; text stays on audited surfaces. Day ink/paper is 10.38:1, accent/paper 4.81:1 and muted/paper 4.51:1. Night ink/paper is 11.80:1, accent/paper 6.93:1 and muted/paper 7.25:1. Recheck muted/accent against elevated surfaces; do not reduce their opacity.
+
+### The shape of the whole
+
+```mermaid
+flowchart TD
+    Icon[Home-screen icon] --> Today
+    Fresh[First run] --> Setup[Household names]
+    Fresh --> Demo[Fictional household]
+    Setup --> Today
+    Demo --> Today
+    Today --> Quiet[Pray quietly]
+    Today --> Together[Gather and pray]
+    Quiet --> Verse[Same weekly Scripture]
+    Together --> Verse
+    Verse --> Prayer[Original prayer and response]
+    Prayer --> Amen[This sitting saved for its participants]
+    Amen --> Play[Falling-word verse play]
+    Today --> Play
+    Amen --> Garden[Our garden and dated sittings]
+    Today --> Garden
+    Garden --> Rest[Ambient garden]
+    Today --> Season[Our season]
+    Season --> Edit[Review direction together]
+    Season --> Paper[Print companion]
+    Today --> Release[Private reflection or one-stone child metaphor]
+    Release --> Today
+```
+
+**Tap budget:** from an installed home screen, Today → Pray quietly (one tap) → Begin (two taps) shows the first line of this week's Scripture. Participant defaults remove a daily setup chore. Together follows the same two taps, with the option to adjust who is actually present. No account, tour, game or confession gate.
+
+### States and transitions
+
+- First run offers a tiny household setup and an obvious fictional demo. Empty history says there is room for a first page.
+- An empty week has no missed-day counter and no grey debt. Returning after a gap opens the current prayer in the same welcome.
+- Already prayed today records a sitting, never closes the day. The other sitting stays available and repeat prayer remains possible.
+- Night uses the same semantic tokens. Reduced motion removes ambient motion and supplies stationary word play.
+- Prayer advances only on a tap; finishing offers play or garden, with a quiet exit. Browser Back remains usable. Seasonal editing saves and returns to the board. Leaving a confession saves no content.
+- At 200% text, reading grows and pages can scroll. A large-print word bank is preferable to forcing enlarged words back into a fixed-height physics canvas.
+
+### Voice guide
+
+Use plain British English and contractions that sound natural aloud. Address people warmly, without praise for app use. Give one short instruction at a time, especially in play. Say “practised”, never “mastered”; say “a sitting”, never “day complete”. No jargon, exclamation marks, guilt, spiritual grades or claims that a tap grants forgiveness. Silence is always a legitimate response.
+
+### Proof plan before shipping
+
+Capture all eight moments before/after at both sizes, by day/night. Walk the solo morning, the reading 7- and 9-year-olds after dinner, and a fresh household as proxy usability passes; explicitly distinguish these from interviews with the actual family. Measure the two-tap path, audit 48 px actions/contrast, check 200% reflow and reduced motion, then run the complete built site offline on a clean browser context. Physics and its CSS load only when play opens.
