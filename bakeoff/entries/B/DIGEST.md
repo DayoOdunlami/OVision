@@ -8,8 +8,8 @@ Tend is a household prayer book with a quiet daily page, a physical verse game, 
 
 1. **Discover:** Gate 0 read the brief, rules, README, project guidance, status and all three reviews; used the local reference at phone/tablet sizes. Gate 1 merged the shared answers and extended discovery to every surface, day/night, including document, screensaver, builder controls, fallen words, Sunday and the vineyard. An untouched base snapshot supplied 32 before images. DISCOVERY.md and DISCOVERY-DETAIL.md record what to protect and what failed.
 2. **Research:** independent practice/product, play/behaviour and art/engineering passes disagreed before the decision. Research used opened primary sources, with limitations stated; no claim of hands-on use of competitor apps. Detailed take/reject tables are in RESEARCH-PRACTICE.md, RESEARCH-PLAY.md and RESEARCH-CRAFT.md.
-3. **Directions and decision:** a living landscape as interface, a formal household prayer order and a household fieldbook were genuinely different structures and looks. The fieldbook won. DESIGN-DIRECTION.md was committed before product code (463 fc 99).
-4. **Addendum:** it arrived after the first code pass. Implementation paused, the latest base was merged, specific visual/type/colour research was added, and all three 390 px prayer studies were rendered and committed side by side before work continued (b 7 a 1 ed 8). Exploratory study source is beside the PNGs.
+3. **Directions and decision:** a living landscape as interface, a formal household prayer order and a household fieldbook were genuinely different structures and looks. The fieldbook won. DESIGN-DIRECTION.md was committed before product code (463fc99).
+4. **Addendum:** it arrived after the first code pass. Implementation paused, the latest base was merged, specific visual/type/colour research was added, and all three 390 px prayer studies were rendered and committed side by side before work continued (b7a1ed8). Exploratory study source is beside the PNGs.
 5. **Build:** a new shared local model, still prayer flow, per-participant sittings, exact weekly Scripture, forgiving word physics, private reflection, original vector garden, seasonal board, household setup, self-hosted fonts and full offline book. The garden and physics load separately; the initial actions paint before the illustration mounts.
 6. **Test and cut:** source review, pure model tests, real Chromium interactions and an eight-moment screenshot matrix. Fixes are described below. These are adult reviewer proxies for the people in the brief; no actual child or client usability test was performed.
 
@@ -33,14 +33,14 @@ Use these paths on the branch preview, or on `http://localhost:4173` after a bui
 
 | # | Moment | Served by | Deep link |
 |---|---|---|---|
-|1|06:45, Dad, phone|Still, silent, self-paced Scripture and original intercession; one participant; two taps from Today|`/?demo=1&view=prayer&mode=solo&h=6`|
-|2|After dinner, children|Same verse and prayer, selected actual participants, then full-word play; direct play also available|`/?demo=1&view=prayer&mode=together&h=18` and `/?demo=1&view=play&h=18`|
-|3|Sunday, household|Everyone on the rota, same week's passage, adjustable actual attendance|`/?demo=1&view=prayer&mode=together&day=sunday&h=12`|
-|4|A glance in passing|Full ambient garden with seasonal word, practices and optional screen wake lock|`/?demo=1&view=rest&h=12`|
-|5|Clearing the ground|Private adult reflection; optional one-stone child action and invitation to repair|`/?demo=1&view=release&h=12`|
-|6|Looking back|Illustrated garden and dated, filterable prayer/practice memories; no streak chart|`/?demo=1&view=garden&h=12`|
-|7|New season|Review/edit word, season, three practices and friction; archives previous board; print companion|`/?demo=1&view=season&edit=1&h=12`|
-|8|Fresh device|Two clear choices: a minimal household setup or a fictional demonstration|`/` in a fresh browser; setup at `/?view=household`|
+|1|06:45, Dad, phone|Still, silent, self-paced Scripture and original intercession; one participant; two taps from Today|[/?demo=1&view=prayer&mode=solo&h=6](http://localhost:4173/?demo=1&view=prayer&mode=solo&h=6)|
+|2|After dinner, children|Same verse and prayer, selected actual participants, then full-word play; direct play also available|[/?demo=1&view=prayer&mode=together&h=18](http://localhost:4173/?demo=1&view=prayer&mode=together&h=18) and [/?demo=1&view=play&h=18](http://localhost:4173/?demo=1&view=play&h=18)|
+|3|Sunday, household|Everyone on the rota, same week's passage, adjustable actual attendance|[/?demo=1&view=prayer&mode=together&day=sunday&h=12](http://localhost:4173/?demo=1&view=prayer&mode=together&day=sunday&h=12)|
+|4|A glance in passing|Full ambient garden with seasonal word, practices and optional screen wake lock|[/?demo=1&view=rest&h=12](http://localhost:4173/?demo=1&view=rest&h=12)|
+|5|Clearing the ground|Private adult reflection; optional one-stone child action and invitation to repair|[/?demo=1&view=release&h=12](http://localhost:4173/?demo=1&view=release&h=12)|
+|6|Looking back|Illustrated garden and dated, filterable prayer/practice memories; no streak chart|[/?demo=1&view=garden&h=12](http://localhost:4173/?demo=1&view=garden&h=12)|
+|7|New season|Review/edit word, season, three practices and friction; archives previous board; print companion|[/?demo=1&view=season&edit=1&h=12](http://localhost:4173/?demo=1&view=season&edit=1&h=12)|
+|8|Fresh device|Two clear choices: a minimal household setup or a fictional demonstration|[Fresh entry](http://localhost:4173/) in a fresh browser; setup at [/?view=household](http://localhost:4173/?view=household)|
 
 The standalone Flourish writing toy and Murmuration world are deliberately cut, as are Labs/Admin controls in the family journey. Their old URLs enter the book. The old multi-stage Abide game and vineyard are replaced by private reflection plus the garden/journal, which needs no undiscovered progression rules. The puzzle and koi feeding are kept because the shared answers identify them as loved.
 
@@ -97,7 +97,7 @@ Actual family observations, a native Android installation and ordinary-device pe
 
 The last built candidate passed the full eighteen-assertion household story in production, plus seven focused regressions: canceled board draft, whitespace rejection, failed save retained on resume, retry persistence, an open Sunday's verse held over Monday midnight, the next verse outside the sitting, and automatic day/night change on resume. The 40-image after matrix completed with zero browser errors. Final reading images were refreshed after removing the default browser outline around the non-interactive reading region; keyboard actions retain their focus ring.
 
-`FINAL-SMOKE.json` identifies the final cache version and confirms offline prayer, visible keyboard focus on actions, the lazy 12-piece verse game and unchanged saved data without page errors. `OFFLINE-RECEIPT.md` and its raw JSON preserve the more extensive offline/install/loading inspection; its timing sample precedes only the final contrast/focus stylesheet clean-up.
+[FINAL-SMOKE.json](FINAL-SMOKE.json) identifies the final cache version and confirms offline prayer, visible keyboard focus on actions, the lazy 12-piece verse game and unchanged saved data without page errors. [OFFLINE-RECEIPT.md](OFFLINE-RECEIPT.md) and its raw JSON preserve the more extensive offline/install/loading inspection; its timing sample precedes only the final contrast/focus stylesheet clean-up.
 
 **Performance is an admitted gap.** Cold local visible-action mark was 2.004 s and FCP 2.648 s. The CPU×4/10 Mbps/80 ms proxy marked the action at 8.560 s and FCP 10.336 s. Both actions worked, and no physics ran on the first screen; the garden loaded after first paint. The initial main transfer was about 63.2 KB including headers, with all fonts local. These noisy single-sample desktop results do not establish a two-second ordinary-Android load. We reduced initial work by splitting art and physics, but do not call the target passed. A device trace and further reduction of hydration/layout cost are priority next work.
 
