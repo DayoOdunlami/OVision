@@ -143,3 +143,7 @@ Use plain British English and contractions that sound natural aloud. Address peo
 ### Proof plan before shipping
 
 Capture all eight moments before/after at both sizes, by day/night. Walk the solo morning, the reading 7- and 9-year-olds after dinner, and a fresh household as proxy usability passes; explicitly distinguish these from interviews with the actual family. Measure the two-tap path, audit 48 px actions/contrast, check 200% reflow and reduced motion, then run the complete built site offline on a clean browser context. Physics and its CSS load only when play opens.
+
+### Decisions after rendering and review
+
+The exploratory full-text prayer option is cut from this round: one still thought at a time is the bedside default, and maintaining two parallel interaction paths would dilute testing. The seasonal board prints as a paper companion; a whole-prayer print/reading view is an honest gap. The final UI uses stronger day accent #a4472b and muted #5b6558 to keep AA contrast on both paper and soft surfaces. All actions use a 48 px token. A flowing large-word bank supplements physics when enlarged text cannot fit. The garden and ambient view use layout containment rather than cropping the pond or putting words over branches.

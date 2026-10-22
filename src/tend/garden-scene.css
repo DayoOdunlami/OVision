@@ -1,0 +1,171 @@
+.garden-scene {
+  position: relative;
+  width: 100%;
+  isolation: isolate;
+  color: var(--ink, #263c31);
+}
+.garden-scene > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.garden-scene--interactive > svg {
+  touch-action: pan-y;
+}
+.garden-scene__canopy {
+  transform-origin: 193px 278px;
+  animation: garden-scene-breeze 16s ease-in-out infinite alternate;
+}
+.garden-scene__fish {
+  transform-box: view-box;
+  transition: transform 2.8s cubic-bezier(0.25, 0.6, 0.3, 1);
+}
+.garden-scene__fish--0 {
+  transform: translate(397px, 406px) rotate(-18deg);
+  animation: garden-scene-swim-0 28s ease-in-out infinite;
+}
+.garden-scene__fish--1 {
+  transform: translate(525px, 448px) rotate(158deg);
+  animation: garden-scene-swim-1 34s ease-in-out infinite;
+}
+.garden-scene__fish--2 {
+  transform: translate(448px, 463px) rotate(20deg) scale(0.76);
+  animation: garden-scene-swim-2 31s ease-in-out infinite;
+}
+.garden-scene--feeding .garden-scene__fish {
+  animation: none;
+}
+.garden-scene__ripple {
+  transform-origin: 0 0;
+  animation: garden-scene-ripple 3s ease-out 2;
+}
+.garden-scene[data-paused="true"] .garden-scene__canopy,
+.garden-scene[data-paused="true"] .garden-scene__fish,
+.garden-scene[data-paused="true"] .garden-scene__ripple {
+  animation-play-state: paused;
+}
+.garden-scene__feeding-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: -4px 7% 0;
+  padding: 13px 0 4px;
+  border-top: 1px solid
+    var(--line, color-mix(in srgb, currentColor 18%, transparent));
+}
+.garden-scene__feed-status {
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted, currentColor);
+}
+.garden-scene__feed-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: var(--target, 48px);
+  min-height: var(--target, 48px);
+  padding: 10px 15px;
+  border: 1px solid var(--line, currentColor);
+  border-radius: var(--radius, 4px);
+  background: var(--paper, transparent);
+  color: var(--ink, inherit);
+  font: inherit;
+  font-size: 0.83rem;
+  cursor: pointer;
+}
+.garden-scene__feed-button:hover {
+  background: var(--soft, color-mix(in srgb, currentColor 7%, transparent));
+}
+.garden-scene__feed-button:focus-visible {
+  outline: 2px solid var(--accent, #ac4c2e);
+  outline-offset: 4px;
+}
+.garden-scene__feed-button > svg {
+  flex-shrink: 0;
+}
+.garden-scene--night {
+  color: var(--ink, #d5ddc8);
+}
+@keyframes garden-scene-breeze {
+  from {
+    transform: rotate(-0.55deg);
+  }
+  to {
+    transform: rotate(0.65deg);
+  }
+}
+@keyframes garden-scene-swim-0 {
+  0%,
+  100% {
+    transform: translate(397px, 406px) rotate(-18deg);
+  }
+  40% {
+    transform: translate(460px, 408px) rotate(30deg);
+  }
+  70% {
+    transform: translate(480px, 437px) rotate(145deg);
+  }
+}
+@keyframes garden-scene-swim-1 {
+  0%,
+  100% {
+    transform: translate(525px, 448px) rotate(158deg);
+  }
+  35% {
+    transform: translate(474px, 455px) rotate(195deg);
+  }
+  70% {
+    transform: translate(474px, 423px) rotate(330deg);
+  }
+}
+@keyframes garden-scene-swim-2 {
+  0%,
+  100% {
+    transform: translate(448px, 463px) rotate(20deg) scale(0.76);
+  }
+  40% {
+    transform: translate(506px, 455px) rotate(-35deg) scale(0.76);
+  }
+  70% {
+    transform: translate(512px, 428px) rotate(200deg) scale(0.76);
+  }
+}
+@keyframes garden-scene-ripple {
+  from {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(5);
+    opacity: 0;
+  }
+}
+@media (max-width: 460px) {
+  .garden-scene__feeding-tools {
+    margin-left: 4%;
+    margin-right: 4%;
+    gap: 7px;
+  }
+  .garden-scene__feed-status {
+    max-width: 45%;
+    font-size: 0.75rem;
+  }
+  .garden-scene__feed-button {
+    padding: 9px 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .garden-scene__canopy,
+  .garden-scene__fish,
+  .garden-scene__ripple {
+    animation: none !important;
+  }
+  .garden-scene__fish {
+    transition: none;
+  }
+}

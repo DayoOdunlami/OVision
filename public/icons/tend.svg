@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tend olive branch">
+ <rect width="512" height="512" fill="#f3f0e5"/>
+ <g fill="none" stroke="#263c31" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M231 379C225 315 245 261 281 161"/>
+ <path d="M239 311L194 267M253 260L303 223M269 210L238 178"/>
+ </g>
+ <g fill="#263c31">
+ <path d="M234 314C181 312 152 277 159 244C193 241 229 266 234 314Z"/>
+ <path d="M251 269C274 220 316 200 347 217C343 252 301 277 251 269Z"/>
+ <path d="M266 218C223 213 204 181 213 151C243 153 269 179 266 218Z"/>
+ <path d="M280 177C264 139 278 110 305 98C324 124 312 158 280 177Z"/>
+ </g>
+ <ellipse cx="313" cy="300" rx="18" ry="24" transform="rotate(27 313 300)" fill="#ac4c2e"/>
+ <path d="M310 276L300 263" fill="none" stroke="#263c31" stroke-width="6" stroke-linecap="round"/>
+ <path d="M183 373C218 394 267 398 302 378" fill="none" stroke="#ac4c2e" stroke-width="7" stroke-linecap="round"/>
+ </svg>

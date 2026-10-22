@@ -1,0 +1,44 @@
+/* One semantic system. Components inherit both day and night. */
+:root {
+  --paper: #f3f0e5;
+  --ink: #263c31;
+  --accent: #a4472b;
+  --muted: #5b6558;
+  --line: #cdd0bf;
+  --soft: #e8e9da;
+  --white: #fbf9f0;
+  --display: "Cormorant Garamond", Georgia, serif;
+  --reading: "Literata", Georgia, serif;
+  --sans: "DM Sans", sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --target: 48px;
+  --radius-control: 0;
+  --radius-organic: 45% 55% 48% 42%;
+  --shadow-panel: 0 10px 60px #0002;
+  --motion-fast: 160ms;
+  --motion-gentle: 600ms;
+  --motion-ambient: 18s;
+  --garden-leaf: #708774;
+  --garden-fruit: #c68a40;
+  --garden-water: #66938b;
+}
+body[data-theme="night"] {
+  --paper: #192b2a;
+  --ink: #e5e7d8;
+  --accent: #e6a27f;
+  --muted: #adb9aa;
+  --line: #465950;
+  --soft: #243c35;
+  --white: #20332f;
+  --garden-leaf: #637c74;
+  --garden-fruit: #c79762;
+  --garden-water: #3d6967;
+  color-scheme: dark;
+}
