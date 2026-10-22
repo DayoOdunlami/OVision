@@ -235,7 +235,7 @@ export default function Play({ day, query }) {
                 <>
                   <span className="pz-left">
                     {left} to go
-                    {turnPlayer && <span className="turn" style={{ '--koi': turnColor }}> · {callName(turnPlayer, true)}’s turn</span>}
+                    {turnPlayer && <> · <span className="turn" style={{ '--koi': turnColor }}>{callName(turnPlayer, true)}’s turn</span></>}
                   </span>
                   <button className="btn btn-quiet" onClick={() => hintRef.current?.()}>Hint</button>
                 </>
@@ -270,7 +270,10 @@ function HeartRound({ verse, players, done, onSaid, onAgain }) {
     <>
       <div className="heart-stage">
         <p className="heart-intro">{all ? 'You said it by heart.' : 'Say the next word out loud. Then tap it.'}</p>
-        <p className={'heart-verse' + (all ? ' is-whole' : '')} style={turn ? { '--turn': KOI[turn.koi]?.turn } : undefined}>
+        {all ? (
+          <blockquote className="scripture heart-whole">{verse.verse}</blockquote>
+        ) : (
+        <p className="heart-verse" style={turn ? { '--turn': KOI[turn.koi]?.turn } : undefined}>
           {words.map((w, k) => {
             const m = w.match(/^([^\p{L}]*)(\p{L})(.*)$/u);
             const first = m ? m[1] + m[2] : w;
@@ -289,6 +292,7 @@ function HeartRound({ verse, players, done, onSaid, onAgain }) {
             );
           })}
         </p>
+        )}
         <p className="scripture-ref">{verse.ref}</p>
       </div>
       <div className="room-foot play-foot">
@@ -305,7 +309,7 @@ function HeartRound({ verse, players, done, onSaid, onAgain }) {
         ) : (
           <span className="pz-left">
             {words.length - shown} to go
-            {turn && <span className="turn" style={{ '--koi': KOI[turn.koi]?.turn }}> · {callName(turn, true)}’s turn</span>}
+            {turn && <> · <span className="turn" style={{ '--koi': KOI[turn.koi]?.turn }}>{callName(turn, true)}’s turn</span></>}
           </span>
         )}
       </div>

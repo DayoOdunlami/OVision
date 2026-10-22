@@ -95,6 +95,9 @@ export default function Home({ day, idleNow }) {
   const wordLabel = season ? `${season.name} · our word` : 'This week’s word';
   const names = day.isSunday ? 'all of us' : andNames(day.forPeople);
   const prayed = prayedLine(day);
+  // Whoever usually prays here at this time has prayed: Pray stays, quieter,
+  // for the next person.
+  const done = day.lastWho.length > 0 && day.lastWho.every((id) => day.prayed.includes(id));
 
   return (
     <main className={'home' + (idle ? ' is-idle' : '')} aria-label="The pond">
@@ -129,8 +132,8 @@ export default function Home({ day, idleNow }) {
         </p>
         {prayed && <p className="slip-sub">{prayed}</p>}
         <div className="slip-actions">
-          <button className="btn btn-primary btn-big" onClick={() => go('pray')}>
-            {day.isSunday ? 'Pray together' : 'Pray'}
+          <button className={'btn btn-big ' + (done ? 'btn-secondary' : 'btn-primary')} onClick={() => go('pray')}>
+            {day.isSunday ? 'Pray together' : done ? 'Pray again' : 'Pray'}
           </button>
           <button className="btn btn-secondary btn-big" onClick={() => go('play')}>
             Play the verse

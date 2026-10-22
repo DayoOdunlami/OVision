@@ -50,7 +50,7 @@ export function deriveToday(state, device) {
     prayerIdx,
     verse: VERSES[prayerIdx],
     words: season?.words || {},
-    pads,
+    pads: household ? pads : [],
     prayed,
     // Back after a few days away: say welcome, and nothing else about it.
     welcomeBack: Boolean(last) && away >= 4,

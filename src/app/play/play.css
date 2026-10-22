@@ -124,7 +124,7 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--turn, var(--gold-soft)) 60%, transparent);
   animation: live-pulse 2.2s ease-in-out infinite;
 }
-.heart-verse.is-whole .heart-word { color: var(--gold); }
+.heart-whole { max-width: 34rem; text-align: center; color: var(--gold); animation: rise var(--t-move) var(--ease) both; }
 
 @keyframes ripple-out { 0% { transform: scale(0.4); opacity: 0.85; } 100% { transform: scale(9); opacity: 0; } }
 @keyframes gild { 45% { color: var(--gold); text-shadow: 0 0 16px rgba(214, 160, 70, 0.5); } }

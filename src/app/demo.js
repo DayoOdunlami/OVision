@@ -38,6 +38,9 @@ const LINES = [
 
 export function buildDemo() {
   const t = today();
+  // ?away=5: the household has been away for five days (no guilt, just welcome).
+  const away = Math.max(0, Math.min(20, Number(new URLSearchParams(window.location.search).get('away')) || 0));
+  const lastDay = addDays(t.date, -away);
   const week = t.week;
   const start = addDays(week, -7 * 6);           // the season began six weeks ago
   const roll = dice(4242);
@@ -46,7 +49,7 @@ export function buildDemo() {
   const play = {};
   let n = 0;
 
-  for (let date = start; date < t.date; date = addDays(date, 1)) {
+  for (let date = start; date < lastDay; date = addDays(date, 1)) {
     const wd = weekdayOf(date);
     const wk = weekOf(date);
     // A week away in the third week: nothing happened, and nothing withers.
@@ -70,7 +73,7 @@ export function buildDemo() {
 
   // This morning, if the morning has happened.
   const h = now().getHours();
-  if (h >= 7 && h < 24 && t.weekday !== 6) {
+  if (!away && h >= 7 && h < 24 && t.weekday !== 6) {
     const rota = rotaForWeek(DEMO_HOUSEHOLD, week);
     sittings.push({ id: `d${n++}`, date: t.date, at: '06:52', who: ['sam'], for: rota[t.weekday], week, prayer: prayerForWeek(DEMO_HOUSEHOLD, week, null), kind: 'solo' });
   }

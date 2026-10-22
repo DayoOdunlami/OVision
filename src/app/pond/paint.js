@@ -79,14 +79,23 @@ export function paintMoon(ctx, W, H, ts) {
   g.addColorStop(1, 'rgba(200, 214, 255, 0)');
   ctx.fillStyle = g;
   ctx.fillRect(x - r * 5, y - r * 5, r * 10, r * 10);
-  // The reflection itself, in a few broken horizontal strokes.
-  for (let i = -3; i <= 3; i++) {
-    const yy = y + i * r * 0.28;
-    const w = Math.sqrt(Math.max(0, 1 - (i / 3.4) ** 2)) * r * (1 + Math.sin(ts * 0.9 + i) * 0.08);
-    ctx.fillStyle = `rgba(236, 240, 255, ${0.22 - Math.abs(i) * 0.04})`;
+  // The reflection itself: a soft disc, barely broken by the surface.
+  const d = ctx.createRadialGradient(x, y, 0, x, y, r);
+  d.addColorStop(0, 'rgba(236, 240, 255, 0.2)');
+  d.addColorStop(0.7, 'rgba(236, 240, 255, 0.12)');
+  d.addColorStop(1, 'rgba(236, 240, 255, 0)');
+  ctx.fillStyle = d;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.92, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(236, 240, 255, 0.07)';
+  ctx.lineWidth = 1;
+  for (let i = -1; i <= 1; i++) {
+    const yy = y + i * r * 0.34 + Math.sin(ts * 0.5 + i) * 1.5;
     ctx.beginPath();
-    ctx.ellipse(x + Math.sin(ts * 0.6 + i * 1.7) * r * 0.08, yy, w, r * 0.09, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(x - r * 0.8, yy);
+    ctx.lineTo(x + r * 0.8, yy);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -105,7 +114,7 @@ export class Drifter {
     this.y = H * (0.1 + ((seed * 7.31) % 1) * 0.8);
     this.vx = 0.12 + ((seed * 3.7) % 1) * 0.12;
     this.rot = seed * 6.28;
-    this.size = (this.kind === 'leaf' ? 11 : 6) + ((seed * 5.3) % 1) * 5;
+    this.size = (this.kind === 'leaf' ? 10 : 6) + ((seed * 5.3) % 1) * 4;
     this.tone = (seed * 11.7) % 1;
   }
   update(W, H, t) {
@@ -122,23 +131,23 @@ export class Drifter {
     if (this.kind === 'leaf') {
       const s = this.size;
       const c = ['#b4512a', '#c9772f', '#9c3b22', '#d39a3a'][Math.floor(this.tone * 4)];
+      // A fallen leaf lying on the water: a pointed oval with its
+      // midrib and a short stalk, and a faint shadow on the water.
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+      ctx.beginPath();
+      ctx.ellipse(2, 3, s * 0.42, s, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = c;
       ctx.beginPath();
-      // A five-pointed maple leaf, drawn as one path.
-      for (let i = 0; i < 10; i++) {
-        const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
-        const r = i % 2 === 0 ? s : s * 0.45;
-        const px = Math.cos(a) * r;
-        const py = Math.sin(a) * r * 0.95;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
+      ctx.moveTo(0, -s);
+      ctx.quadraticCurveTo(s * 0.62, -s * 0.15, 0, s);
+      ctx.quadraticCurveTo(-s * 0.62, -s * 0.15, 0, -s);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(60, 20, 10, 0.35)';
+      ctx.strokeStyle = 'rgba(70, 28, 12, 0.45)';
       ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.moveTo(0, s * 0.2);
-      ctx.lineTo(0, s * 1.4);
+      ctx.moveTo(0, -s * 0.85);
+      ctx.lineTo(0, s * 1.25);
       ctx.stroke();
     } else {
       ctx.fillStyle = 'rgba(255, 222, 232, 0.95)';

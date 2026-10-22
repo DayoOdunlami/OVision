@@ -90,7 +90,7 @@ export default function NewSeason({ day }) {
               <p className="label">Pass it to {callName(person, true)}</p>
             </div>
             <h1 className="room-title">{isChild(person) ? `${person.name}, who do you want to be this term?` : `${person.name}, who are you becoming this season?`}</h1>
-            <p className="room-sub">Choose one word.{lastWords[person.id] && !cur ? ` Last season it was ${lastWords[person.id]}.` : ''}</p>
+            <p className="room-sub">Choose one word.{lastWords[person.id] && !cur ? ` Until now it was ${lastWords[person.id]}.` : ''}</p>
             <div className="chips">
               {(isChild(person) ? KID_WORDS : GROWN_WORDS).map((w) => (
                 <button key={w} className={'chip' + (words[person.id] === w ? ' is-on' : '')} onClick={() => setWords((x) => ({ ...x, [person.id]: w }))}>{w}</button>

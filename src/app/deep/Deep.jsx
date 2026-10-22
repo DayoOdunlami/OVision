@@ -183,7 +183,7 @@ function Alone({ day, present, onChange }) {
           <Quiet seconds={30} onDone={next} />
         ) : step === 'stone' ? (
           !dropped ? <button className="btn btn-primary btn-big" onClick={open}>Open your hand</button>
-            : <button className="btn btn-primary btn-big" disabled={!sunk} onClick={next}>{sunk ? 'Next' : '…'}</button>
+            : sunk ? <button className="btn btn-primary btn-big" onClick={next}>Next</button> : <span />
         ) : step === 'repair' ? (
           <button className="btn btn-primary btn-big" onClick={() => { tick(14); home(); }}>Amen</button>
         ) : (

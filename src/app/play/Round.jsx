@@ -209,12 +209,15 @@ export function Round({ html, mode, every = 3, offset = 0, effects, players = []
 
     // Reduced motion: nothing falls. Pieces are laid out in rows along
     // the bottom and stay put unless you move them.
-    if (reduced) {
+    const order = reduced ? [...items].sort(() => Math.random() - 0.5) : [];
+    // Rows along the bottom, laid out again whenever the play area
+    // changes size (so a shrinking stage never stacks one row on another).
+    const layoutRows = () => {
       let x = 12;
       let y = H - 14;
       let rowH = 0;
-      const shuffled = [...items].sort(() => Math.random() - 0.5);
-      for (const it of shuffled) {
+      for (const it of order) {
+        if (it.placed || it.busy) continue;
         if (x + it.w > W - 12) { x = 12; y -= rowH + 10; rowH = 0; }
         rowH = Math.max(rowH, it.h);
         it.home = { x: x + it.w / 2, y: y - it.h / 2 };
@@ -222,7 +225,8 @@ export function Round({ html, mode, every = 3, offset = 0, effects, players = []
         Body.setStatic(it.body, true);
         x += it.w + 10;
       }
-    }
+    };
+    if (reduced) layoutRows();
 
     Composite.add(engine.world, items.map((it) => it.body));
 
@@ -479,6 +483,7 @@ export function Round({ html, mode, every = 3, offset = 0, effects, players = []
       Body.setPosition(floor, { x: W / 2, y: H + T / 2 });
       Body.setPosition(rightW, { x: W + T / 2, y: H / 2 });
       Body.setPosition(leftW, { x: -T / 2, y: H / 2 });
+      if (reduced) { layoutRows(); items.forEach((it) => !it.placed && !it.busy && draw(it)); return; }
       for (const it of items) {
         if (it.placed || it.busy) continue;
         const { x, y } = it.body.position;

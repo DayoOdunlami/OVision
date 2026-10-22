@@ -61,7 +61,7 @@ export default function Setup() {
                   {p.kind === 'adult' && (
                     <input
                       className="field small"
-                      placeholder="Children call them… (Dad)"
+                      placeholder="Called, e.g. Dad"
                       value={p.short || ''}
                       onChange={(e) => update(p.id, { short: e.target.value.slice(0, 16) })}
                       aria-label="What the children call them"
@@ -78,7 +78,7 @@ export default function Setup() {
         <button className="btn btn-secondary" onClick={add}>Add someone</button>
       </div>
       <div className="room-foot">
-        <span className="foot-note">{named.length ? `${named.length} ${named.length === 1 ? 'person' : 'people'}` : ''}</span>
+        {existing ? <span className="foot-note">{named.length} {named.length === 1 ? 'person' : 'people'}</span> : <button className="btn btn-quiet" onClick={home}>Back</button>}
         <button className="btn btn-primary btn-big" disabled={!named.length} onClick={save}>{existing ? 'Save' : 'Done'}</button>
       </div>
     </div>

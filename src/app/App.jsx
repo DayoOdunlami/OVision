@@ -58,6 +58,7 @@ export default function App() {
     root.dataset.light = day.light;
     root.className = day.light === 'night' ? 'night' : '';
     root.style.setProperty('--text-scale', String(device.textScale || 1));
+    root.dataset.big = (device.textScale || 1) >= 1.5 ? '1' : '';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME[day.light]);
   }, [day.light, device.textScale]);
 
@@ -102,7 +103,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={'app' + (isDemo ? ' is-demo' : '')}>
       <PondView
         people={day.people}
         todayIds={day.todayIds}
@@ -113,7 +114,7 @@ export default function App() {
         paused={overlay}
       />
       <Suspense fallback={<div className="room-loading" />}>{screen}</Suspense>
-      {isDemo && <DemoRibbon />}
+      {isDemo && !overlay && <DemoRibbon />}
     </div>
   );
 }

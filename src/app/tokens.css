@@ -57,7 +57,7 @@
   --slip-ink: #2a241c;
   --on-water: #0c3437;             /* the word in the water, by day */
   --on-water-2: rgba(12, 52, 55, 0.82);
-  --water-veil: rgba(236, 246, 241, 0.0);
+  --halo: rgba(214, 240, 232, 0.62);
   --btn: #1f3b3a;                  /* primary action */
   --btn-ink: #f6f0e4;
   --btn-2: rgba(42, 36, 28, 0.06);
@@ -75,6 +75,7 @@
   --on-water-2: rgba(43, 42, 58, 0.84);
   --btn: #3a3550;
   --theme: #d9c4c4;
+  --halo: rgba(240, 228, 224, 0.6);
 }
 
 :root[data-light='dusk'] {
@@ -84,6 +85,7 @@
   --on-water-2: rgba(255, 246, 230, 0.86);
   --btn: #2d2a22;
   --theme: #3f5a58;
+  --halo: rgba(18, 26, 28, 0.45);
 }
 
 :root[data-light='night'] {
@@ -106,6 +108,7 @@
   --shadow-press: 0 4px 12px rgba(0, 0, 0, 0.5);
   --focus: #d9b46a;
   --theme: #0b1426;
+  --halo: rgba(8, 13, 28, 0.5);
   --track-read: 0.01em;
   color-scheme: dark;
 }

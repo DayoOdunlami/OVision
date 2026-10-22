@@ -181,6 +181,16 @@ textarea.field, .line-field textarea { resize: vertical; }
   padding: var(--s4) 0;
   min-height: 0;
 }
+.water-words { position: relative; isolation: isolate; }
+/* Still water where the words are: the koi still pass beneath, softened,
+   so the word and the verse stay easy to read. */
+.water-words::before {
+  content: ''; position: absolute; z-index: -1;
+  left: 50%; top: 50%; width: min(46rem, 112%); height: 78%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, var(--halo), transparent);
+  pointer-events: none;
+}
 .water-label {
   margin: 0;
   font: 600 var(--fs-label) var(--font-read);
@@ -271,6 +281,7 @@ textarea.field, .line-field textarea { resize: vertical; }
 }
 .room > .pz-koi { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity 0.6s ease; }
 .room > .pz-koi.is-leaving { opacity: 0; }
+:root[data-light='night'] .room > .pz-koi:not(.is-leaving) { opacity: 0.8; }
 .room > :not(.pz-koi):not(.deep-canvas) { position: relative; z-index: 1; }
 .room-top {
   display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
@@ -391,7 +402,8 @@ textarea.field, .line-field textarea { resize: vertical; }
 .wander-word { margin: var(--s2) 0 !important; font: italic 400 calc(2rem * var(--text-scale)) var(--font-display) !important; color: var(--gold) !important; }
 .wander-breath { font-style: italic; color: var(--ink) !important; }
 .wander-link { padding-left: 0; }
-.heart-step .stones { display: flex; flex-wrap: wrap; gap: 0 0.1em; }
+.heart-step .stones { line-height: 1.9; }
+.stone-word { display: inline-block; margin-right: 0.3em; white-space: nowrap; }
 .stone-word .rest { color: transparent; text-decoration: underline dotted var(--ink-3); text-underline-offset: 6px; transition: color var(--t-move); }
 .stone-word .rest.is-shown { color: var(--ink); text-decoration: none; }
 .heart-actions { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s5); }
@@ -468,7 +480,8 @@ select.field { appearance: auto; }
 .demo-tag { min-height: 32px; padding: 0 var(--s3); border-radius: var(--r-pill); border: 1px dashed rgba(255, 255, 255, 0.5); background: rgba(10, 20, 24, 0.55); color: #f6f0e4; font: 600 0.72rem var(--font-read); letter-spacing: 0.1em; text-transform: uppercase; }
 .demo-menu { margin-top: var(--s2); width: 17rem; padding: var(--s3); border-radius: var(--r-m); background: var(--slip); color: var(--slip-ink); box-shadow: var(--shadow); font-size: var(--fs-small); text-align: left; }
 .demo-menu p { margin: 0 0 var(--s2); }
-.room .demo-ribbon { display: none; }
+.app.is-demo .home { padding-top: max(44px, calc(env(safe-area-inset-top) + 36px)); }
+.app.is-demo .welcome { padding-top: 44px; }
 
 /* ── Print ───────────────────────────────────────────────────────── */
 .print { overflow-y: auto; }
@@ -495,6 +508,19 @@ select.field { appearance: auto; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
   .breath-ring { transform: scale(0.85); }
 }
+
+
+/* ── Large text (150–200%) ───────────────────────────────────────── */
+/* Centred columns never clip their top: they scroll instead. */
+.sitting .room-body, .water-words { justify-content: safe center; }
+:root[data-big='1'] .home { overflow-y: auto; }
+:root[data-big='1'] .water-word { font-size: clamp(3rem, 2rem + 6vw, 6rem); }
+:root[data-big='1'] .water-verse-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+:root[data-big='1'] .home-when { font-size: 0.75rem; }
+/* The puzzle sizes its own words to the screen; its controls stay put. */
+:root[data-big='1'] .play .players, :root[data-big='1'] .play .seg-opt, :root[data-big='1'] .play .stone-label { font-size: 0.875rem; }
+:root[data-big='1'] .play .pz-left { font-size: 1rem; }
+:root[data-big='1'] .players-names { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Sizes ───────────────────────────────────────────────────────── */
 @media (min-width: 900px) {

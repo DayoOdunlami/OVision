@@ -453,7 +453,7 @@ function HeartVerse({ verse, done, onHeart }) {
       <blockquote className="scripture stones" aria-label={verse.verse}>
         {stones.map((s, i) => (
           <span key={i} className="stone-word">
-            {s.pre}{s.first}<span className={show ? 'rest is-shown' : 'rest'}>{s.rest}</span>{s.post}{' '}
+            {s.pre}{s.first}<span className={show ? 'rest is-shown' : 'rest'}>{s.rest}</span>{s.post}
           </span>
         ))}
       </blockquote>
