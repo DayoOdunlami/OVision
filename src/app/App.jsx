@@ -1,14 +1,14 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import PondView from './pond/PondView.jsx';
-import Home from './screens/Home.jsx';
+import Board from './compass/Board.jsx';
 import Sitting from './screens/Sitting.jsx';
 import Welcome from './screens/Welcome.jsx';
 import Setup from './screens/Setup.jsx';
 import Season from './screens/Season.jsx';
-import NewSeason from './screens/NewSeason.jsx';
+
 import Settings from './screens/Settings.jsx';
 import Join from './screens/Join.jsx';
-import { useStore, useDevice, isDemo, replaceAll, getState, forgetDemo } from './store.js';
+import { useStore, useDevice, isDemo, replaceAll, getState, forgetDemo, setDevice } from './store.js';
 import { deriveToday } from './today.js';
 import { buildDemo } from './demo.js';
 import { useRoute, go } from './route.js';
@@ -19,6 +19,7 @@ import { isChild } from './household.js';
 const Play = lazy(() => import('./play/Play.jsx'));
 const Deep = lazy(() => import('./deep/Deep.jsx'));
 const Print = lazy(() => import('./screens/Print.jsx'));
+const Ritual = lazy(() => import('./compass/Ritual.jsx'));
 
 // ── The example family ───────────────────────────────────────────────
 // Every deep link with ?demo=1 starts the example fresh for the moment
@@ -34,6 +35,9 @@ if (isDemo) {
     try { sessionStorage.setItem('qw.demo.sig', sig); } catch {}
   }
 }
+
+const requestedWorld = new URLSearchParams(window.location.search).get('world');
+if (['pond', 'grove'].includes(requestedWorld)) setDevice(d => ({ ...d, world: requestedWorld }));
 
 const THEME = { day: '#8ec9c0', dawn: '#c9c3cc', dusk: '#4a6261', night: '#0b1426' };
 
@@ -90,8 +94,10 @@ export default function App() {
     screen = <Season day={day} />;
     overlay = true;
   } else if (path === 'season/new') {
-    screen = <NewSeason day={day} />;
+    screen = <Ritual key={route.path + JSON.stringify(route.query)} day={day} query={route.query} />;
     overlay = true;
+  } else if (path === 'board') {
+    screen = <Board day={day} query={route.query} idleNow={route.query.idle === '1' || new URLSearchParams(window.location.search).get('idle') === '1'} />;
   } else if (path === 'settings') {
     screen = <Settings day={day} />;
     overlay = true;
@@ -99,12 +105,12 @@ export default function App() {
     screen = <Print day={day} />;
     overlay = true;
   } else {
-    screen = <Home day={day} idleNow={route.query.idle === '1' || new URLSearchParams(window.location.search).get('idle') === '1'} />;
+    screen = <Board day={day} query={route.query} homeMode idleNow={route.query.idle === '1' || new URLSearchParams(window.location.search).get('idle') === '1'} />;
   }
 
   return (
     <div className={'app' + (isDemo ? ' is-demo' : '')}>
-      <PondView
+      {!state.household && <PondView
         people={day.people}
         todayIds={day.todayIds}
         words={day.words}
@@ -112,9 +118,9 @@ export default function App() {
         light={day.light}
         season={day.seasonName}
         paused={overlay}
-      />
+      />}
       <Suspense fallback={<div className="room-loading" />}>{screen}</Suspense>
-      {isDemo && !overlay && <DemoRibbon />}
+      {isDemo && !state.household && !overlay && <DemoRibbon />}
     </div>
   );
 }

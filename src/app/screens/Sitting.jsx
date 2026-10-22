@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { go, home } from '../route.js';
-import { setState, setDevice, getState } from '../store.js';
+import { setState, setDevice, getState, useDevice } from '../store.js';
 import { buildSitting } from '../script.js';
 import { peopleOf, callName, andNames, isChild, uid, KOI } from '../household.js';
 import { WEEKDAYS_SHORT } from '../calendar.js';
 import { Faces, Dots, CloseButton, KoiGlyph, tick } from '../ui.jsx';
 import KoiSchool from '../pond/KoiSchool.jsx';
 import Nudge from '../pond/Nudge.jsx';
+const AmenGrove = lazy(() => import('../compass/AmenGrove.jsx'));
 
 // ═══════════════════════════════════════════════════════════════════
 // Sitting — today's prayer, for whoever is in the room.
@@ -66,7 +67,7 @@ function WhoHere({ day, initial, onBegin }) {
     <>
       <div className="room-top">
         <span />
-        <CloseButton onClick={home} />
+        <CloseButton onClick={home} label="Back to today" />
       </div>
       <div className="room-body who-here">
         <p className="label">{day.isSunday ? 'Sunday' : `Today we pray for ${andNames(day.forPeople)}`}</p>
@@ -163,7 +164,7 @@ function Run({ day, present, onChange }) {
       )}
       <div className="room-top">
         <Dots count={steps.length} at={i} />
-        <CloseButton onClick={home} />
+        <CloseButton onClick={home} label="Back to today" />
       </div>
 
       <div className={'room-body step step-' + step.type} key={i}>
@@ -208,13 +209,14 @@ function Run({ day, present, onChange }) {
 // The koi of everyone prayed for rise under the paper, after a held
 // silence: the last thing met is quiet, not the app.
 function AmenKoi({ people, delay }) {
+  const device = useDevice();
   const [up, setUp] = useState(false);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const id = setTimeout(() => setUp(true), delay);
     return () => clearTimeout(id);
   }, [delay]);
-  return up ? <KoiSchool people={people} stay onGone={() => {}} /> : null;
+  return up ? (device.world === 'grove' ? <Suspense fallback={null}><AmenGrove people={people} /></Suspense> : <KoiSchool people={people} stay onGone={() => {}} />) : null;
 }
 
 function Primary({ step, phase, setPhase, next, amen, kind, day }) {

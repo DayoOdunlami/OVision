@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { pondTarget } from '../compass/pondBehaviours.js';
 import { paintCurrents, paintGodRays, paintShimmer } from './water.js';
 import { WATER, Drifter, layoutPads } from './paint.js';
 import { drawPad, Ripple } from './pads.js';
@@ -22,11 +23,11 @@ import { FoodBowl, feedGesture, markFed } from './koiFood.js';
 const FAR = { x: -9999, y: -9999 };
 const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"], [data-no-feed]';
 
-export default function PondView({ people, todayIds = [], words = {}, pads = [], light = 'day', season = 'autumn', paused = false }) {
+export default function PondView({ people, todayIds = [], words = {}, pads = [], light = 'day', season = 'autumn', paused = false, intention = null }) {
   const canvasRef = useRef(null);
   const live = useRef({});
   // The loop reads these each frame, so changing them never restarts it.
-  live.current = { people, todayIds, words, pads, light, season, paused };
+  live.current = { people, todayIds, words, pads, light, season, paused, intention };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -78,7 +79,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
       const key = list.map((p) => `${p.id}:${p.koi}:${p.kind}`).join('|');
       if (key === builtFor) return;
       builtFor = key;
-      const size = Math.max(0.62, Math.min(1.15, Math.min(W, H) / 720));
+      const size = live.current.intention ? Math.max(.22, Math.min(.64, Math.min(W, H) / 1000)) : Math.max(0.62, Math.min(1.15, Math.min(W, H) / 720));
       const old = new Map(koi.map((k) => [k.id, k]));
       koi = list.map((p) => {
         const prev = old.get(p.id);
@@ -143,6 +144,7 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     let lite = false;
     const times = [];
     let lastT = 0;
+    let intentAt = 0, intentKey = "";
     const watch = (now) => {
       if (lite || !fishMod || koi.length === 0) { lastT = now; return; }
       if (lastT) times.push(now - lastT);
@@ -157,11 +159,11 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
     const frame = (now) => {
       raf = requestAnimationFrame(frame);
       const L = live.current;
-      if (L.paused) { lastT = 0; return; }
+      if (L.paused || document.hidden) { lastT = 0; return; }
       watch(now);
       // Reduced motion: a still pond, redrawn only when something changes.
       if (reduced) {
-        const key = `${W}x${H}:${koi.length}:${L.light}:${L.todayIds.join()}:${L.pads.length}`;
+        const key = `${W}x${H}:${koi.length}:${L.light}:${L.todayIds.join()}:${L.pads.length}:${L.intention?.board?.word}:${L.intention?.personId}:${L.intention?.event}`;
         if (key === stillKey) return;
         stillKey = key;
       }
@@ -172,12 +174,12 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
 
       buildKoi();
       const padKey = `${W}x${H}:` + L.pads.map((p) => `${p.week}${p.lotus ? '*' : ''}`).join(',');
-      if (padKey !== padsFor) { padsFor = padKey; padLayout = layoutPads(L.pads, W, H); }
+      if (padKey !== padsFor) { padsFor = padKey; padLayout = layoutPads(L.intention ? L.pads.slice(-3) : L.pads, W, H); }
       const dKey = `${L.season}:${W}`;
       if (dKey !== driftersFor) {
         driftersFor = dKey;
         const kind = L.season === 'autumn' ? 'leaf' : L.season === 'spring' ? 'petal' : null;
-        const n = kind ? Math.round(Math.min(7, Math.max(3, W / 180))) : 0;
+        const n = L.intention ? 0 : kind ? Math.round(Math.min(7, Math.max(3, W / 180))) : 0;
         drifters = Array.from({ length: n }, (_, i) => new Drifter(W, H, kind, (i + 1) * 0.1371));
       }
 
@@ -219,13 +221,40 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
         }
       }
 
+      // The board proposes slow destinations, leaving the proven body, fins,
+      // curiosity and feeding in charge. No fish is teleported or scaled in motion.
+      const intentionKey = `${L.intention?.board?.theme}:${L.intention?.personId}:${L.intention?.event}`;
+      if (L.intention && (t >= intentAt || intentionKey !== intentKey)) {
+        intentKey = intentionKey;
+        intentAt = t + 240 + Math.round(Math.random() * 180);
+        koi.forEach((k, index) => {
+          const f = k.fish;
+          if (f.feedTarget || bowl.wants(f) || f.fleeCooldown > 0 || !f.target) return;
+          const gift = Math.floor(ts / 18);
+          const personalTurn = !L.intention.personId && !L.intention.focus && gift % 2 === 1 && index === Math.floor(gift / 2) % koi.length;
+          const theme = personalTurn ? L.intention.boards?.[k.id]?.theme || L.intention.board?.theme : L.intention.board?.theme || 'grow';
+          const goal = pondTarget(theme, index, koi.length, ts, W, H, L.intention.focus);
+          if (L.intention.personId === k.id) { goal.x = W * .47; goal.y = H * .78; }
+          else if (L.intention.personId) goal.depth = .7;
+          f.target.x = goal.x; f.target.y = goal.y;
+          f.targetDepth = goal.depth; f.depthTimer = 500;
+          f.wanderTimer = 0; f.isIdle = goal.rest;
+          f.idleCenter = goal.rest ? { x: goal.x, y: goal.y } : null;
+          if (goal.rest) f.idleDuration = 500;
+        });
+      }
       // Fish.
       bowl.update(koi.map((k) => k.fish));
       const pointer = t < curUntil ? cur : FAR;
       for (const k of koi) {
         k.fish.update(W, H, bowl.cursor(pointer), { food: bowl.foodFor(k.fish), onBreak: bowl.onBreak });
       }
-      for (const k of koi) k.fish.draw(ctx);
+      for (const k of koi) {
+        ctx.save();
+        if (L.intention?.personId && L.intention.personId !== k.id) ctx.globalAlpha = .3;
+        k.fish.draw(ctx);
+        ctx.restore();
+      }
       bowl.draw(ctx);
 
       for (const p of padLayout) drawPad(ctx, p, W, H, t);
@@ -248,7 +277,8 @@ export default function PondView({ people, todayIds = [], words = {}, pads = [],
       for (const k of koi) {
         const person = byId.get(k.id);
         if (!person) continue;
-        const today = L.todayIds.includes(k.id);
+        const today = !L.intention && L.todayIds.includes(k.id);
+        if (L.intention) continue;
         if (k.shown > 0) k.shown--;
         const tapFade = Math.min(1, k.shown / 40);
         const alpha = Math.max(today ? 1 : 0, tapFade);

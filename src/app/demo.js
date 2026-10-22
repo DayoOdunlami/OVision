@@ -4,6 +4,7 @@
 // storage key; it never touches a real household's record.
 // ═══════════════════════════════════════════════════════════════════
 
+import { demoCompass } from './compass/model.js';
 import { today, addDays, weekOf, weekdayOf, now } from './calendar.js';
 import { rotaForWeek, prayerForWeek } from './rota.js';
 
@@ -101,6 +102,7 @@ export function buildDemo() {
       start,
       until: addDays(start, 7 * 15 - 3),
       end: null,
+      compass: demoCompass(),
       family: {
         word: 'Rooted',
         line: 'Rooted in love, and open-handed with it.',

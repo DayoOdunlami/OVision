@@ -42,3 +42,13 @@ Adapt the house skill's one-world rule to two explicitly chosen worlds. Keep its
 ## To complete
 
 Implementation, verification, cuts, known gaps and final links will be recorded here as work proceeds.
+
+## Implementation checkpoint
+
+Style tiles and the direction were committed first (`114eca9`). The living compass replaces the home and adds `#/board`; the former season document remains as the season book. World choice is explicit and per device, with fresh-browser `?world=pond|grove` links. It carries across home, family, personal and the visual return after Amen. Existing prayer text, steps, timers, puzzle and confession are preserved. The literal water in confession remains part of that unchanged practice; recasting it for each world belongs to the next round, not a hidden change here.
+
+The new `season.compass` stores a complete family board and independent personal boards, each `{word,yes,no,theme}`. It mirrors existing seasonal words for prayer compatibility; existing prayer and history records remain intact. No commitment is invented when reading an older board. New seasons archive the prior board; quick personal and family edits do not.
+
+Product-review fixes applied: make **Leave it open** primary on an already-set board, keep reviewing secondary; reduce phone koi size and widen gathering spaces; keep the selected person's koi in the visible lower water while others stay quiet; correct arbitrary-word grammar; copy an entire personal yes/no into an editable family suggestion. The natural scene never records that someone did a yes or avoided a no.
+
+Nine meaningful pure checks pass (season preservation/archiving/unknown meanings; deterministic, connected, bounded geometry). Actual browser flows passed for persistent personal edit, direct family creation, full contribution copying, four skipped people, and final save. All measured board controls across phone/tablet and day/night meet 48 × 48 px, with no horizontal overflow or page errors. Large text and reduced-motion scenes render. Final captures, cadence measurements and limitations follow below.

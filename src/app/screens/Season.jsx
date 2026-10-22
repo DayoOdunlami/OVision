@@ -97,7 +97,7 @@ export default function Season({ day }) {
         )}
 
         <div className="season-actions">
-          <button className="btn btn-primary" onClick={home}>Back to the pond</button>
+          <button className="btn btn-primary" onClick={() => go('board')}>Our living compass</button>
           <button className="btn btn-secondary" onClick={() => go('season/new', { edit: '1' })}>Change our words</button>
           <button className="btn btn-secondary" onClick={() => go('season/new')}>Begin a new season</button>
         </div>
