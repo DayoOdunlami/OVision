@@ -24,6 +24,8 @@ export default function VineView(props) {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const scene = new VineScene({ reduced });
     let W = 0, H = 0, raf = 0, last = performance.now(), stillKey = '';
+    let lite = false, skip = false, acc = 0;
+    const times = [];
 
     const resize = () => {
       const r = canvas.getBoundingClientRect();
@@ -87,7 +89,20 @@ export default function VineView(props) {
         if (key === stillKey) return;
         stillKey = key;
       }
-      scene.step(dt, { calm: L.calm ?? 1 });
+      // On a slow tablet, draw every other frame: the wind is slow enough
+      // that nobody sees the difference, and the tablet stays cool.
+      if (!lite && dt > 0) {
+        times.push(dt);
+        if (times.length === 60) {
+          const sorted = [...times].sort((a, b) => a - b);
+          if (sorted[30] > 0.024) lite = true;
+          times.length = 0;
+        }
+      }
+      skip = !skip;
+      if (lite && skip) { acc += dt; return; }
+      scene.step(dt + acc, { calm: L.calm ?? 1 });
+      acc = 0;
       scene.draw(ctx);
     };
     raf = requestAnimationFrame(frame);

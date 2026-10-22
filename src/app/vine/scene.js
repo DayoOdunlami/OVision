@@ -345,21 +345,48 @@ export class VineScene {
     return { x, y, w, h, labelled };
   }
 
+  // The sky keeps to the same light as the paper and its words (the
+  // app's `light`): at 06:45 in autumn the page is still night, so is
+  // the sky, and the words on it stay readable.
+  hourFor(P) {
+    const h = P.hour ?? 12;
+    const n = skyAt(h, P.season).night;
+    if (P.light === 'night' && n < 0.8) return h < 12 ? 4.6 : 21;
+    if (P.light && P.light !== 'night' && n > 0.3) return h < 12 ? 6.4 : 18.8;
+    return h;
+  }
+
   draw(ctx) {
     const { W, H, t } = this;
     const v = this.vine;
     const P = this.props || {};
-    const sky = skyAt(P.hour ?? 12, P.season);
+    const hour = this.hourFor(P);
+    const sky = skyAt(hour, P.season);
     const night = sky.night;
     const dpr = this.dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Sky, stars, sun or moon.
-    const sk = ctx.createLinearGradient(0, 0, 0, this.soilY);
-    sk.addColorStop(0, rgb(sky.top));
-    sk.addColorStop(1, rgb(sky.bottom));
-    ctx.fillStyle = sk;
-    ctx.fillRect(0, 0, W, H);
+    // Sky, sun or moon, and the far hill: painted once for the hour, then
+    // laid down as one image (cheap on an ordinary tablet).
+    const skyKey = `${W}x${H}x${dpr}:${Math.round(hour * 20)}:${P.season}:${this.key.length}`;
+    if (skyKey !== this.skyFor) {
+      this.skyFor = skyKey;
+      const c = this.skyC || (this.skyC = document.createElement('canvas'));
+      c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+      const x = c.getContext('2d');
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const sk = x.createLinearGradient(0, 0, 0, this.soilY);
+      sk.addColorStop(0, rgb(sky.top));
+      sk.addColorStop(1, rgb(sky.bottom));
+      x.fillStyle = sk;
+      x.fillRect(0, 0, W, H);
+      this.drawLight(x, sky, hour);
+      this.skyHill = sky;
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.skyC, 0, 0);
+    ctx.restore();
     if (night > 0) {
       ctx.fillStyle = '#fff8e6';
       for (const [sx, sy, sr, ph] of this.stars) {
@@ -370,7 +397,6 @@ export class VineScene {
       }
       ctx.globalAlpha = 1;
     }
-    this.drawLight(ctx, sky, P.hour ?? 12);
     this.amb?.drawSky(ctx, night);
     this.drawHill(ctx, sky);
 

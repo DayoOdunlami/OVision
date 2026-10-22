@@ -6,6 +6,10 @@ import { peopleOf, callName, andNames, isChild, uid, KOI } from '../household.js
 import { WEEKDAYS_SHORT } from '../calendar.js';
 import { Faces, Dots, CloseButton, KoiGlyph, tick } from '../ui.jsx';
 import KoiSchool from '../pond/KoiSchool.jsx';
+import { lazy, Suspense } from 'react';
+
+// After Amen, the world under the paper is whichever the board lives in.
+const AmenVine = lazy(() => import('../vine/AmenVine.jsx'));
 import Nudge from '../pond/Nudge.jsx';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -159,6 +163,7 @@ function Run({ day, present, onChange }) {
         <AmenKoi
           people={sitting.forPeople.map((p) => ({ name: callName(p, kids), koi: p.koi }))}
           delay={silent ? 3000 : 900}
+          world={day.world}
         />
       )}
       <div className="room-top">
@@ -207,14 +212,18 @@ function Run({ day, present, onChange }) {
 
 // The koi of everyone prayed for rise under the paper, after a held
 // silence: the last thing met is quiet, not the app.
-function AmenKoi({ people, delay }) {
+function AmenKoi({ people: list, delay, world }) {
   const [up, setUp] = useState(false);
+  const key = JSON.stringify(list);
+  const people = useMemo(() => list, [key]);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const id = setTimeout(() => setUp(true), delay);
     return () => clearTimeout(id);
   }, [delay]);
-  return up ? <KoiSchool people={people} stay onGone={() => {}} /> : null;
+  if (!up) return null;
+  if (world === 'vine') return <Suspense fallback={null}><AmenVine people={people} /></Suspense>;
+  return <KoiSchool people={people} stay onGone={() => {}} />;
 }
 
 function Primary({ step, phase, setPhase, next, amen, kind, day }) {

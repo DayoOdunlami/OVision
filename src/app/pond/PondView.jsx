@@ -375,7 +375,11 @@ export default function PondView(props) {
           f.target.y = rim ? rim.y + rim.ry * 0.6 : H / 2;
           f.isIdle = false;
           const person = peopleOf().find((x) => x.id === k.id);
-          if (person?.name) say(person.word ? `${person.name} · ${person.word}` : person.name, fromLeft ? W * 0.22 : W * 0.78, H * 0.72);
+          if (person?.name) {
+            // Named as they arrive, one at a time, just under the word.
+            captions.length = 0;
+            say(person.word ? `${person.name} · ${person.word}` : person.name, W / 2, keepOut ? keepOut.y1 + 34 : H * 0.6);
+          }
         }
         k.fish.update(W, H, bowl.cursor(pointer), { food: bowl.foodFor(k.fish), onBreak: bowl.onBreak });
       }

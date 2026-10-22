@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { go, home } from '../route.js';
-import { setState, setDevice } from '../store.js';
+import { setState, setDevice, isDemo } from '../store.js';
 import { now, today, addDays, weekOf } from '../calendar.js';
 import { uid, callName, isChild, KOI } from '../household.js';
 import { THEMES, THEME_ORDER, WORDS_FOR, YES_IDEAS, KID_YES, themeOf, lowerFirst } from '../board.js';
@@ -51,13 +51,18 @@ export default function NewSeason({ day }) {
 
   const [name, setName] = useState(editing?.name || suggestName());
   const [look, setLook] = useState('');
+  // In the example family, ?at=together|world|finale opens the ritual
+  // part-way through, filled in from the board as it is (for a judge, or
+  // a screenshot), so the finale can be seen in a minute.
+  const jump = isDemo && !editing ? hashQ.get('at') : null;
   const [mine, setMine] = useState(() => {
-    if (!editing || !board) return {};
-    return Object.fromEntries(board.people.map((p) => [p.id, { word: p.word, theme: editing.people?.[p.id]?.theme || (p.word ? p.theme : ''), yes: p.yes, no: p.no }]));
+    if ((!editing && !jump) || !board) return {};
+    return Object.fromEntries(board.people.map((p) => [p.id, { word: p.word, theme: (editing || last)?.people?.[p.id]?.theme || (p.word ? p.theme : ''), yes: p.yes, no: p.no }]));
   });
-  const [famWord, setFamWord] = useState(editing?.family?.word || '');
-  const [famLine, setFamLine] = useState(editing?.family?.line || '');
-  const [famYes, setFamYes] = useState(() => (editing && board ? board.yes.map((y) => ({ ...y })) : []));
+  const from = editing || (jump ? last : null);
+  const [famWord, setFamWord] = useState(from?.family?.word || '');
+  const [famLine, setFamLine] = useState(from?.family?.line || '');
+  const [famYes, setFamYes] = useState(() => (from && board ? board.yes.map((y) => ({ ...y })) : []));
   const [world, setWorld] = useState(editing?.world || last?.world || day.world || 'pond');
   const [i, setI] = useState(0);
   const [born, setBorn] = useState(false);
@@ -73,6 +78,11 @@ export default function NewSeason({ day }) {
     steps.push({ kind: 'family-word' }, { kind: 'family-yes' }, { kind: 'world' });
     if (!editing) steps.push({ kind: 'finale' });
   }
+  useEffect(() => {
+    if (!jump) return;
+    const k = steps.findIndex((x) => x.kind === (jump === 'together' ? 'family-word' : jump));
+    if (k > 0) setI(k);
+  }, []);
   const step = steps[Math.min(i, steps.length - 1)];
   const person = step.pid ? people.find((p) => p.id === step.pid) : null;
   const me = (person && mine[person.id]) || {};
