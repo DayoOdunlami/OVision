@@ -2,6 +2,10 @@
 
 One app at `/`. See README.md for the rooms, the previews (`?demo=1`, `?h=`, `?day=`) and the code map.
 
+**Style study in progress.** If you were started on a `bakeoff/study-` branch or given a
+study letter (S or T), read `bakeoff/study/BRIEF.md` and `bakeoff/study/RULES.md` before
+anything else; they take precedence over the round 2 note below.
+
 **Bake-off round 2 in progress.** If you were started on a `bakeoff/r2-` branch or given a
 round 2 letter, read `bakeoff/round2/BRIEF.md`, `bakeoff/round2/FEEDBACK.md` and
 `bakeoff/round2/RULES.md` before anything else. (Round 1's files in `bakeoff/` are history.)

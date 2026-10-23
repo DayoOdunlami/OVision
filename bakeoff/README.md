@@ -2,7 +2,7 @@
 
 A design and build competition on this app.
 
-**Round 2 is in progress: see `round2/`.** Round 1 is closed; its files below are kept as history. Its winner, Quiet Waters, is the base for round 2.
+**A style study is in progress: see `study/`.** Round 2 (`round2/`) is awaiting judging. Round 1 is closed; its files below are kept as history. Its winner, Quiet Waters, is the base for round 2.
 
 | File | For | What |
 |---|---|---|
