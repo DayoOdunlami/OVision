@@ -84,6 +84,8 @@ root.querySelector('.verse-text').textContent = verse.verse;
 root.querySelector('.verse-ref').textContent = verse.ref;
 
 // ── State ─────────────────────────────────────────────────────────────
+// ?compare=1: the pond split down the middle, colour koi beside ink koi.
+const compare = q.get('compare') === '1';
 let mode = STEPS.includes(q.get('dial')) ? q.get('dial') : STEPS.includes(store.get('study.dial')) ? store.get('study.dial') : 'ink';
 let hour = hourOf();
 let light = lightAt(hour);
@@ -236,6 +238,11 @@ const tuftSpots = () => {
 };
 let tufts = null;
 
+// Where a frame is laid on its canvas: the whole screen, or (comparing)
+// one half of it.
+let T = { s: 1, x: 0, y: 0 };
+const base = (ctx) => ctx.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y);
+
 function render(ctx, m) {
   const Lr = layersFor(m);
   if (!Lr.inkPat) Lr.inkPat = ctx.createPattern(Lr.ink, 'repeat');
@@ -243,7 +250,7 @@ function render(ctx, m) {
   const off0 = L.bankY / 2;
   const S = off0 * e;
   const par = (k) => st.px * k * (1 - e);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  base(ctx);
   ctx.globalAlpha = 1;
   ctx.fillStyle = `rgb(${PAPER[0]},${PAPER[1]},${PAPER[2]})`;
   ctx.fillRect(0, 0, W, H);
@@ -317,7 +324,7 @@ function render(ctx, m) {
   for (const p of edge) ctx.lineTo(p[0] + par(7), p[1] - S);
   ctx.lineTo(W + 60, H + 80); ctx.lineTo(-60, H + 80);
   ctx.closePath();
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  base(ctx);
   if (cam.s !== 1) { ctx.translate(cam.cx, cam.cy); ctx.scale(cam.s, cam.s); ctx.translate(-cam.cx, -cam.cy); }
   ctx.clip();
   ctx.fillStyle = `rgb(${PAPER[0]},${PAPER[1]},${PAPER[2]})`;
@@ -332,7 +339,7 @@ function render(ctx, m) {
     if (m === 'colour') {
       kf.fish.draw(ctx);
     } else {
-      drawInkKoi(ctx, kf.fish, { mode: m, fill: Lr.inkPat, seed: kf.seed });
+      drawInkKoi(ctx, kf.fish, { mode: m, fill: Lr.inkPat, seed: kf.seed, act: !st.noAct });
     }
   }
   for (const p of Lr.pads) {
@@ -451,6 +458,8 @@ function goPond(on) {
   if (on) {
     hintEl.classList.remove('show');
     store.set('study.hinted', '1');
+    // In the pond, the koi have all of it: each picks somewhere new.
+    setTimeout(() => { for (const k of st.koi) if (k.fish.__band && !k.fish.isIdle) k.fish.pickWanderTarget(W, H); }, 900);
   } else {
     // Back on the scroll, the koi keep to the band they can be seen in.
     const b = band();
@@ -523,6 +532,29 @@ function draw(once = false) {
     render(canvases[1 - front].getContext('2d'), prevMode);
     render(c.getContext('2d'), mode);
     if (k >= 1) { reveal = null; prevMode = null; c.style.maskImage = c.style.webkitMaskImage = ''; }
+  } else if (compare) {
+    // The same koi at the same moment, twice: today's colour, and the
+    // painted step. (Their fins and tail move once a frame, in the first.)
+    const ctx = canvases[front].getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = 'rgb(46,44,40)';
+    ctx.fillRect(0, 0, canvases[front].width, canvases[front].height);
+    const side = W > H;
+    const sc = side ? Math.min((W - 30) / 2 / W, (H - 20) / H) : Math.min((H - 30) / 2 / H, (W - 20) / W);
+    const w = W * sc, h = H * sc;
+    const slots = side ? [[(W - w * 2 - 10) / 2, (H - h) / 2], [(W - w * 2 - 10) / 2 + w + 10, (H - h) / 2]]
+      : [[(W - w) / 2, (H - h * 2 - 10) / 2], [(W - w) / 2, (H - h * 2 - 10) / 2 + h + 10]];
+    [['colour', false], [mode === 'colour' ? 'ink' : mode, true]].forEach(([mm, noAct], i) => {
+      T = { s: sc, x: slots[i][0], y: slots[i][1] };
+      ctx.save();
+      base(ctx);
+      ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+      st.noAct = noAct;
+      render(ctx, mm);
+      ctx.restore();
+    });
+    st.noAct = false;
+    T = { s: 1, x: 0, y: 0 };
   } else {
     canvases[front].style.zIndex = 2;
     canvases[1 - front].style.zIndex = 1;

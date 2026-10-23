@@ -35,12 +35,14 @@ const WASH = {
 
 const side = (p, r, s) => p.getPoint(p.radius * r, s * Math.PI / 2);
 
-export function drawInkKoi(ctx, fish, { mode = 'ink', fill, seed = 1, wash = 1 }) {
+export function drawInkKoi(ctx, fish, { mode = 'ink', fill, seed = 1, wash = 1, act = true }) {
   const v = fish.variety;
   // The fins and tail move as SpineFish moves them (it does this inside
   // its own render calls).
-  fish.fins.act();
-  fish.tail.act();
+  if (act) {
+    fish.fins.act();
+    fish.tail.act();
+  }
 
   const depth = Math.max(0, Math.min(1, fish.depth));
   const surface = 1 - depth;
@@ -140,6 +142,10 @@ export function drawInkKoi(ctx, fish, { mode = 'ink', fill, seed = 1, wash = 1 }
       return [p.x * 0.6 + q.x * 0.4, p.y * 0.6 + q.y * 0.4];
     });
     const len = Math.hypot(pts[pts.length - 1][0] - pts[0][0], pts[pts.length - 1][1] - pts[0][1]);
+    // The pectoral fins (the front pair) are the koi's big gesture; the
+    // pelvic pair behind are small and pale.
+    const big = f < 2;
+    if (!big) { stroke(ctx, pts.slice(0, Math.max(2, Math.ceil(pts.length * 0.7))), { size: len * 0.32, fill, alpha: finTone * 0.55, press: 'dab', wobble: 0.25, seed: id(15 + f), pool: 0 }); return; }
     if (mode === 'wash') stroke(ctx, pts, { size: len * 0.62, fill: dark ? 'rgb(64,60,64)' : 'rgb(206,140,100)', alpha: 0.3 * wash, press: 'dab', wobble: 0.2, seed: id(19 + f), pool: 0 });
     stroke(ctx, pts, { size: len * 0.5, fill, alpha: finTone, press: 'dab', wobble: 0.25, seed: id(10 + f * 5), pool: 0.25 });
   });
