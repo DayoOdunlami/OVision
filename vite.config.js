@@ -33,7 +33,7 @@ export default defineConfig({
     sourcemap: false,
     target: 'es2020',
     rollupOptions: {
-      input: { main: resolve(__dirname, 'index.html') },
+      input: { main: resolve(__dirname, 'index.html'), study: resolve(__dirname, 'study/index.html') },
     },
   },
 });
