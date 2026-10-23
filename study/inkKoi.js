@@ -128,51 +128,59 @@ export function drawInkKoi(ctx, fish, { mode = 'ink', fill, seed = 1, wash = 1 }
 
   // ── Fins and tail: quick, pale flicks along the rays ────────────────
   const id = (k) => seed * 100 + k;
-  // Membranes in pale ink (or a pale wash), and only the leading edge
-  // drawn: an ink painter gives a fin one stroke, not every ray.
-  const membrane = (pts, a) => {
-    ctx.save();
-    ctx.globalAlpha = ink * a;
-    ctx.fillStyle = mode === 'wash' ? (dark ? 'rgb(60,58,62)' : 'rgb(206,146,108)') : fill;
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (const p of pts) ctx.lineTo(p[0], p[1]);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  };
+  // Fins: each one press of the brush, laid down at the root and drawn
+  // off along the leading ray (a teardrop), in mid-tone ink; under the
+  // body, as a painter lays them first.
+  const finTone = mode === 'wash' ? 0.32 : 0.38;
   fish.fins.fins.forEach((fin, f) => {
-    const rows = fin.pieces;
-    const lead = rows[0], back = rows[rows.length - 1];
-    membrane([...lead.map((p) => [p.x, p.y]), ...back.slice().reverse().map((p) => [p.x, p.y])], mode === 'wash' ? 0.22 * wash : 0.13);
-    stroke(ctx, lead.map((p) => [p.x, p.y]), { size: brush * 0.95, fill, alpha: 0.55, press: 'flick', wobble: 0.3, seed: id(10 + f * 5), pool: 0.3 });
-    const mid = rows[Math.floor(rows.length / 2)];
-    stroke(ctx, mid.map((p) => [p.x, p.y]), { size: brush * 0.45, fill, alpha: 0.16, press: 'flick', wobble: 0.3, seed: id(11 + f * 5), pool: 0 });
+    const lead = fin.pieces[0];
+    const back = fin.pieces[fin.pieces.length - 1];
+    const pts = lead.map((p, i) => {
+      const q = back[Math.min(back.length - 1, i)];
+      return [p.x * 0.6 + q.x * 0.4, p.y * 0.6 + q.y * 0.4];
+    });
+    const len = Math.hypot(pts[pts.length - 1][0] - pts[0][0], pts[pts.length - 1][1] - pts[0][1]);
+    if (mode === 'wash') stroke(ctx, pts, { size: len * 0.62, fill: dark ? 'rgb(64,60,64)' : 'rgb(206,140,100)', alpha: 0.3 * wash, press: 'dab', wobble: 0.2, seed: id(19 + f), pool: 0 });
+    stroke(ctx, pts, { size: len * 0.5, fill, alpha: finTone, press: 'dab', wobble: 0.25, seed: id(10 + f * 5), pool: 0.25 });
   });
+  // The tail: two dry flicks splitting from the narrow of the body.
   const tip = parts[n - 1];
   const tail = fish.tail.pieces;
-  membrane([[tip.x, tip.y], ...tail[0].map((p) => [p.x, p.y]), ...tail[4].slice().reverse().map((p) => [p.x, p.y])], mode === 'wash' ? 0.2 * wash : 0.12);
-  [0, 2, 4].forEach((k, j) => {
+  const root = parts[Math.max(0, n - 3)];
+  for (const [k, j] of [[0, 0], [4, 1]]) {
     const row = tail[k];
-    const edge = k !== 2;
-    stroke(ctx, [[tip.x, tip.y], ...row.map((p) => [p.x, p.y])], { size: brush * (edge ? 1.0 : 0.45), fill, alpha: edge ? 0.55 : 0.18, press: 'flick', wobble: 0.35, seed: id(40 + j), pool: edge ? 0.2 : 0 });
-  });
+    const pts = [[root.x, root.y], [tip.x, tip.y], ...row.map((p) => [p.x, p.y])];
+    if (mode === 'wash') stroke(ctx, pts, { size: brush * 3.2, fill: dark ? 'rgb(64,60,64)' : 'rgb(206,140,100)', alpha: 0.22 * wash, press: 'dab', wobble: 0.3, seed: id(48 + j), pool: 0 });
+    stroke(ctx, pts, { size: brush * 2.4, fill, alpha: 0.5, press: 'dab', wobble: 0.35, seed: id(40 + j), pool: 0.3 });
+  }
 
-  // ── The body's line ─────────────────────────────────────────────────
-  // Each flank from the gill back, lifting off before the tail.
-  const stop = Math.max(3, Math.floor(n * 0.86));
+  // ── The body: the back as one side-loaded stroke down the spine, ───
+  // dark along the spine and paling to the flanks; the flanks as two
+  // lighter lines, each broken twice, heavier at the shoulder.
+  const spine = [head.getPoint(R * 3, 0)];
+  for (let i = 0; i < Math.floor(n * 0.9); i++) spine.push(parts[i].getPoint(0, 0));
+  stroke(ctx, spine, { size: R * 10, fill, alpha: dark ? 0.2 : 0.09, press: (u) => 0.8 + 0.2 * Math.sin(Math.PI * Math.min(1, u * 1.3)) - u * 0.6, wobble: 0.15, seed: id(7), pool: 0 });
+  stroke(ctx, spine, { size: R * 3.6, fill, alpha: dark ? 0.55 : 0.36, press: 'brush', wobble: 0.3, seed: id(6), pool: 0.15 });
+  const stop = Math.max(4, Math.floor(n * 0.88));
   for (const s of [1, -1]) {
-    const pts = [head.getPoint(R * 8, s * (Math.PI / 2 + 0.25))];
+    const pts = [head.getPoint(R * 8, s * (Math.PI / 2 + 0.3))];
     for (let i = 0; i < stop; i++) pts.push(side(parts[i], 8, s));
-    stroke(ctx, pts, {
-      size: brush * 1.3, fill, alpha: 0.92, wobble: 0.28, seed: id(s > 0 ? 1 : 2), pool: 0.5,
-      press: (u) => 0.35 + 0.65 * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.15)), 0.7) * (1 - u * 0.4),
+    // Two breaks, at different places on each side.
+    const cuts = s > 0 ? [0.34, 0.66] : [0.42, 0.74];
+    let from = 0;
+    cuts.concat([1]).forEach((c, j) => {
+      const to = Math.round(c * (pts.length - 1));
+      const seg = pts.slice(from, Math.max(from + 2, to - (j < 2 ? 1 : 0)));
+      if (seg.length > 1) {
+        const u0 = from / (pts.length - 1);
+        stroke(ctx, seg, {
+          size: brush * 1.15 * (1 - u0 * 0.66), fill, alpha: 0.78 - u0 * 0.25, wobble: 0.3, seed: id((s > 0 ? 20 : 30) + j), pool: j === 0 ? 0.35 : 0.08,
+          press: 'brush',
+        });
+      }
+      from = to + 1;
     });
   }
-  // The tail end of the body: one short stroke closing in.
-  const tailEnd = [];
-  for (let i = Math.max(0, stop - 4); i < n; i++) tailEnd.push(side(parts[i], 8 * (1 - (i - stop + 4) / (n - stop + 4) * 0.9), 1));
-  if (tailEnd.length > 2) stroke(ctx, tailEnd, { size: brush * 0.6, fill, alpha: 0.45, press: 'flick', wobble: 0.3, seed: id(3), pool: 0 });
 
   // The head: one stroke round the nose, gill to gill.
   const h = head;
@@ -181,15 +189,10 @@ export function drawInkKoi(ctx, fish, { mode = 'ink', fill, seed = 1, wash = 1 }
     h.getPoint(R * 12.6, 0.06), h.getPoint(R * 12.6, -0.06), h.getPoint(R * 11, -Math.PI / 6),
     h.getPoint(R * 9.5, -Math.PI / 3), h.getPoint(R * 8.2, -Math.PI / 2 - 0.2),
   ];
-  stroke(ctx, headPts, { size: brush * 1.2, fill, alpha: 0.94, press: 'swell', wobble: 0.22, seed: id(4), pool: 0.35 });
+  stroke(ctx, headPts, { size: brush * 1.35, fill, alpha: 0.9, press: (u) => (u < 0.08 ? 1.4 - u * 5 : 0.75 + 0.35 * Math.sin(Math.PI * u)) * (1 - Math.max(0, u - 0.8) * 3.5), wobble: 0.22, seed: id(4), pool: 0.5 });
   // The gill line, a soft curve just behind the head.
   const g = parts[Math.min(n - 1, 1)];
   stroke(ctx, [side(g, 6.5, 1), g.getPoint(-g.radius * 1.5, 0), side(g, 6.5, -1)], { size: brush * 0.55, fill, alpha: 0.4, press: 'swell', wobble: 0.3, seed: id(5), pool: 0 });
-  // The spine: thin and dark down the middle of the back.
-  const s0 = Math.floor(n / 6), s1 = Math.floor(n * 0.7);
-  const spine = [];
-  for (let i = s0; i <= s1; i++) spine.push(parts[i].getPoint(0, 0));
-  stroke(ctx, spine, { size: brush * 0.75, fill, alpha: 0.5, press: 'flick', wobble: 0.4, seed: id(6), pool: 0.3 });
   // Eyes.
   ctx.fillStyle = fill;
   ctx.globalAlpha = ink * 0.95;

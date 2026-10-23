@@ -51,6 +51,11 @@ function normals(pts) {
 }
 
 const PRESS = {
+  // The brush: a press as it lands (a little wider), full through the
+  // middle, lifting to a hairline. The default for everything.
+  brush: (u) => (u < 0.07 ? 1.45 - (u / 0.07) * 0.45 : u < 0.5 ? 1 : 1 - ((u - 0.5) / 0.5) * 0.82),
+  // A dab: pressed down hard, then drawn off to a point (a fin, a leaf).
+  dab: (u) => (u < 0.18 ? 0.55 + (u / 0.18) * 0.45 : Math.max(0.04, 1 - ((u - 0.18) / 0.82) ** 0.9)),
   // Lands firmly, eases through, lifts away.
   swell: (u) => Math.pow(Math.sin(Math.PI * Math.min(1, 0.12 + u * 0.95)), 0.55),
   // Heavy at the start, thinning to the tip (a fin, a blade of grass).
@@ -69,7 +74,7 @@ const PRESS = {
 //   seed    the stroke's own wobble (keep it fixed per stroke)
 //   pool    ink pooling at the ends (0..1)
 export function stroke(ctx, pts, {
-  size = 4, fill = 'rgb(26,24,22)', alpha = 0.85, press = 'swell', wobble = 0.35, seed = 1,
+  size = 4, fill = 'rgb(26,24,22)', alpha = 0.85, press = 'brush', wobble = 0.35, seed = 1,
   pool = 0.6, taperStart = 0, taperEnd = 0, thinning = 0.65, scale = 1,
 } = {}) {
   const n = pts.length;
@@ -94,9 +99,9 @@ export function stroke(ctx, pts, {
   // Ink pools where the brush lands, and a little where it lifts.
   if (pool > 0) {
     const p0 = input[0], p1 = input[n - 1];
-    ctx.globalAlpha *= 0.55 * pool;
+    ctx.globalAlpha *= 0.7 * pool;
     ctx.beginPath();
-    ctx.ellipse(p0[0], p0[1], size * scale * 0.42 * p0[2], size * scale * 0.34 * p0[2], 0, 0, Math.PI * 2);
+    ctx.ellipse(p0[0], p0[1], size * scale * 0.5 * Math.min(1.2, p0[2]), size * scale * 0.4 * Math.min(1.2, p0[2]), 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
     ctx.arc(p1[0], p1[1], size * scale * 0.2 * Math.max(0.3, p1[2]), 0, Math.PI * 2);
@@ -110,7 +115,7 @@ export function stroke(ctx, pts, {
 // own point, so the end of the stroke breaks into streaks.
 //   dry   0 = a loaded brush, 1 = nearly dry (lots of broken streaks)
 export function dryStroke(ctx, pts, {
-  size = 6, ink = INK, alpha = 0.8, press = 'swell', wobble = 0.4, seed = 1, dry = 0.5, bristles = 0,
+  size = 6, ink = INK, alpha = 0.8, press = 'brush', wobble = 0.4, seed = 1, dry = 0.5, bristles = 0,
   pool = 0.5,
 } = {}) {
   const n = pts.length;

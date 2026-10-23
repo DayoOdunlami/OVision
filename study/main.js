@@ -5,6 +5,7 @@ import { stroke } from './brush.js';
 import { rng, clamp01, easeInOut } from './noise.js';
 import { grainTile, inkTile } from './paper.js';
 import { drawInkKoi } from './inkKoi.js';
+import { VineMoment } from './vineMoment.js';
 import {
   PAPER, layout, bankEdge, paintBack, paintNear, paintGarden, paintBank, paintWater, padSprite,
   plantSprite, tuftSprite, mistSprite, plantSpots, sunAt, inkOf,
@@ -92,6 +93,7 @@ let pondU = inPond ? 1 : 0;          // 0 = the scroll, 1 = in the pond
 let pondTo = pondU;
 const wind = new Wind({ reduced });
 const caches = new Map();            // mode → painted layers
+const vineM = new VineMoment('Rooted');
 const st = {
   koi: [], ripples: [], lines: [], birds: [], nextBirds: 40 + Math.random() * 40,
   stages: [1, 2, 3, 4, 4], pop: [0, 0, 0, 0, 0], cursor: { x: -9999, y: -9999 }, cursorUntil: 0,
@@ -185,7 +187,14 @@ function layersFor(m) {
   const back = sheet(W + L.m * 2, H * 0.42); paintBack(back.ctx, L, m, light);
   const near = sheet(W + L.m * 2, H * 0.45); paintNear(near.ctx, L, m);
   const garden = sheet(W + L.m * 2, H * 0.68); paintGarden(garden.ctx, L, m);
-  const bank = sheet(W + L.m * 2, H); paintBank(bank.ctx, L, m, edge);
+  // The bank only needs its own band of the page.
+  const bankY0 = Math.max(0, L.bankY - H * 0.16), bankH = H * 0.22;
+  const bank = sheet(W + L.m * 2, bankH); bank.ctx.translate(0, -bankY0); paintBank(bank.ctx, L, m, edge);
+  bank.y0 = bankY0; bank.h = bankH;
+  // Everything above the pond that doesn't move, flattened into one
+  // sheet: drawn as a single image while the page is at rest.
+  const still = sheet(W, H * 0.68);
+  for (const [lay, h] of [[back, H * 0.42], [near, H * 0.45], [garden, H * 0.68]]) still.ctx.drawImage(lay.c, -L.m, 0, W + L.m * 2, h);
   const water = sheet(W, H); paintWater(water.ctx, W, H, m, light);
   const ps = Math.max(18, Math.min(W, H) * 0.06);
   const b = band();
@@ -204,7 +213,7 @@ function layersFor(m) {
   const tufts = [0, 1, 2].map((i) => tuftSprite(tuftH * (0.8 + i * 0.25), m, dpr, 1200 + i));
   const mist = mistSprite(W * 1.4, H * 0.07, dpr, 1300);
   const ink = inkTile(inkOf(m), 128, 11);
-  const out = { key, back, near, garden, bank, water, pads, plants, tufts, mist, ink, inkPat: null };
+  const out = { key, back, near, garden, still, bank, water, pads, plants, tufts, mist, ink, inkPat: null };
   caches.set(m, out);
   // Keep at most the two steps on screen.
   for (const k of caches.keys()) if (k !== m && k !== mode && k !== prevMode) caches.delete(k);
@@ -215,9 +224,14 @@ function layersFor(m) {
 const tuftSpots = () => {
   const r = rng(1400);
   const out = [];
-  const n = Math.round(W / 34);
-  for (let i = 0; i < n; i++) out.push({ x: (i + r()) * (W / n), y: L.groundY + L.H * (0.004 + r() * 0.02), k: Math.floor(r() * 3), ph: r() * 6 });
-  for (let i = 0; i < Math.round(W / 90); i++) out.push({ x: r() * W, y: L.bankY - L.H * 0.004, k: Math.floor(r() * 3), ph: r() * 6, bank: true });
+  // In clumps of two to five, with gaps between; some mirrored, some
+  // smaller, so no two look stamped.
+  const clump = (x, y, bank) => {
+    const n = 2 + Math.floor(r() * 4);
+    for (let i = 0; i < n; i++) out.push({ x: x + (r() - 0.5) * 26, y: y + r() * L.H * 0.008, k: Math.floor(r() * 3), ph: r() * 6, s: 0.6 + r() * 0.6, flip: r() < 0.5 ? -1 : 1, bank });
+  };
+  for (let x = r() * 60; x < W; x += 60 + r() * 120) clump(x, L.groundY + L.H * 0.006, false);
+  for (let x = r() * 120; x < W; x += 140 + r() * 200) clump(x, L.bankY - L.H * 0.004, true);
   return out;
 };
 let tufts = null;
@@ -233,14 +247,21 @@ function render(ctx, m) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = `rgb(${PAPER[0]},${PAPER[1]},${PAPER[2]})`;
   ctx.fillRect(0, 0, W, H);
+  // When the vine comes forward, the whole page leans in a little.
+  const cam = vineM.camera(L);
+  ctx.save();
+  if (cam.s !== 1) { ctx.translate(cam.cx, cam.cy); ctx.scale(cam.s, cam.s); ctx.translate(-cam.cx, -cam.cy); }
 
   if (pondU < 0.999) {
     ctx.save();
     ctx.translate(0, -S);
     const dimAll = 1 - clamp01(e * 1.4);
     ctx.globalAlpha = 0.35 + 0.65 * dimAll;
-    // The back: sky, sun, far hills.
-    ctx.drawImage(Lr.back.c, -L.m + par(2), 0, W + L.m * 2, H * 0.42);
+    // The back: sky, sun, hills, the garden's still parts. At rest, one
+    // image; when the hand moves (a mouse), the layers part a little.
+    const parted = Math.abs(st.px) > 0.35 && e === 0;
+    if (parted) ctx.drawImage(Lr.back.c, -L.m + par(2), 0, W + L.m * 2, H * 0.42);
+    else ctx.drawImage(Lr.still.c, 0, 0, W, H * 0.68);
     drawBirds(ctx, m);
     // Mist drifting between the ranges.
     const drift = reduced ? 0 : Math.sin(st.t * 0.012) * W * 0.08 + st.t * 1.2;
@@ -251,8 +272,10 @@ function render(ctx, m) {
       ctx.drawImage(Lr.mist, mx, y, mw, H * 0.07);
     }
     ctx.globalAlpha = 0.35 + 0.65 * dimAll;
-    ctx.drawImage(Lr.near.c, -L.m + par(3.5), 0, W + L.m * 2, H * 0.45);
-    ctx.drawImage(Lr.garden.c, -L.m + par(5), 0, W + L.m * 2, H * 0.68);
+    if (parted) {
+      ctx.drawImage(Lr.near.c, -L.m + par(3.5), 0, W + L.m * 2, H * 0.45);
+      ctx.drawImage(Lr.garden.c, -L.m + par(5), 0, W + L.m * 2, H * 0.68);
+    }
     // Plants in their beds, and grass, in the one wind.
     const spots = plantSpots(L);
     spots.forEach((x, i) => {
@@ -272,9 +295,12 @@ function render(ctx, m) {
       ctx.save();
       ctx.translate(tf.x + par(tf.bank ? 7 : 5.5), tf.y);
       ctx.rotate(wind.sway(tf.x, 0.12, tf.ph));
+      ctx.scale(tf.flip * tf.s, tf.s);
       ctx.drawImage(sp.c, -sp.W / 2, -sp.H + 1, sp.W, sp.H);
       ctx.restore();
     }
+    ctx.globalAlpha = 1;
+    vineM.draw(ctx, L, m);
     ctx.restore();
   }
 
@@ -292,11 +318,15 @@ function render(ctx, m) {
   ctx.lineTo(W + 60, H + 80); ctx.lineTo(-60, H + 80);
   ctx.closePath();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (cam.s !== 1) { ctx.translate(cam.cx, cam.cy); ctx.scale(cam.s, cam.s); ctx.translate(-cam.cx, -cam.cy); }
   ctx.clip();
   ctx.fillStyle = `rgb(${PAPER[0]},${PAPER[1]},${PAPER[2]})`;
   ctx.fillRect(0, 0, W, H);
   ctx.translate(par(7), pondOff);
-  ctx.drawImage(Lr.water.c, 0, 0, W, H);
+  // Only the part of the water that can show.
+  const top = cy - (cy - (L.bankY - S - H * 0.03)) * k;
+  const wy0 = Math.max(0, Math.min(H - 1, top - pondOff));
+  ctx.drawImage(Lr.water.c, 0, wy0 * dpr, W * dpr, (H - wy0) * dpr, 0, wy0, W, H - wy0);
   drawWaterLines(ctx, m);
   for (const kf of st.koi) {
     if (m === 'colour') {
@@ -321,9 +351,10 @@ function render(ctx, m) {
     ctx.save();
     ctx.globalAlpha = 1 - clamp01(e * 1.8);
     ctx.translate(0, -S);
-    ctx.drawImage(Lr.bank.c, -L.m + par(7), 0, W + L.m * 2, H);
+    ctx.drawImage(Lr.bank.c, -L.m + par(7), Lr.bank.y0, W + L.m * 2, Lr.bank.h);
     ctx.restore();
   }
+  ctx.restore();
 }
 
 // A few lines on the water, drifting very slowly with the current.
@@ -447,6 +478,8 @@ root.addEventListener('pointerup', (e) => {
     if (reduced) draw(true);
     return;
   }
+  // While the vine is forward, a touch lets the garden settle back.
+  if (vineM.on) { vineM.stop(); if (reduced) { vineM.k = 0; draw(true); } return; }
   // A plant grows one stage.
   const spots = plantSpots(L);
   const ph = Math.min(H * 0.12, W * 0.17);
@@ -458,14 +491,16 @@ root.addEventListener('pointerup', (e) => {
       return;
     }
   }
+  // The vine, along the trellis: it comes forward and writes our word.
+  if (y > L.trellisTop - 16 && y < L.wire2 + 10) {
+    vineM.start(L);
+    if (reduced) { vineM.t = 999; vineM.k = 1; draw(true); }
+    return;
+  }
   if (y > L.bankY + 6) goPond(true);
 });
 root.addEventListener('pointermove', (e) => {
   if (e.pointerType === 'mouse') { st.tx = (e.clientX / W) * 2 - 1; st.ty = (e.clientY / H) * 2 - 1; }
-});
-window.addEventListener('deviceorientation', (e) => {
-  if (e.gamma == null) return;
-  st.tx = Math.max(-1, Math.min(1, e.gamma / 25));
 });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pondTo === 1) goPond(false); });
 
@@ -508,6 +543,7 @@ function tick(now) {
   st.frame++;
   st.t += dt;
   wind.step(dt);
+  vineM.step(dt);
   // Parallax eases after the hand (or the tilt).
   st.px += (st.tx * 6 - st.px) * Math.min(1, dt * 1.5);
   // The move into (or out of) the pond: about a second and a half.
@@ -548,6 +584,8 @@ setInterval(() => {
   const h = hourOf();
   if (lightAt(h) !== light) { hour = h; light = lightAt(h); caches.clear(); draw(true); }
 }, 60000);
+// ?vine=1 opens with the vine forward, writing the word.
+if (q.get('vine') === '1' && !inPond) { vineM.start(L); if (reduced) { vineM.t = 999; vineM.k = 1; } }
 if (reduced) {
   draw(true);
 } else {

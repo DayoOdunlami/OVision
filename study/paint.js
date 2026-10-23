@@ -117,30 +117,43 @@ export function paintBack(ctx, L, mode, light) {
         }
       }, base - H * 0.02, base + H * 0.06, 0);
     }
-    inkRidge(ctx, pts, { ink, alpha: inkA, size: 4.2 * L.u, dry, seed, cun: name === 'mid' ? 12 : 0, depth: H * 0.03, L });
+    // The far range is wash alone (in ink, a faint broken line); only
+    // nearer ranges carry a firm line.
+    if (name === 'far') {
+      if (mode === 'ink') inkRidge(ctx, pts, { ink, alpha: 0.2, size: 3.4 * L.u + 0.6, dry: 0.8, seed, cun: 0, depth: H * 0.03, gaps: 0.5 });
+    } else {
+      inkRidge(ctx, pts, { ink, alpha: mode === 'ink' ? 0.38 : 0.26, size: 4 * L.u + 0.6, dry, seed, cun: 7, depth: H * 0.03, gaps: 0.35 });
+    }
   }
 }
 
 // A ridge in ink: a broken line (a painter lifts the brush) and a few
 // texture strokes (cun) down the slopes, paler further away.
-function inkRidge(ctx, pts, { ink, alpha, size, dry, seed, cun, depth }) {
+function inkRidge(ctx, pts, { ink, alpha, size, dry, seed, cun, depth, gaps = 0.25 }) {
   const r = rng(seed * 7);
   let i = 0;
   while (i < pts.length - 4) {
-    const len = 12 + Math.floor(r() * 30);
+    const len = 10 + Math.floor(r() * 34);
     const seg = pts.slice(i, Math.min(pts.length, i + len));
-    if (seg.length > 3) dryStroke(ctx, resample(seg, 4), { size: size * (0.8 + r() * 0.6), ink, alpha, dry, seed: seed + i, press: 'swell' });
-    i += len + (r() < 0.6 ? 2 + Math.floor(r() * 5) : 0);
+    if (seg.length > 3) dryStroke(ctx, resample(seg, 4), { size: size * (0.7 + r() * 0.7), ink, alpha: alpha * (0.75 + r() * 0.35), dry, seed: seed + i });
+    // The brush lifts now and then, and the line goes on a little later.
+    i += len + (r() < gaps ? 3 + Math.floor(r() * 8) : 0);
   }
-  for (let k = 0; k < cun; k++) {
-    const j = 2 + Math.floor(r() * (pts.length - 4));
-    const [x, y] = pts[j];
-    const slope = Math.atan2(pts[j + 1][1] - pts[j - 1][1], pts[j + 1][0] - pts[j - 1][0]);
-    const a = Math.PI / 2 + slope * 1.2 + (r() < 0.5 ? -0.55 : 0.55);
-    const l = depth * (0.15 + r() * 0.3);
-    const y0 = y + 2 + r() * depth * 0.5;
-    dryStroke(ctx, curve([x, y0], [x + Math.cos(a) * l * 0.5 + 2, y0 + Math.sin(a) * l * 0.5], null, [x + Math.cos(a) * l, y0 + Math.sin(a) * l], 6),
-      { size: size * 0.7, ink, alpha: alpha * 0.35, dry: 0.8, seed: seed * 31 + k, press: 'flick', bristles: 3, pool: 0 });
+  // Texture strokes (cun) bunched on one or two slopes, not combed.
+  const clusters = cun ? 1 + Math.floor(r() * 2) : 0;
+  for (let c = 0; c < clusters; c++) {
+    const j0 = 4 + Math.floor(r() * (pts.length - 10));
+    const n = Math.max(3, Math.round(cun / clusters));
+    for (let k = 0; k < n; k++) {
+      const j = Math.max(1, Math.min(pts.length - 2, j0 + Math.round((r() - 0.5) * 8)));
+      const [x, y] = pts[j];
+      const slope = Math.atan2(pts[j + 1][1] - pts[j - 1][1], pts[j + 1][0] - pts[j - 1][0]);
+      const a = Math.PI / 2 + slope + (r() - 0.5) * 0.4 + (slope > 0 ? -0.45 : 0.45);
+      const l = depth * (0.2 + r() * 0.45);
+      const y0 = y + 2 + r() * depth * 0.35;
+      dryStroke(ctx, curve([x, y0], [x + Math.cos(a) * l * 0.5 + 1.5, y0 + Math.sin(a) * l * 0.5], null, [x + Math.cos(a) * l, y0 + Math.sin(a) * l], 6),
+        { size: size * 0.75, ink, alpha: alpha * 0.45, dry: 0.8, seed: seed * 31 + c * 50 + k, press: 'brush', bristles: 3, pool: 0.3 });
+    }
   }
 }
 
@@ -177,8 +190,10 @@ export function paintNear(ctx, L, mode) {
   inkRidge(ctx, pts, { ink, alpha: 0.58, size: 5 * L.u, dry: 0.45, seed: 29, cun: 8, depth: H * 0.025 });
   // A few far trees: dabs of the brush (mi dots), as ink painters do.
   const r = rng(77);
-  for (let k = 0; k < Math.round(W / 70); k++) {
-    const x = m + r() * W;
+  const groves = [];
+  for (let g = 0; g < Math.max(2, Math.round(W / 260)); g++) groves.push(m + r() * W);
+  for (let k = 0; k < Math.round(W / 60); k++) {
+    const x = groves[k % groves.length] + (r() - 0.5) * W * 0.07;
     const j = Math.max(1, Math.min(pts.length - 2, Math.round((x + 20) / 6)));
     const y = pts[j][1] + 2;
     const h = H * (0.018 + r() * 0.02);
@@ -232,13 +247,20 @@ export function paintGarden(ctx, L, mode) {
   for (let k = 0; k < nPosts; k++) posts.push(W * (0.07 + (0.86 * k) / (nPosts - 1)) + (r() - 0.5) * 8);
   for (const [i, x] of posts.entries()) {
     if (mode !== 'ink') wash(ctx, [[x - 3, L.trellisTop], [x + 3, L.trellisTop], [x + 3, L.groundY], [x - 3, L.groundY]], pig('wood', mode), { layers: 6, alpha: 0.12, spread: 0.02, seed: 50 + i, edge: 0.3, grain: 0.2 });
-    dryStroke(ctx, [[x, L.trellisTop - 2], [x + (r() - 0.5) * 2, (L.trellisTop + L.groundY) / 2], [x + (r() - 0.5) * 3, L.groundY + 2]].flatMap((p, j, a) => (j < a.length - 1 ? resample([p, a[j + 1]], 4) : [])),
-      { size: Math.max(2.2, 5 * L.u), ink, alpha: 0.7, dry: 0.55, seed: 60 + i, press: 'even' });
+    const lean = (r() - 0.5) * 0.05 * (L.groundY - L.trellisTop);
+    dryStroke(ctx, resample([[x + lean, L.trellisTop - 2], [x + lean * 0.4 + (r() - 0.5) * 2, (L.trellisTop + L.groundY) / 2], [x, L.groundY + 2]], 4),
+      { size: Math.max(2.2, 5 * L.u), ink, alpha: 0.7, dry: 0.6, seed: 60 + i, press: (u) => (u < 0.06 ? 1.3 : 1 - u * 0.35) });
   }
   for (const [wy, s] of [[L.wire1, 70], [L.wire2, 71]]) {
     const pts = [];
     for (let k = 0; k < posts.length - 1; k++) pts.push(...curve([posts[k], wy], [(posts[k] + posts[k + 1]) / 2, wy + H * 0.006], null, [posts[k + 1], wy], 10).slice(k ? 1 : 0));
-    stroke(ctx, pts, { size: 1.1, fill: css(ink), alpha: 0.45, press: 'even', wobble: 0.6, seed: s, pool: 0 });
+    // A wire breaks where the eye loses it (behind leaves, in the light).
+    for (let a = 0; a < pts.length - 2;) {
+      const len = 6 + Math.floor(r() * 12);
+      const seg = pts.slice(a, a + len);
+      if (seg.length > 1) stroke(ctx, seg, { size: 1.1, fill: css(ink), alpha: 0.42, press: 'even', wobble: 0.6, seed: s + a, pool: 0 });
+      a += len + 1 + Math.floor(r() * 3);
+    }
   }
   // The vine: an old trunk out of the ground, trained along the top wire.
   paintVine(ctx, L, mode, posts);
@@ -289,8 +311,10 @@ function paintVine(ctx, L, mode, posts) {
     for (let i = 4; i < pts.length; i += 3 + Math.floor(r() * 3)) {
       const [x, y] = pts[i];
       const up = r() < 0.6;
-      const s = H * (0.016 + r() * 0.01);
-      leaf(ctx, x, y, up ? -Math.PI / 2 + (r() - 0.5) * 1.4 : Math.PI / 2 + (r() - 0.5) * 1.2, s, mode, ink, 520 + a * 100 + i);
+      const s = H * (0.011 + r() * 0.012);
+      const ang = up ? -Math.PI / 2 + (r() - 0.5) * 1.4 : Math.PI / 2 + (r() - 0.5) * 1.2;
+      if (r() < 0.5) leaf(ctx, x, y, ang, s, mode, ink, 520 + a * 100 + i);
+      else boneless(ctx, x, y, ang, s, mode, ink, 520 + a * 100 + i);
       if (r() < 0.16) bunch(ctx, x + (r() - 0.5) * 6, y + 4, H * 0.016, mode, ink, 700 + a * 100 + i);
     }
   }
@@ -312,7 +336,19 @@ export function leaf(ctx, x, y, ang, s, mode, ink, seed) {
   stroke(ctx, [[x, y], [x + (tip[0] - x) * 0.75, y + (tip[1] - y) * 0.75]], { size: Math.max(0.7, s * 0.05), fill: css(ink), alpha: 0.35, press: 'flick', seed: seed + 2, pool: 0 });
 }
 
-function bunch(ctx, x, y, s, mode, ink, seed) {
+// A leaf with no outline (the 'boneless' way): two presses of the brush
+// side by side, the shape made by the brush itself.
+export function boneless(ctx, x, y, ang, s, mode, ink, seed) {
+  const tip = [x + Math.cos(ang) * s * 1.7, y + Math.sin(ang) * s * 1.7];
+  const nx = -Math.sin(ang), ny = Math.cos(ang);
+  for (const [k, side] of [[0, 1], [1, -1]]) {
+    const mid = [x + Math.cos(ang) * s * 0.8 + nx * side * s * 0.28, y + Math.sin(ang) * s * 0.8 + ny * side * s * 0.28];
+    const col = mode === 'ink' ? ink : pig('leaf', mode).map((v, i) => v * 0.55 + ink[i] * 0.45);
+    stroke(ctx, curve([x, y], mid, null, tip, 8), { size: s * 0.5, fill: css(col), alpha: mode === 'ink' ? 0.26 : 0.42, press: 'dab', wobble: 0.3, seed: seed + k, pool: 0.15 });
+  }
+}
+
+export function bunch(ctx, x, y, s, mode, ink, seed) {
   const r = rng(seed);
   const rows = [3, 3, 2, 2, 1];
   stroke(ctx, [[x, y - s * 0.4], [x + 1, y]], { size: 1, fill: css(ink), alpha: 0.5, press: 'even', seed, pool: 0 });
@@ -410,10 +446,16 @@ export function paintWater(ctx, W, H, mode, light) {
     for (let k = 0; k < 3; k++) {
       wash(ctx, [[-40, -40], [W + 40, -40], [W + 40, H + 40], [-40, H + 40]], pig('water', mode), { layers: 8, alpha: mode === 'colour' ? 0.09 : 0.06, spread: 0.03, seed: 810 + k, edge: 0, grain: 0.35 });
     }
-    // Deeper water towards the middle, very softly.
-    for (let k = 0; k < 2; k++) {
-      wash(ctx, blob(W * 0.5, H * 0.5, W * (0.5 + k * 0.1), H * (0.32 + k * 0.08), 12, 820 + k, 0.2), pig('deep', mode), { layers: 14, alpha: mode === 'colour' ? 0.035 : 0.025, spread: 0.35, seed: 821 + k, edge: 0, grain: 0.25 });
-    }
+    // Deeper water towards the middle: a soft gradient, then a light
+    // glaze over it so it reads as wash, not airbrush.
+    const d = pig('deep', mode);
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.52, 0, W * 0.5, H * 0.52, Math.max(W, H) * 0.62);
+    g.addColorStop(0, `rgba(${d[0]},${d[1]},${d[2]},${mode === 'colour' ? 0.32 : 0.22})`);
+    g.addColorStop(0.6, `rgba(${d[0]},${d[1]},${d[2]},${mode === 'colour' ? 0.12 : 0.08})`);
+    g.addColorStop(1, `rgba(${d[0]},${d[1]},${d[2]},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    wash(ctx, [[-40, -40], [W + 40, -40], [W + 40, H + 40], [-40, H + 40]], pig('water', mode), { layers: 6, alpha: 0.03, spread: 0.05, seed: 830, edge: 0, grain: 0.6 });
   }
   // A few still lines on the water, pale (the moving ones are laid live).
   const u = Math.min(W, H) / 800;
@@ -440,11 +482,17 @@ export function padSprite(s, mode, dpr, seed, flower = false) {
     const k = 1 + (r() - 0.5) * 0.08;
     pts.push([cx + Math.cos(a) * s * k, cy + Math.sin(a) * s * k * 0.92]);
   }
-  if (mode !== 'ink') wash(ctx, [[cx, cy], ...pts], pig('pad', mode), { layers: 9, alpha: mode === 'colour' ? 0.2 : 0.14, spread: 0.05, seed, edge: 0.5, grain: 0.4, depth: 2 });
-  stroke(ctx, [[cx, cy], ...pts, [cx, cy]], { size: Math.max(1.1, s * 0.05), fill: css(ink), alpha: 0.48, press: 'swell', wobble: 0.5, seed, pool: 0.3 });
-  for (let i = 0; i < 5; i++) {
-    const a = notch + ((i + 0.5) / 5) * (Math.PI * 2 - notch * 2);
-    stroke(ctx, [[cx, cy], [cx + Math.cos(a) * s * 0.75, cy + Math.sin(a) * s * 0.7]], { size: Math.max(0.6, s * 0.03), fill: css(ink), alpha: 0.25, press: 'flick', seed: seed + i + 1, pool: 0 });
+  if (mode !== 'ink') {
+    const bleed = pts.map(([px, py]) => [cx + (px - cx) * 1.07, cy + (py - cy) * 1.07]);
+    wash(ctx, [[cx, cy], ...bleed], pig('pad', mode), { layers: 9, alpha: mode === 'colour' ? 0.2 : 0.14, spread: 0.06, seed, edge: 0.7, grain: 0.4, depth: 2 });
+  }
+  // Two arcs, open at the notch and once more along the rim.
+  const gap = 8 + Math.floor(r() * 4);
+  stroke(ctx, pts.slice(0, gap), { size: Math.max(1.2, s * 0.06), fill: css(ink), alpha: 0.5, wobble: 0.5, seed, pool: 0.4 });
+  stroke(ctx, pts.slice(gap + 1), { size: Math.max(1.1, s * 0.055), fill: css(ink), alpha: 0.45, wobble: 0.5, seed: seed + 9, pool: 0.4 });
+  for (let i = 0; i < 3; i++) {
+    const a = notch + ((i + 1) / 4) * (Math.PI * 2 - notch * 2) + (r() - 0.5) * 0.3;
+    stroke(ctx, [[cx + Math.cos(a) * s * 0.12, cy + Math.sin(a) * s * 0.12], [cx + Math.cos(a) * s * 0.6, cy + Math.sin(a) * s * 0.55]], { size: Math.max(0.6, s * 0.03), fill: css(ink), alpha: 0.18, press: 'flick', seed: seed + i + 1, pool: 0 });
   }
   if (flower) {
     // A lotus, half open: a few petals, the brush pressed and lifted.

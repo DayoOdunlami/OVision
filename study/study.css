@@ -20,10 +20,12 @@ html, body { height: 100%; overflow: hidden; background: var(--paper); }
 .grain { position: absolute; inset: 0; z-index: 3; pointer-events: none; background-repeat: repeat; background-size: 384px 384px; mix-blend-mode: multiply; opacity: 0.9; }
 
 /* Night: the moon's light over the same sheet. */
-.night { position: absolute; inset: 0; z-index: 4; pointer-events: none; background: rgb(46, 56, 92); mix-blend-mode: multiply; opacity: 0; transition: opacity 2s var(--ease); }
-[data-light='night'] .night { background: rgb(52, 62, 100); }
+.night { position: absolute; inset: 0; z-index: 4; pointer-events: none; mix-blend-mode: multiply; opacity: 0; transition: opacity 2s var(--ease);
+  /* Laid like washes of indigo: deepest in the sky, lighter towards the water. */
+  background: linear-gradient(180deg, rgb(52, 60, 98) 0%, rgb(74, 84, 120) 45%, rgb(66, 78, 112) 100%); }
 .moon { position: absolute; z-index: 5; pointer-events: none; border-radius: 50%; opacity: 0; transition: opacity 2s var(--ease);
-  background: radial-gradient(closest-side, rgba(250, 244, 226, 0.95) 0 30%, rgba(250, 244, 226, 0.22) 34%, rgba(250, 244, 226, 0) 100%); }
+  /* Paper left bare, with a soft wash ring round it. */
+  background: radial-gradient(closest-side, rgb(243, 236, 223) 0 31%, rgba(243, 236, 223, 0.18) 33%, rgba(214, 220, 236, 0.16) 52%, rgba(214, 220, 236, 0) 100%); }
 #study[data-light='night'] .moon { opacity: 1; }
 .is-paper .moon, .in-pond .moon { opacity: 0 !important; }
 
@@ -64,6 +66,7 @@ html, body { height: 100%; overflow: hidden; background: var(--paper); }
 /* Guidance once, then out of the way. */
 .hint { position: absolute; z-index: 7; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom)); margin: 0; text-align: center; font: italic 0.95rem 'Literata Variable', Georgia, serif; color: var(--ink-2); opacity: 0; transition: opacity 1.6s var(--ease); pointer-events: none; }
 .hint.show { opacity: 1; }
+.is-paper .hint, .in-pond .hint { opacity: 0 !important; }
 #study[data-light='night'] .hint { color: rgba(239, 230, 210, 0.8); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
