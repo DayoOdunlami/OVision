@@ -26,6 +26,42 @@ export function createMotionContext() {
   };
 }
 
+// Adapted from the repository's KoiSchool fishBox/drawFish bounds approach.
+// No extra scaling, opacity or filtering: the original native draw runs once
+// at its original device-pixel phase, on a tightly bounded reusable surface.
+// Native blur therefore processes one fish instead of the full padded pond.
+export function createNativeFishPainter(target, { density = 1, padding = 0 } = {}) {
+  const buffer = document.createElement('canvas');
+  buffer.width = buffer.height = 1;
+  const ctx = buffer.getContext('2d');
+  return (fish) => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const take = (p) => {
+      if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
+      minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+    };
+    take(fish.head); take(fish.mouth); fish.parts.forEach(take);
+    fish.tail.pieces.forEach((row) => row.forEach(take));
+    fish.fins.fins.forEach((fin) => fin.pieces.forEach((row) => row.forEach(take)));
+    const margin = fish.head.radius * 22 + 45;
+    const x = Math.floor((minX - margin) * density), y = Math.floor((minY - margin) * density);
+    const width = Math.ceil((maxX + margin) * density) - x;
+    const height = Math.ceil((maxY + margin) * density) - y;
+    const roundedW = Math.ceil(width / 32) * 32, roundedH = Math.ceil(height / 32) * 32;
+    if (buffer.width < roundedW) buffer.width = roundedW;
+    if (buffer.height < roundedH) buffer.height = roundedH;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, buffer.width, buffer.height);
+    ctx.setTransform(density, 0, 0, density, -x, -y);
+    fish.draw(ctx);
+    target.save();
+    target.setTransform(1, 0, 0, 1, padding * density, padding * density);
+    target.drawImage(buffer, 0, 0, width, height, x, y, width, height);
+    target.restore();
+  };
+}
+
 function surface(width, height, density, padding = 0) {
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round((width + padding * 2) * density));
@@ -164,6 +200,7 @@ export function createPond(width, height, { reduced = false } = {}) {
   const colour = surface(W, H, density, padding);
   const ink = surface(W, H, density, padding);
   const pigment = surface(W, H, density, padding);
+  const paintNativeFish = createNativeFishPainter(colour.context, { density, padding });
   const fish = buildPondMix(3).map((variety) => new SpineFish(W, H, { ...variety, sizeScale: variety.sizeScale * .6 }));
   const initialPlaces = [[.25, .44], [.52, .55], [.74, .47]];
   fish.forEach((f, i) => f.shift(W * initialPlaces[i][0] - f.head.x, H * initialPlaces[i][1] - f.head.y));
@@ -187,7 +224,7 @@ export function createPond(width, height, { reduced = false } = {}) {
     // Keep the original update + draw pair together: draw owns fin/tail motion.
     for (const f of fish) {
       f.update(W, H, INACTIVE, EMPTY_ENV);
-      f.draw(paintColour ? colour.context : motionContext);
+      if (paintColour) paintNativeFish(f); else f.draw(motionContext);
     }
     version++;
     if (paintColour) colourVersion = version;
@@ -206,7 +243,7 @@ export function createPond(width, height, { reduced = false } = {}) {
       try {
         f.fins.act = STILL;
         f.tail.act = STILL;
-        f.draw(colour.context);
+        paintNativeFish(f);
       } finally {
         if (finsOwn) f.fins.act = finsAct; else delete f.fins.act;
         if (tailOwn) f.tail.act = tailAct; else delete f.tail.act;
