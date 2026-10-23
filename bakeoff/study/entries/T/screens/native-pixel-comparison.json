@@ -1,0 +1,58 @@
+{
+  "records": [
+    {
+      "name": "chagoi",
+      "density": 1,
+      "maxChannelDelta": 15,
+      "maxAlphaDelta": 3,
+      "changedPixels": 21,
+      "pixelsOver1": 19,
+      "nonzeroPixels": 16395
+    },
+    {
+      "name": "kohaku",
+      "density": 1,
+      "maxChannelDelta": 19,
+      "maxAlphaDelta": 1,
+      "changedPixels": 48,
+      "pixelsOver1": 14,
+      "nonzeroPixels": 11680
+    },
+    {
+      "name": "showa",
+      "density": 1,
+      "maxChannelDelta": 14,
+      "maxAlphaDelta": 1,
+      "changedPixels": 54,
+      "pixelsOver1": 32,
+      "nonzeroPixels": 12439
+    },
+    {
+      "name": "chagoi",
+      "density": 1.5,
+      "maxChannelDelta": 11,
+      "maxAlphaDelta": 2,
+      "changedPixels": 42,
+      "pixelsOver1": 19,
+      "nonzeroPixels": 31078
+    },
+    {
+      "name": "kohaku",
+      "density": 1.5,
+      "maxChannelDelta": 40,
+      "maxAlphaDelta": 20,
+      "changedPixels": 51,
+      "pixelsOver1": 17,
+      "nonzeroPixels": 21760
+    },
+    {
+      "name": "showa",
+      "density": 1.5,
+      "maxChannelDelta": 20,
+      "maxAlphaDelta": 4,
+      "changedPixels": 117,
+      "pixelsOver1": 59,
+      "nonzeroPixels": 23320
+    }
+  ]
+}

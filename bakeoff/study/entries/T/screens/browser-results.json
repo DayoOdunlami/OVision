@@ -1,0 +1,194 @@
+[
+  {
+    "state": "scroll-paper-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-ink-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-wash-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-colour-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-paper-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-ink-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-wash-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-colour-phone-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-paper-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-ink-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-wash-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-colour-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-paper-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-ink-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-wash-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-colour-phone-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-paper-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-ink-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-wash-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-colour-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-paper-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-ink-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-wash-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-colour-tablet-day",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-paper-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-ink-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-wash-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "scroll-colour-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-paper-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-ink-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-wash-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  },
+  {
+    "state": "pond-colour-tablet-night",
+    "pageErrors": 0,
+    "undersizedTargets": 0,
+    "samePose": true
+  }
+]
