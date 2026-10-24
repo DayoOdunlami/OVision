@@ -1,0 +1,75 @@
+@import '@fontsource-variable/literata/opsz.css';
+@import '@fontsource-variable/literata/opsz-italic.css';
+
+/* The study: a sheet of paper, the world painted on it, a quiet dial. */
+:root {
+  --paper: #f3ecdf;
+  --ink: #1d1b19;
+  --ink-2: rgba(29, 27, 25, 0.62);
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  color-scheme: light;
+}
+html, body { height: 100%; overflow: hidden; background: var(--paper); }
+#study { position: fixed; inset: 0; overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Literata Variable', Georgia, serif; color: var(--ink); }
+
+.world { position: absolute; inset: 0; display: block; transition: opacity 1.2s var(--ease); }
+.world.a { z-index: 2; }
+.world.b { z-index: 1; }
+
+/* The paper: one sheet over every step. Its grain sinks into the ink. */
+.grain { position: absolute; inset: 0; z-index: 3; pointer-events: none; background-repeat: repeat; background-size: 384px 384px; mix-blend-mode: multiply; opacity: 0.9; }
+
+/* Night: the moon's light over the same sheet. */
+.night { position: absolute; inset: 0; z-index: 4; pointer-events: none; mix-blend-mode: multiply; opacity: 0; transition: opacity 2s var(--ease);
+  /* Laid like washes of indigo: deepest in the sky, lighter towards the water. */
+  background: linear-gradient(180deg, rgb(52, 60, 98) 0%, rgb(74, 84, 120) 45%, rgb(66, 78, 112) 100%); }
+.moon { position: absolute; z-index: 5; pointer-events: none; border-radius: 50%; opacity: 0; transition: opacity 2s var(--ease);
+  /* Paper left bare, with a soft wash ring round it. */
+  background: radial-gradient(closest-side, rgb(243, 236, 223) 0 31%, rgba(243, 236, 223, 0.18) 33%, rgba(214, 220, 236, 0.16) 52%, rgba(214, 220, 236, 0) 100%); }
+#study[data-light='night'] .moon { opacity: 1; }
+.is-paper .moon, .in-pond .moon { opacity: 0 !important; }
+
+/* Paper: no world, one line of Scripture. */
+.verse { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 max(28px, 9vw); text-align: center; opacity: 0; pointer-events: none; transition: opacity 1.2s var(--ease); }
+.verse-text { margin: 0; max-width: 24em; font: italic 400 clamp(1.2rem, 1rem + 1vw, 1.75rem) / 1.55 'Literata Variable', Georgia, serif; }
+.verse-ref { margin: 1.1em 0 0; font: 600 0.75rem 'Literata Variable', Georgia, serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2); }
+.is-paper .verse { opacity: 1; }
+.is-paper .world { opacity: 0; }
+#study[data-light='night'].is-paper .night { opacity: 0.85 !important; }
+#study[data-light='night'].is-paper .verse { color: #efe6d2; }
+#study[data-light='night'].is-paper .verse-ref { color: rgba(239, 230, 210, 0.66); }
+
+/* The dial: four small marks, quiet until touched. */
+.dial { position: absolute; z-index: 8; right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); display: flex; align-items: center; gap: 0; padding: 0 4px; border-radius: 999px; background: rgba(243, 236, 223, 0.55); opacity: 0.62; transition: opacity 0.6s var(--ease), background 0.6s; }
+.dial:hover, .dial:focus-within, .dial.show-name { opacity: 1; background: rgba(243, 236, 223, 0.85); }
+.dial-name { font: italic 0.85rem 'Literata Variable', Georgia, serif; color: var(--ink-2); max-width: 0; overflow: hidden; white-space: nowrap; transition: max-width 0.6s var(--ease), margin 0.6s; }
+.dial.show-name .dial-name, .dial:hover .dial-name { max-width: 9em; margin: 0 6px 0 10px; }
+.dial-step { width: 44px; height: 48px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: pointer; }
+.dial-step i { display: block; width: 14px; height: 14px; border-radius: 50%; border: 1.3px solid rgba(29, 27, 25, 0.7); box-sizing: border-box; transition: transform 0.4s var(--ease); }
+.s-paper i { background: var(--paper); }
+.s-ink i { background: radial-gradient(circle at 40% 40%, transparent 0 36%, rgba(29, 27, 25, 0.85) 40% 52%, transparent 56%); }
+.s-wash i { background: linear-gradient(135deg, rgba(96, 134, 138, 0.55), rgba(204, 88, 62, 0.45)); }
+.s-colour i { background: conic-gradient(#d44234, #e4ba52, #5aa06a, #3d8ea0, #d44234); border-color: rgba(29, 27, 25, 0.45); }
+.dial-step[aria-checked='true'] i { transform: scale(1.35); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.2px rgba(29, 27, 25, 0.75); }
+.dial-step:focus-visible { outline: 2px solid #9a6a1e; outline-offset: -4px; border-radius: 12px; }
+#study[data-light='night'] .dial { background: rgba(40, 44, 60, 0.55); }
+#study[data-light='night'] .dial-name { color: rgba(239, 230, 210, 0.75); }
+#study[data-light='night'] .dial-step i { border-color: rgba(239, 230, 210, 0.75); }
+#study[data-light='night'] .dial-step[aria-checked='true'] i { box-shadow: 0 0 0 2px rgba(40, 44, 60, 0.9), 0 0 0 3.2px rgba(239, 230, 210, 0.8); }
+
+/* The way back from the pond. */
+.back { position: absolute; z-index: 8; left: max(10px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(243, 236, 223, 0.7); color: var(--ink); font-size: 1.3rem; display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.8s var(--ease) 0.6s; }
+.in-pond .back { opacity: 0.8; pointer-events: auto; }
+.is-paper .back { opacity: 0 !important; pointer-events: none !important; }
+#study[data-light='night'] .back { background: rgba(40, 44, 60, 0.65); color: #efe6d2; }
+
+/* Guidance once, then out of the way. */
+.hint { position: absolute; z-index: 7; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom)); margin: 0; text-align: center; font: italic 0.95rem 'Literata Variable', Georgia, serif; color: var(--ink-2); opacity: 0; transition: opacity 1.6s var(--ease); pointer-events: none; }
+.hint.show { opacity: 1; }
+.is-paper .hint, .in-pond .hint { opacity: 0 !important; }
+#study[data-light='night'] .hint { color: rgba(239, 230, 210, 0.8); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .world, .verse, .night, .moon, .back, .hint, .dial { transition: none; }
+}

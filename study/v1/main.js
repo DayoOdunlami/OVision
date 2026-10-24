@@ -1,5 +1,5 @@
-import SpineFish, { buildPondMixFromCounts, ShadowQuality, ShadingMode } from '../src/app/pond/SpineFish.js';
-import { VERSES } from '../src/app/content/verses.js';
+import SpineFish, { buildPondMixFromCounts, ShadowQuality, ShadingMode } from '../../src/app/pond/SpineFish.js';
+import { VERSES } from '../../src/app/content/verses.js';
 import { Wind } from './wind.js';
 import { stroke } from './brush.js';
 import { rng, clamp01, easeInOut } from './noise.js';
