@@ -7,7 +7,7 @@ import { createPond } from './fish.js';
 import { createGarden } from './garden.js';
 import { Wind } from './wind.js';
 import { lightAt, now } from '../app/calendar.js';
-import { readSwitches, scrollPond, pondView, gardenView } from './composition.js';
+import { readSwitches, scrollPond, pondView, gardenView, fishSize } from './composition.js';
 
 const params=new URLSearchParams(location.search),choices=['paper','ink','wash','colour'];
 const switches=readSwitches(location.search);
@@ -59,7 +59,8 @@ function showPrompt(text){
 }
 function syncGarden(){
  if(!garden||!switches.garden)return;
- const state=garden.getState(),clear=state.phase==='clear',ready=state.phase==='ready';
+ const state=garden.getState();if(!state.held)gardenHold=null;
+ const clear=state.phase==='clear',ready=state.phase==='ready';
  title.textContent=clear?'Make a little room.':ready?'Room for something good.':state.phase==='complete'?'A word for the day.':'Let it take root.';
  instruction.textContent=clear?'Lift a stone. Pull up the thorn.':ready?'Sow one word to carry into the day.':state.phase==='complete'?'Carry it with you.':'One word, growing along the trellis.';
  sow.hidden=!ready||dial==='paper';
@@ -196,7 +197,7 @@ function resize(){
  canvas.width=layer.width=Math.round(W*DPR);canvas.height=layer.height=Math.round(H*DPR);
  land=makeLandscape(W,H,light,{pigment:switches.pigment,atmosphere:switches.birds,pondRect:switches.squash?scrollPond(W,H):null});
  entry.style.left=land.rect.x+'px';entry.style.top=land.rect.y+'px';entry.style.width=land.rect.w+'px';entry.style.height=land.rect.h+'px';
- if(!pond||pond.width!==W||pond.height!==H)pond=createPond(W,H,{interactive:switches.touch,pigment:switches.pigment});
+ if(!pond||pond.width!==W||pond.height!==H)pond=createPond(W,H,{interactive:switches.touch,pigment:switches.pigment,sizeScale:fishSize(W,H,switches.fullsize)});
  if(switches.garden){
   if(!garden)garden=createGarden(W,H,{light,reduced,onChange:syncGarden,onPrompt:showPrompt});else garden.resize(W,H);
  }
