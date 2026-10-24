@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import SpineFish, { buildPondMixFromCounts } from '../app/pond/SpineFish.js';
 import { createPond, createMotionContext } from './fish.js';
+import { createPond as createV1Pond } from './v1/fish.js';
 
 // These invariants concern simulation ownership, rather than browser pixels.
 // The canvas stand-in permits the unmodified original renderer to run.
@@ -36,6 +37,11 @@ function scalarState(fish) {
   };
   visit(fish, 'fish');
   return entries;
+}
+
+function seededRandom(seed) {
+  let state = seed;
+  return () => { state = Math.imul(state, 1664525) + 1013904223 | 0; return (state >>> 0) / 4294967296; };
 }
 
 test('each tick calls the original update and original draw once; all media reuse that pose', () => {
@@ -120,4 +126,106 @@ test('the no-raster context preserves every original motion field for 120 ticks'
       assert.deepEqual(scalarState([hidden]), scalarState([painted]), `full pose/dynamics equivalence at tick ${tick}`);
     }
   } finally { Math.random = random; }
+});
+
+test('disabled inputs and untouched interactive koi preserve frozen V1 motion exactly', () => {
+  const previousDocument = globalThis.document, random = Math.random;
+  globalThis.document = { createElement: () => canvas() };
+  try {
+    Math.random = seededRandom(93); const original = createV1Pond(1180, 820);
+    Math.random = seededRandom(93); const disabled = createPond(1180, 820, { interactive: false });
+    Math.random = seededRandom(93); const untouched = createPond(1180, 820, { interactive: true });
+    disabled.setPointer({ x: 320, y: 420 });
+    assert.equal(disabled.feed({ x: 320, y: 420 }), false);
+    assert.equal(disabled.food.length, 0);
+    for (let tick = 0; tick < 60; tick++) {
+      for (const pond of [original, disabled, untouched]) {
+        Math.random = seededRandom(1600 + tick);
+        pond.step({ paintColour: false });
+      }
+      assert.deepEqual(scalarState(disabled.fish), scalarState(original.fish));
+      assert.deepEqual(scalarState(untouched.fish), scalarState(original.fish));
+    }
+  } finally { globalThis.document = previousDocument; Math.random = random; }
+});
+
+test('touch uses the original curiosity and flee responses; clearing touch restores inactive input', () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: () => canvas() };
+  const update = SpineFish.prototype.update;
+  const cursors = [];
+  SpineFish.prototype.update = function (w, h, cursor, env) { cursors.push(cursor); return update.call(this, w, h, cursor, env); };
+  try {
+    const pond = createPond(1180, 820, { interactive: true });
+    const curious = pond.fish.find((f) => f.variety.personality === 'curious');
+    const approach = { x: curious.mouth.x + 200, y: curious.mouth.y };
+    pond.setPointer(approach);
+    pond.step({ paintColour: false });
+    assert.equal(curious.target.x, approach.x);
+    assert.equal(curious.target.y, approach.y);
+    assert.ok(curious.energy > .5);
+    assert.ok(curious.targetDepth <= .2);
+    const shy = pond.fish.find((f) => f.variety.personality === 'normal');
+    const mouth = { x: shy.mouth.x, y: shy.mouth.y };
+    pond.setPointer({ x: mouth.x - 30, y: mouth.y });
+    pond.step({ paintColour: false });
+    assert.equal(shy.fleeCooldown, 89, 'the original normal koi flee duration is retained');
+    assert.ok(shy.target.x > mouth.x, 'the target is away from the finger');
+    pond.setPointer(null);
+    pond.step({ paintColour: false });
+    assert.ok(cursors.slice(-3).every((cursor) => cursor.x < -1000));
+    pond.setPointer({ x: NaN, y: 0 });
+    pond.step({ paintColour: false });
+    assert.ok(cursors.slice(-3).every((cursor) => cursor.x < -1000), 'malformed input cannot leave a stuck touch');
+  } finally { SpineFish.prototype.update = update; globalThis.document = previousDocument; }
+});
+
+test('a fed pinch is noticed and eaten through the original model; drawing never advances food', () => {
+  const previousDocument = globalThis.document, random = Math.random;
+  globalThis.document = { createElement: () => canvas() };
+  try {
+    const pond = createPond(1180, 820, { interactive: true });
+    const curious = pond.fish.find((f) => f.variety.personality === 'curious');
+    Math.random = () => 0; // All three pellets land at the chosen spot and are noticed.
+    const nearby = { x: curious.mouth.x + 70, y: curious.mouth.y };
+    pond.setPointer(nearby);
+    assert.equal(pond.feed(nearby), true);
+    assert.equal(pond.food.length, 3);
+    pond.step({ paintColour: false });
+    assert.ok(curious.feedTarget, 'the original food environment selects a noticed pellet');
+    assert.equal(curious.targetDepth, 0);
+    assert.equal(curious.fleeCooldown, 0, 'the hand that feeds does not frighten koi from their food');
+    const before = scalarState(pond.fish), pellets = pond.food;
+    const ctx = canvas().getContext('2d');
+    for (const media of [{ ink: 1 }, { ink: 1, wash: 1 }, { colour: 1 }]) pond.draw(ctx, media);
+    assert.deepEqual(scalarState(pond.fish), before);
+    assert.deepEqual(pond.food, pellets, 'dial changes do not age, move or consume food');
+    const atMouth = { x: curious.mouth.x, y: curious.mouth.y };
+    pond.feed(atMouth);
+    pond.step({ paintColour: false });
+    assert.ok(curious.fedCooldown > 0, 'the original fish eats and enters its resting cooldown');
+    assert.ok(pond.food.some((p) => p.eaten));
+    pond.step({ paintColour: false });
+    assert.ok(pond.food.every((p) => !p.eaten), 'eaten food is removed by the original bowl');
+  } finally { globalThis.document = previousDocument; Math.random = random; }
+});
+
+test('feeding is bounded, validates coordinates, and exposes immutable snapshots', () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: () => canvas() };
+  try {
+    const pond = createPond(390, 844, { interactive: true, reduced: true });
+    assert.equal(pond.feed({ x: -1, y: 400 }), false);
+    assert.equal(pond.feed({ x: 200, y: Infinity }), false);
+    for (let i = 0; i < 20; i++) pond.feed({ x: 200, y: 400 });
+    const food = pond.food;
+    assert.equal(food.length, 36, 'the original bowl cap bounds repeated feeding');
+    assert.ok(Object.isFrozen(food) && food.every(Object.isFrozen));
+    assert.throws(() => { food[0].x = 0; }, TypeError);
+    const poseBefore = scalarState(pond.fish);
+    pond.draw(canvas().getContext('2d'), { ink: 1, wash: 1 });
+    pond.step();
+    assert.deepEqual(scalarState(pond.fish), poseBefore, 'reduced motion can show food without animating koi');
+    assert.deepEqual(pond.food, food);
+  } finally { globalThis.document = previousDocument; }
 });

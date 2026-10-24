@@ -8,5 +8,7 @@
     "wind.js": "8b1b98353769205a9116bb1cc0377fee3a60a4588d9de0bdfb7d581aa817fae3",
     "study.css": "1e9a22bd0a47da3e9f168972061e943f9477bd525491671481d4c9bd9b23e0a0"
   },
-  "adjustment": "Only ../app/ imports become ../../app/ in the nested frozen directory."
+  "adjustment": "Only ../app/ imports become ../../app/ in the nested frozen directory.",
+  "originalEntrySha256": "18fb4c4f7fc4abdd016a5a91e1aa3ea007b30ea9296b77ce709e4a568e365ffa",
+  "entry": "The frozen original HTML is parsed before importing V1. Only its original script element is removed; the loader selects the frozen main module."
 }

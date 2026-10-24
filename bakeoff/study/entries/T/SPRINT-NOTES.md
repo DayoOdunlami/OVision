@@ -1,6 +1,6 @@
 # Sprint 2 · a closer place
 
-The starting point is T's delivered study at `79d8326`. Its six runtime modules and stylesheet are frozen under `src/study/v1/`; only nested imports of the unchanged app modules move up one extra directory. The entry markup stays the same. `?v=1` selects that copy before any Sprint 2 code or styles load. Hashes are recorded in `sprint1-freeze.json`.
+The starting point is T's delivered study at `79d8326`. Its six runtime modules and stylesheet are frozen under `src/study/v1/`; only nested imports of the unchanged app modules move up one extra directory. The original entry HTML is frozen too, and supplies the body before the old module loads. `?v=1` selects that copy before any Sprint 2 code or styles load. Hashes are recorded in `sprint1-freeze.json`.
 
 Sprint 2 is the default (`?v=2`). Every requested upgrade has one independent URL switch. `off` accepts a comma-separated list; unknown names are ignored. The table below is the implementation contract and will be updated with validation before hand-in.
 
