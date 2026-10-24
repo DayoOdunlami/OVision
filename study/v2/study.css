@@ -27,7 +27,7 @@ html, body { height: 100%; overflow: hidden; background: var(--paper); }
   /* Paper left bare, with a soft wash ring round it. */
   background: radial-gradient(closest-side, rgb(243, 236, 223) 0 31%, rgba(243, 236, 223, 0.18) 33%, rgba(214, 220, 236, 0.16) 52%, rgba(214, 220, 236, 0) 100%); }
 #study[data-light='night'] .moon { opacity: 1; }
-.is-paper .moon, .in-pond .moon { opacity: 0 !important; }
+.is-paper .moon, .in-place .moon { opacity: 0 !important; }
 
 /* Paper: no world, one line of Scripture. */
 .verse { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 max(28px, 9vw); text-align: center; opacity: 0; pointer-events: none; transition: opacity 1.2s var(--ease); }
@@ -59,17 +59,29 @@ html, body { height: 100%; overflow: hidden; background: var(--paper); }
 
 /* The way back from the pond. */
 .back { position: absolute; z-index: 8; left: max(10px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(243, 236, 223, 0.7); color: var(--ink); font-size: 1.3rem; display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.8s var(--ease) 0.6s; }
-.in-pond .back { opacity: 0.8; pointer-events: auto; }
+.in-place .back { opacity: 0.8; pointer-events: auto; }
 .is-paper .back { opacity: 0 !important; pointer-events: none !important; }
 #study[data-light='night'] .back { background: rgba(40, 44, 60, 0.65); color: #efe6d2; }
 
 /* Guidance once, then out of the way. */
 .hint { position: absolute; z-index: 7; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom)); margin: 0; text-align: center; font: italic 0.95rem 'Literata Variable', Georgia, serif; color: var(--ink-2); opacity: 0; transition: opacity 1.6s var(--ease); pointer-events: none; }
 .hint.show { opacity: 1; }
-.is-paper .hint, .in-pond .hint { opacity: 0 !important; }
+.is-paper .hint, .in-place .hint { opacity: 0 !important; }
 #study[data-light='night'] .hint { color: rgba(239, 230, 210, 0.8); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
+/* The garden's words: a stone's prompt at the top, guidance below. */
+.prompt { position: absolute; z-index: 7; left: 0; right: 0; top: max(72px, 11vh); margin: 0 auto; max-width: 30em; padding: 0 24px; text-align: center; opacity: 0; transition: opacity 0.9s var(--ease); pointer-events: none; }
+.prompt.show { opacity: 1; }
+.prompt p { margin: 0; }
+.prompt-word { font: 600 0.72rem 'Literata Variable', Georgia, serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-2); }
+.prompt-text { margin-top: 0.4em !important; font: italic 400 clamp(1.15rem, 1rem + 0.9vw, 1.6rem) / 1.45 'Literata Variable', Georgia, serif; }
+.how { position: absolute; z-index: 7; left: 0; right: 0; bottom: max(20px, env(safe-area-inset-bottom)); margin: 0 auto; max-width: 26em; padding: 0 24px; text-align: center; font: italic 0.98rem / 1.4 'Literata Variable', Georgia, serif; color: var(--ink-2); opacity: 0; transition: opacity 0.8s var(--ease); pointer-events: none; }
+.how.show { opacity: 1; }
+.is-paper .prompt, .is-paper .how { opacity: 0 !important; }
+#study[data-light='night'] .prompt, #study[data-light='night'] .how { color: #efe6d2; }
+#study[data-light='night'] .prompt-word { color: rgba(239, 230, 210, 0.7); }
+
 @media (prefers-reduced-motion: reduce) {
-  .world, .verse, .night, .moon, .back, .hint, .dial { transition: none; }
+  .world, .verse, .night, .moon, .back, .hint, .dial, .prompt, .how { transition: none; }
 }

@@ -58,8 +58,6 @@ export class VineMoment {
   draw(ctx, L, mode) {
     if (this.k <= 0 || !this.vine) return;
     const a = clamp01(this.k);
-    const ink = inkOf(mode);
-    const fill = `rgb(${ink.join(',')})`;
     const { box } = this;
     // The air clears in front of the trellis.
     const g = ctx.createLinearGradient(0, box.y - L.H * 0.02, 0, box.y + box.h + L.H * 0.02);
@@ -70,39 +68,46 @@ export class VineMoment {
     g.addColorStop(1, `rgba(${p},0)`);
     ctx.fillStyle = g;
     ctx.fillRect(0, box.y - L.H * 0.02, L.W, box.h + L.H * 0.04);
+    drawGrowth(ctx, this.vine, this.t, mode, a);
+  }
+}
+
+// The vine as far as it has grown at time t (seconds), in the study's
+// brush. Shared by the landscape's vine moment and the garden.
+export function drawGrowth(ctx, vine, t, mode, a = 1) {
+  ctx.save();
+  ctx.globalAlpha *= a;
+  const ink = inkOf(mode);
+  const fill = `rgb(${ink.join(',')})`;
+  const { stems, leaves, blossoms, em } = vine;
+  for (const st of stems) {
+    const grown = grownLength(st, t);
+    if (grown <= 1) continue;
+    const pts = [];
+    for (let i = 0; i < st.pts.length && st.s[i] <= grown; i += 2) pts.push(st.pts[i]);
+    if (pts.length < 2) continue;
+    const frac = grown / st.len;
+    const w = Math.max(1.4, st.w0 * 1.25);
+    const press = (u) => {
+      const g2 = u * frac;
+      const taper = (st.w0 + (st.w1 - st.w0) * g2) / st.w0;
+      return (u < 0.04 && !st.branch ? 1.3 : 1) * taper * (frac < 1 && u > 0.85 ? 1 - (u - 0.85) * 4 : 1);
+    };
+    if (mode !== 'ink') stroke(ctx, pts, { size: w * 1.9, fill: `rgb(${pig('leaf', mode).join(',')})`, alpha: 0.28, press, wobble: 0.2, seed: 2000 + Math.round(st.len), pool: 0 });
+    stroke(ctx, pts, { size: w, fill, alpha: st.tendril ? 0.5 : 0.82, press, wobble: 0.25, seed: 2100 + Math.round(st.len), pool: st.branch ? 0.1 : 0.4 });
+  }
+  for (const [i, lf] of leaves.entries()) {
+    const q = clamp01((t - lf.t0) / lf.dur);
+    if (q <= 0) continue;
+    boneless(ctx, lf.x, lf.y, lf.ang, lf.L * 0.55 * (0.4 + 0.6 * q), mode, ink, 2300 + i);
+  }
+  for (const [i, b] of blossoms.entries()) {
+    const q = clamp01((t - b.t0) / 2.5);
+    if (q <= 0 || b.kind !== 'grapes') continue;
     ctx.save();
-    ctx.globalAlpha = a;
-    const t = this.t;
-    const { stems, leaves, blossoms, em } = this.vine;
-    for (const st of stems) {
-      const grown = grownLength(st, t);
-      if (grown <= 1) continue;
-      const pts = [];
-      for (let i = 0; i < st.pts.length && st.s[i] <= grown; i += 2) pts.push(st.pts[i]);
-      if (pts.length < 2) continue;
-      const frac = grown / st.len;
-      const w = Math.max(1.4, st.w0 * 1.25);
-      const press = (u) => {
-        const g2 = u * frac;
-        const taper = (st.w0 + (st.w1 - st.w0) * g2) / st.w0;
-        return (u < 0.04 && !st.branch ? 1.3 : 1) * taper * (frac < 1 && u > 0.85 ? 1 - (u - 0.85) * 4 : 1);
-      };
-      if (mode !== 'ink') stroke(ctx, pts, { size: w * 1.9, fill: `rgb(${pig('leaf', mode).join(',')})`, alpha: 0.28, press, wobble: 0.2, seed: 2000 + Math.round(st.len), pool: 0 });
-      stroke(ctx, pts, { size: w, fill, alpha: st.tendril ? 0.5 : 0.82, press, wobble: 0.25, seed: 2100 + Math.round(st.len), pool: st.branch ? 0.1 : 0.4 });
-    }
-    for (const [i, lf] of leaves.entries()) {
-      const q = clamp01((t - lf.t0) / lf.dur);
-      if (q <= 0) continue;
-      boneless(ctx, lf.x, lf.y, lf.ang, lf.L * 0.55 * (0.4 + 0.6 * q), mode, ink, 2300 + i);
-    }
-    for (const [i, b] of blossoms.entries()) {
-      const q = clamp01((t - b.t0) / 2.5);
-      if (q <= 0 || b.kind !== 'grapes') continue;
-      ctx.save();
-      ctx.globalAlpha *= q;
-      bunch(ctx, b.x, b.y, em * 0.09, mode, ink, 2500 + i);
-      ctx.restore();
-    }
+    ctx.globalAlpha *= q;
+    bunch(ctx, b.x, b.y, em * 0.09, mode, ink, 2500 + i);
     ctx.restore();
   }
+  ctx.restore();
 }

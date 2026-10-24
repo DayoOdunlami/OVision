@@ -187,12 +187,12 @@ export function paintNear(ctx, L, mode) {
       }
     }, L.nearY - H * 0.02, L.nearY + H * 0.075, 0);
   }
-  inkRidge(ctx, pts, { ink, alpha: 0.58, size: 5 * L.u, dry: 0.45, seed: 29, cun: 8, depth: H * 0.025 });
+  inkRidge(ctx, pts, { ink, alpha: 0.46, size: 4.4 * L.u, dry: 0.5, seed: 29, cun: 6, depth: H * 0.025 });
   // A few far trees: dabs of the brush (mi dots), as ink painters do.
   const r = rng(77);
   const groves = [];
   for (let g = 0; g < Math.max(2, Math.round(W / 260)); g++) groves.push(m + r() * W);
-  for (let k = 0; k < Math.round(W / 60); k++) {
+  for (let k = 0; k < Math.round(W / 90); k++) {
     const x = groves[k % groves.length] + (r() - 0.5) * W * 0.07;
     const j = Math.max(1, Math.min(pts.length - 2, Math.round((x + 20) / 6)));
     const y = pts[j][1] + 2;

@@ -52,6 +52,10 @@ function grainPattern(ctx, rgb) {
   return ctx.createPattern(grainCache.get(key), 'repeat');
 }
 
+// How strong every wash is laid (sprint 2's 'richer' switch: off, the
+// wash is thinner and greyer, as the calmer study had it).
+export const washTone = { gain: 1, mute: 0 };
+
 // Lay a wash.
 //   poly    the shape, roughly (a few points is plenty)
 //   rgb     its pigment
@@ -65,6 +69,11 @@ export function wash(ctx, poly, rgb, {
 } = {}) {
   const r = rng(seed * 104729 + 7);
   const base = deform(poly, 2, spread * 0.9, r);
+  alpha *= washTone.gain;
+  if (washTone.mute) {
+    const g = (rgb[0] + rgb[1] + rgb[2]) / 3;
+    rgb = rgb.map((v) => Math.round(v + (g - v) * washTone.mute));
+  }
   const col = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   const pat = grain > 0 ? grainPattern(ctx, rgb) : null;
   let last = base;

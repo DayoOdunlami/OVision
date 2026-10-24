@@ -1,32 +1,31 @@
-import SpineFish, { buildPondMixFromCounts, ShadowQuality, ShadingMode } from '../../src/app/pond/SpineFish.js';
+import { ShadowQuality } from '../../src/app/pond/SpineFish.js';
+import { FoodBowl, feedGesture } from '../../src/app/pond/koiFood.js';
 import { VERSES } from '../../src/app/content/verses.js';
 import { Wind } from './wind.js';
 import { stroke } from './brush.js';
-import { rng, clamp01, easeInOut } from './noise.js';
+import { washTone } from './wash.js';
+import { rng, clamp01, easeInOut, smooth } from './noise.js';
 import { grainTile, inkTile } from './paper.js';
-import { drawInkKoi } from './inkKoi.js';
-import { VineMoment } from './vineMoment.js';
-import {
-  PAPER, layout, bankEdge, paintBack, paintNear, paintGarden, paintBank, paintWater, padSprite,
-  plantSprite, tuftSprite, mistSprite, plantSpots, sunAt, inkOf,
-} from './paint.js';
+import { PAPER, sunAt, inkOf, tuftSprite, mistSprite } from './paint.js';
+import { layout, paintScene, paintFront, reedSpots, drawRim, shadowSprite } from './scene.js';
+import { Pond } from './pond.js';
+import { Garden } from './garden.js';
+import { on } from './flags.js';
 import './study.css';
 
 // ═══════════════════════════════════════════════════════════════════
-// The study: one landscape, one dial (studio S).
+// The study, sprint 2: one landscape, one dial, two places to go in
+// (studio S).
 //
-// A hanging scroll: the pond at the foot (seen from above, as Quiet
-// Waters sees it), the garden above it (from the side), the hills and
-// sky at the top (far off). One sheet of paper, one brush, one wind.
-// The dial sets how much colour: Paper (no world, a line of Scripture),
-// Ink, Ink and wash, Colour. Touch the pond and the page slides down
-// into it, the water opening to fill the screen; the koi carry on as
-// they were.
+// Calmer than sprint 1: more paper, fewer things. Hills far off, the
+// garden on the rise, and in front a round pond, seen across so it lies
+// as an oval. Touch the pond and that same drawing un-squashes and
+// grows until you're looking down into it, the koi growing with it.
+// Touch the garden and you walk into it: clear the ground, sow the
+// week's word, and the vine writes it on the trellis.
 //
-// What moves: the koi (Quiet Waters' SpineFish, exactly), a few lines on
-// the water, rings where a koi rises, the plants and grasses in one
-// wind, mist drifting between the hills, now and then two or three
-// birds. Everything else was painted once.
+// Every change from sprint 1 sits behind a switch (flags.js); ?v=1 is
+// sprint 1 exactly.
 // ═══════════════════════════════════════════════════════════════════
 
 const q = new URLSearchParams(location.search);
@@ -37,6 +36,7 @@ const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
+const MOVE_S = 1.7;   // the move into a place, in seconds
 
 // ── Time and light ────────────────────────────────────────────────────
 const hourOf = () => {
@@ -58,7 +58,9 @@ root.innerHTML = `
   <section class="verse" aria-live="polite"><p class="verse-text"></p><p class="verse-ref"></p></section>
   <h1 class="sr">A landscape: the pond, the garden, the hills</h1>
   <button class="back" type="button" aria-label="Back to the landscape"><span aria-hidden="true">←</span></button>
-  <p class="hint" aria-hidden="true">Touch the pond to go in</p>
+  <p class="hint" aria-hidden="true"></p>
+  <div class="prompt" aria-live="polite"><p class="prompt-word"></p><p class="prompt-text"></p></div>
+  <p class="how" aria-live="polite"></p>
   <div class="dial" role="radiogroup" aria-label="How much colour">
     <span class="dial-name"></span>
     ${STEPS.map((s) => `<button type="button" role="radio" class="dial-step s-${s}" data-step="${s}" aria-label="${NAMES[s]}"><i></i></button>`).join('')}
@@ -67,59 +69,59 @@ const canvases = [...root.querySelectorAll('canvas.world')];
 const grainEl = root.querySelector('.grain');
 const nightEl = root.querySelector('.night');
 const moonEl = root.querySelector('.moon');
-const verseEl = root.querySelector('.verse');
 const backEl = root.querySelector('.back');
 const hintEl = root.querySelector('.hint');
+const promptEl = root.querySelector('.prompt');
+const howEl = root.querySelector('.how');
 const dialEl = root.querySelector('.dial');
 const dialName = root.querySelector('.dial-name');
 
-// The paper: one sheet, laid over every step with multiply.
 const grain = grainTile(384, 7);
 grainEl.style.backgroundImage = `url(${grain.toDataURL()})`;
 
-// This week's verse, for Paper.
+// This week's verse (for Paper) and word (for the garden).
 const week = Math.floor((Date.now() / 864e5 + 3) / 7);
 const verse = VERSES[week % VERSES.length];
 root.querySelector('.verse-text').textContent = verse.verse;
 root.querySelector('.verse-ref').textContent = verse.ref;
 
 // ── State ─────────────────────────────────────────────────────────────
-// ?compare=1: the pond split down the middle, colour koi beside ink koi.
 const compare = q.get('compare') === '1';
 let mode = STEPS.includes(q.get('dial')) ? q.get('dial') : STEPS.includes(store.get('study.dial')) ? store.get('study.dial') : 'ink';
-let hour = hourOf();
-let light = lightAt(hour);
-let W = 0, H = 0, dpr = 1, L = null, edge = null;
-let inPond = q.get('view') === 'pond';
-let pondU = inPond ? 1 : 0;          // 0 = the scroll, 1 = in the pond
-let pondTo = pondU;
+let light = lightAt(hourOf());
+let W = 0, H = 0, dpr = 1, L = null;
 const wind = new Wind({ reduced });
-const caches = new Map();            // mode → painted layers
-const vineM = new VineMoment('Rooted');
-const st = {
-  koi: [], ripples: [], lines: [], birds: [], nextBirds: 40 + Math.random() * 40,
-  stages: [1, 2, 3, 4, 4], pop: [0, 0, 0, 0, 0], cursor: { x: -9999, y: -9999 }, cursorUntil: 0,
-  px: 0, py: 0, tx: 0, ty: 0, t: 0, frame: 0,
-};
-const KINDS = [
-  { colour: 'red', fruit: true }, { colour: 'gold' }, { colour: 'white' }, { colour: 'pink' }, { colour: 'red' },
-];
+const caches = new Map();
+const pond = new Pond({ reduced });
+const garden = new Garden({
+  word: verse.word, ref: verse.ref, reduced,
+  onNote: (t) => { if (place === 'garden' && to === 1) say(t); },
+  onPrompt: (w, t) => { if (place === 'garden' && to === 1) showPrompt(w, t); },
+});
+const bowl = new FoodBowl();
+// Which place, and how far in (0 the landscape, 1 there).
+const start = q.get('view');
+let place = start === 'garden' && on('garden') ? 'garden' : 'pond';
+let U = start === 'pond' || (start === 'garden' && on('garden')) ? 1 : 0;
+let to = U;
+const st = { birds: [], nextBirds: 14 + Math.random() * 12, t: 0, frame: 0, noAct: false, dirty: true };
 
 // ── Size ──────────────────────────────────────────────────────────────
 function resize() {
   W = Math.max(1, Math.round(window.innerWidth));
   H = Math.max(1, Math.round(window.innerHeight));
-  // A big screen at 2× is a lot of pixels: cap the backing store.
   dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(3.4e6 / (W * H)));
   for (const c of canvases) {
     c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
     c.style.width = W + 'px'; c.style.height = H + 'px';
   }
-  L = layout(W, H);
-  edge = bankEdge(L);
+  L = layout(W, H, on('squash') ? 0.5 : 1);
   caches.clear();
+  pond.resize(W, H, L);
+  garden.resize(W, H, L);
+  pond.setInside(place === 'pond' && to === 1);
   placeMoon();
-  if (!st.koi.length) makeKoi();
+  st.dirty = true;
 }
 
 function placeMoon() {
@@ -129,52 +131,15 @@ function placeMoon() {
   moonEl.style.width = moonEl.style.height = `${s.r * 6}px`;
 }
 
-// ── The koi: Quiet Waters' own, swimming in the pond's frame ─────────
-// The pond is the whole screen, seen from above. On the scroll only a
-// band of it shows, through the bank; there the koi keep to that band
-// (only where they head next is chosen; how they swim is untouched).
-const band = () => ({ y0: L.bankY / 2 + 34, y1: H - L.bankY / 2 - 24 });
-function makeKoi() {
-  ShadingMode.current = 'auto';
-  ShadowQuality.blur = true;
-  const size = Math.max(0.5, Math.min(1.15, Math.min(W, H) / 720)) * 0.9;
-  const names = ['chagoi', 'kohaku', 'showa', 'sanke', 'ogon'];
-  st.koi = names.map((name, i) => {
-    const [v] = buildPondMixFromCounts({ [name]: 1 });
-    const fish = new SpineFish(W, H, { ...v, sizeScale: (v.sizeScale || 1) * size });
-    const plain = fish.pickWanderTarget.bind(fish);
-    fish.pickWanderTarget = function pick(w, h) {
-      plain(w, h);
-      // On the scroll, three keep to the band you can see; two roam
-      // the rest of the pond, under the bank, and come and go.
-      if (pondTo < 0.5 && this.__band) {
-        const b = band();
-        this.target.y = Math.max(b.y0, Math.min(b.y1, this.target.y));
-      }
-    };
-    const b = band();
-    fish.__band = i < 3;
-    if (fish.__band) {
-      fish.shift(0, b.y0 + (b.y1 - b.y0) * ((i + 0.5) / 3) - fish.head.y);
-      fish.target.y = Math.max(b.y0, Math.min(b.y1, fish.target.y));
-    }
-    return { fish, seed: 11 + i * 7 };
-  });
-  st.lines = Array.from({ length: 4 }, (_, i) => ({ x: Math.random() * W, y: 0, f: (i + 0.5) / 4, len: 0.06 + Math.random() * 0.06, v: 3 + Math.random() * 3, seed: 900 + i }));
-  if (reduced) for (let i = 0; i < 120; i++) stepKoi(1 / 60);
+// How each step's washes are laid ('richer' off: thinner and greyer, as
+// the calmer study had them). Set before anything is painted.
+function tone(m) {
+  const muted = m === 'wash' && !on('richer');
+  washTone.gain = muted ? 0.62 : 1;
+  washTone.mute = muted ? 0.35 : 0;
 }
 
-function stepKoi() {
-  const cur = st.frame < st.cursorUntil ? st.cursor : { x: -9999, y: -9999 };
-  for (const k of st.koi) {
-    k.fish.update(W, H, cur, {
-      food: [],
-      onBreak: (x, y) => { if (!reduced) st.ripples.push({ x, y, t: 0 }); },
-    });
-  }
-}
-
-// ── Painting a dial step's still layers (once) ────────────────────────
+// ── A dial step's still layers, painted once ─────────────────────────
 function sheet(w, h) {
   const c = document.createElement('canvas');
   c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
@@ -186,230 +151,147 @@ function sheet(w, h) {
 function layersFor(m) {
   const key = `${m}:${W}x${H}:${light}`;
   if (caches.has(m) && caches.get(m).key === key) return caches.get(m);
-  const back = sheet(W + L.m * 2, H * 0.42); paintBack(back.ctx, L, m, light);
-  const near = sheet(W + L.m * 2, H * 0.45); paintNear(near.ctx, L, m);
-  const garden = sheet(W + L.m * 2, H * 0.68); paintGarden(garden.ctx, L, m);
-  // The bank only needs its own band of the page.
-  const bankY0 = Math.max(0, L.bankY - H * 0.16), bankH = H * 0.22;
-  const bank = sheet(W + L.m * 2, bankH); bank.ctx.translate(0, -bankY0); paintBank(bank.ctx, L, m, edge);
-  bank.y0 = bankY0; bank.h = bankH;
-  // Everything above the pond that doesn't move, flattened into one
-  // sheet: drawn as a single image while the page is at rest.
-  const still = sheet(W, H * 0.68);
-  for (const [lay, h] of [[back, H * 0.42], [near, H * 0.45], [garden, H * 0.68]]) still.ctx.drawImage(lay.c, -L.m, 0, W + L.m * 2, h);
-  const water = sheet(W, H); paintWater(water.ctx, W, H, m, light);
-  const ps = Math.max(18, Math.min(W, H) * 0.06);
-  const b = band();
-  const r = rng(707);
-  const pads = [0, 1, 2, 3, 4].map((i) => {
-    const s = ps * (0.8 + r() * 0.5);
-    return {
-      ...padSprite(s, m, dpr, 600 + i, i === 1 || i === 3),
-      x: W * [0.14, 0.82, 0.36, 0.66, 0.9][i], y: i < 4 ? b.y0 + (b.y1 - b.y0) * [0.2, 0.3, 0.88, 0.7][i] : H * 0.88,
-      rot: r() * 6, phase: r() * 6,
-    };
-  });
-  const ph = Math.min(H * 0.12, W * 0.17);
-  const plants = KINDS.map((kind, i) => [0, 1, 2, 3, 4].map((s) => plantSprite(s, kind, ph, m, dpr, 1000 + i * 17)));
-  const tuftH = H * 0.03;
-  const tufts = [0, 1, 2].map((i) => tuftSprite(tuftH * (0.8 + i * 0.25), m, dpr, 1200 + i));
-  const mist = mistSprite(W * 1.4, H * 0.07, dpr, 1300);
-  const ink = inkTile(inkOf(m), 128, 11);
-  const out = { key, back, near, garden, still, bank, water, pads, plants, tufts, mist, ink, inkPat: null };
+  tone(m);
+  const scene = sheet(W, H); paintScene(scene.ctx, L, m, light);
+  const front = sheet(W, H); paintFront(front.ctx, L, m);
+  const reedH = Math.max(18, H * 0.035);
+  const reeds = [0, 1, 2].map((i) => tuftSprite(reedH * (0.9 + i * 0.25), m, dpr, 1200 + i));
+  const mist = mistSprite(W * 1.4, H * 0.06, dpr, 1300);
+  const band = L.nearY - L.farY + H * 0.1;
+  const shadow = shadowSprite(W * 0.8, band, m, dpr, 1350);
+  const out = { key, scene, front, reeds, mist, shadow, band, ink: inkTile(inkOf(m), 128, 11), inkPat: null };
   caches.set(m, out);
-  // Keep at most the two steps on screen.
   for (const k of caches.keys()) if (k !== m && k !== mode && k !== prevMode) caches.delete(k);
   return out;
 }
 
-// ── One frame of the world, in a dial step ────────────────────────────
-const tuftSpots = () => {
-  const r = rng(1400);
-  const out = [];
-  // In clumps of two to five, with gaps between; some mirrored, some
-  // smaller, so no two look stamped.
-  const clump = (x, y, bank) => {
-    const n = 2 + Math.floor(r() * 4);
-    for (let i = 0; i < n; i++) out.push({ x: x + (r() - 0.5) * 26, y: y + r() * L.H * 0.008, k: Math.floor(r() * 3), ph: r() * 6, s: 0.6 + r() * 0.6, flip: r() < 0.5 ? -1 : 1, bank });
-  };
-  for (let x = r() * 60; x < W; x += 60 + r() * 120) clump(x, L.groundY + L.H * 0.006, false);
-  for (let x = r() * 120; x < W; x += 140 + r() * 200) clump(x, L.bankY - L.H * 0.004, true);
-  return out;
-};
-let tufts = null;
-
-// Where a frame is laid on its canvas: the whole screen, or (comparing)
-// one half of it.
+// ── One frame, in a dial step ─────────────────────────────────────────
 let T = { s: 1, x: 0, y: 0 };
 const base = (ctx) => ctx.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y);
+let reeds = null;
 
 function render(ctx, m) {
+  tone(m);
   const Lr = layersFor(m);
   if (!Lr.inkPat) Lr.inkPat = ctx.createPattern(Lr.ink, 'repeat');
-  const e = easeInOut(pondU);
-  const off0 = L.bankY / 2;
-  const S = off0 * e;
-  const par = (k) => st.px * k * (1 - e);
   base(ctx);
   ctx.globalAlpha = 1;
-  ctx.fillStyle = `rgb(${PAPER[0]},${PAPER[1]},${PAPER[2]})`;
+  ctx.fillStyle = `rgb(${PAPER.join(',')})`;
   ctx.fillRect(0, 0, W, H);
-  // When the vine comes forward, the whole page leans in a little.
-  const cam = vineM.camera(L);
-  ctx.save();
-  if (cam.s !== 1) { ctx.translate(cam.cx, cam.cy); ctx.scale(cam.s, cam.s); ctx.translate(-cam.cx, -cam.cy); }
-
-  if (pondU < 0.999) {
+  const e = easeInOut(U);
+  const smoothMove = on('smoothmove') || place === 'garden';
+  const E = smoothMove ? e : 0;                    // how far the camera has gone
+  const pv = pond.view(place === 'pond' ? E : 0, { squash: on('squash') });
+  const gv = garden.view(place === 'garden' ? E : 0);
+  // The landscape camera follows whichever place you're going into, so
+  // the world around it comes with it as it grows.
+  let land = 1, cam = null;
+  if (place === 'pond' && E > 0) {
+    const k = pv.s / pv.s0;
+    cam = [pv.x, pv.y, k, L.pond.cx, L.pond.cy];
+    land = 1 - smooth(0.12, 0.85, E);
+  } else if (place === 'garden' && E > 0) {
+    const k = gv.u / L.garden.u;
+    cam = [gv.x, gv.y, k, L.garden.x, L.garden.y];
+    land = 1 - 0.88 * smooth(0.05, 0.75, E);
+  }
+  if (!smoothMove) land = 1 - smooth(0, 1, e);
+  const withCam = (fn) => {
     ctx.save();
-    ctx.translate(0, -S);
-    const dimAll = 1 - clamp01(e * 1.4);
-    ctx.globalAlpha = 0.35 + 0.65 * dimAll;
-    // The back: sky, sun, hills, the garden's still parts. At rest, one
-    // image; when the hand moves (a mouse), the layers part a little.
-    const parted = Math.abs(st.px) > 0.35 && e === 0;
-    if (parted) ctx.drawImage(Lr.back.c, -L.m + par(2), 0, W + L.m * 2, H * 0.42);
-    else ctx.drawImage(Lr.still.c, 0, 0, W, H * 0.68);
-    drawBirds(ctx, m);
-    // Mist drifting between the ranges.
-    const drift = reduced ? 0 : Math.sin(st.t * 0.012) * W * 0.08 + st.t * 1.2;
-    const mw = W * 1.4, mx = ((drift % mw) + mw) % mw;
-    for (const [y, a] of [[L.farY + H * 0.02, 0.9], [L.nearY - H * 0.03, 0.7]]) {
-      ctx.globalAlpha = a * (0.35 + 0.65 * dimAll);
-      ctx.drawImage(Lr.mist, mx - mw, y, mw, H * 0.07);
-      ctx.drawImage(Lr.mist, mx, y, mw, H * 0.07);
-    }
-    ctx.globalAlpha = 0.35 + 0.65 * dimAll;
-    if (parted) {
-      ctx.drawImage(Lr.near.c, -L.m + par(3.5), 0, W + L.m * 2, H * 0.45);
-      ctx.drawImage(Lr.garden.c, -L.m + par(5), 0, W + L.m * 2, H * 0.68);
-    }
-    // Plants in their beds, and grass, in the one wind.
-    const spots = plantSpots(L);
-    spots.forEach((x, i) => {
-      const sp = Lr.plants[i][st.stages[i]];
-      const sway = wind.sway(x, 0.05 + st.stages[i] * 0.015, i * 0.37);
-      const pop = st.pop[i] > 0 ? 1 - 0.12 * Math.sin(Math.PI * st.pop[i]) : 1;
-      ctx.save();
-      ctx.translate(x + par(5), L.bedTop - L.H * 0.006);
-      ctx.rotate(sway);
-      ctx.scale(pop, pop);
-      ctx.drawImage(sp.c, -sp.W / 2, -sp.H + 2, sp.W, sp.H);
-      ctx.restore();
-    });
-    if (!tufts) tufts = tuftSpots();
-    for (const tf of tufts) {
-      const sp = Lr.tufts[tf.k];
-      ctx.save();
-      ctx.translate(tf.x + par(tf.bank ? 7 : 5.5), tf.y);
-      ctx.rotate(wind.sway(tf.x, 0.12, tf.ph));
-      ctx.scale(tf.flip * tf.s, tf.s);
-      ctx.drawImage(sp.c, -sp.W / 2, -sp.H + 1, sp.W, sp.H);
-      ctx.restore();
-    }
+    if (cam) { ctx.translate(cam[0], cam[1]); ctx.scale(cam[2], cam[2]); ctx.translate(-cam[3], -cam[4]); }
+    ctx.globalAlpha = land;
+    fn();
+    ctx.restore();
     ctx.globalAlpha = 1;
-    vineM.draw(ctx, L, m);
-    ctx.restore();
+  };
+  const opts = { inkPat: Lr.inkPat, dpr, t: st.t, fullsize: on('fullsize'), noAct: st.noAct };
+  const food = on('touch') ? bowl : null;
+  const entering = place === 'pond' && smoothMove && E > 0;
+  const showLand = land > 0.002;
+  // Behind: sky, hills, the ground, and the garden on its rise.
+  if (showLand) {
+    withCam(() => {
+      ctx.drawImage(Lr.scene.c, 0, 0, W, H);
+      hillsLife(ctx, Lr, m, land);
+      ctx.globalAlpha = 1;
+      if (place !== 'garden') garden.draw(ctx, garden.view(0), m, { dpr, t: st.t, wind, alpha: land });
+    });
   }
-
-  // The pond: its water opens from the bank to fill the screen.
-  ctx.save();
-  const pondOff = off0 - S;
-  const k = 1 + 2.6 * Math.pow(e, 1.4);
-  const cy = (L.bankY + H) / 2 - S;
-  ctx.translate(W / 2, cy);
-  ctx.scale(k, k);
-  ctx.translate(-W / 2, -cy);
-  ctx.beginPath();
-  ctx.moveTo(edge[0][0] + par(7), edge[0][1] - S);
-  for (const p of edge) ctx.lineTo(p[0] + par(7), p[1] - S);
-  ctx.lineTo(W + 60, H + 80); ctx.lineTo(-60, H + 80);
-  ctx.closePath();
-  base(ctx);
-  if (cam.s !== 1) { ctx.translate(cam.cx, cam.cy); ctx.scale(cam.s, cam.s); ctx.translate(-cam.cx, -cam.cy); }
-  ctx.clip();
-  ctx.fillStyle = `rgb(${PAPER[0]},${PAPER[1]},${PAPER[2]})`;
-  ctx.fillRect(0, 0, W, H);
-  ctx.translate(par(7), pondOff);
-  // Only the part of the water that can show.
-  const top = cy - (cy - (L.bankY - S - H * 0.03)) * k;
-  const wy0 = Math.max(0, Math.min(H - 1, top - pondOff));
-  ctx.drawImage(Lr.water.c, 0, wy0 * dpr, W * dpr, (H - wy0) * dpr, 0, wy0, W, H - wy0);
-  drawWaterLines(ctx, m);
-  for (const kf of st.koi) {
-    if (m === 'colour') {
-      kf.fish.draw(ctx);
-    } else {
-      drawInkKoi(ctx, kf.fish, { mode: m, fill: Lr.inkPat, seed: kf.seed, act: !st.noAct });
-    }
+  // The pond: on the landscape, or growing as you go in.
+  if (entering) {
+    pond.draw(ctx, pv, m, { ...opts, bowl: food });
+    if (E < 0.999) drawRim(ctx, pv.x, pv.y, pv.s * pond.Rc, pv.s * pond.Rc * pv.q, m, 1 - smooth(0.4, 0.95, E), L.u * (1 + E));
+  } else if (showLand) {
+    withCam(() => {
+      const v0 = pond.view(0, { squash: on('squash') });
+      pond.draw(ctx, v0, m, opts);
+      drawRim(ctx, v0.x, v0.y, v0.s * pond.Rc, v0.s * pond.Rc * v0.q, m, 1, L.u);
+    });
   }
-  for (const p of Lr.pads) {
-    const bob = reduced ? 0 : Math.sin(st.t * 0.35 + p.phase) * 1.2;
-    ctx.save();
-    ctx.translate(p.x, p.y + bob);
-    ctx.rotate(p.rot + (reduced ? 0 : Math.sin(st.t * 0.21 + p.phase) * 0.03));
-    ctx.drawImage(p.c, -p.S / 2, -p.S / 2, p.S, p.S);
-    ctx.restore();
+  // In front: the lantern, the stones on the rim, the reeds.
+  if (showLand) {
+    withCam(() => {
+      ctx.drawImage(Lr.front.c, 0, 0, W, H);
+      drawReeds(ctx, Lr);
+    });
   }
-  drawRipples(ctx, m);
-  ctx.restore();
-
-  // The bank's stones and the lantern, in front, fading as the water opens.
-  if (pondU < 0.999) {
-    ctx.save();
-    ctx.globalAlpha = 1 - clamp01(e * 1.8);
-    ctx.translate(0, -S);
-    ctx.drawImage(Lr.bank.c, -L.m + par(7), Lr.bank.y0, W + L.m * 2, Lr.bank.h);
-    ctx.restore();
+  if (place === 'pond' && !smoothMove && e > 0.001) {
+    // Smoothmove off: the pond view simply fades in over the landscape.
+    ctx.globalAlpha = smooth(0, 1, e);
+    pond.draw(ctx, pond.view(1, { squash: on('squash') }), m, { ...opts, bowl: food });
+    ctx.globalAlpha = 1;
   }
-  ctx.restore();
+  if (place === 'garden') garden.draw(ctx, gv, m, { dpr, t: st.t, wind });
 }
 
-// A few lines on the water, drifting very slowly with the current.
-function drawWaterLines(ctx, m) {
-  const ink = inkOf(m);
-  for (const ln of st.lines) {
-    const y = H * (0.12 + ln.f * 0.78);
-    const l = Math.min(W, H) * ln.len;
-    const x = ((ln.x % (W + l * 2)) + W + l * 2) % (W + l * 2) - l;
-    stroke(ctx, [[x, y], [x + l * 0.3, y - l * 0.07], [x + l * 0.65, y + l * 0.05], [x + l, y - l * 0.02]], { size: 1.6, fill: `rgb(${ink.join(',')})`, alpha: m === 'colour' ? 0.12 : 0.2, press: 'swell', seed: ln.seed, pool: 0, wobble: 0.6 });
+// The hills' little life: mist drifting between the ranges, now and then
+// a cloud's shadow passing over, and rarely two or three birds.
+function hillsLife(ctx, Lr, m, a) {
+  const live = on('hills') && !reduced;
+  const drift = live ? Math.sin(st.t * 0.012) * W * 0.08 + st.t * 1.2 : W * 0.3;
+  const mw = W * 1.4, mx = ((drift % mw) + mw) % mw;
+  for (const [y, k] of [[L.farY + H * 0.015, 0.9], [L.nearY - H * 0.025, 0.7]]) {
+    ctx.globalAlpha = a * k;
+    ctx.drawImage(Lr.mist, mx - mw, y, mw, H * 0.06);
+    ctx.drawImage(Lr.mist, mx, y, mw, H * 0.06);
   }
+  if (live) {
+    const sw = W * 0.8, span = W + sw * 1.4;
+    const x = ((st.t * W / 140) % span) - sw * 0.7;
+    ctx.globalAlpha = a;
+    ctx.drawImage(Lr.shadow, x - sw / 2 + sw * 0.5 - sw * 0.5, L.farY - H * 0.05, sw, Lr.band);
+    drawBirds(ctx, m, a);
+  }
+  ctx.globalAlpha = a;
 }
 
-// Where a koi rises: two rings, painted, widening and fading.
-function drawRipples(ctx, m) {
-  const ink = inkOf(m);
-  for (const rp of st.ripples) {
-    for (let j = 0; j < 2; j++) {
-      const age = rp.t - j * 0.7;
-      if (age <= 0) continue;
-      const rr = 6 + age * 14, a = Math.max(0, 0.32 * (1 - age / 4.5));
-      if (a <= 0) continue;
-      const pts = [];
-      for (let i = 0; i <= 26; i++) {
-        const t = (i / 26) * Math.PI * 1.85 + rp.x * 0.01;
-        pts.push([rp.x + Math.cos(t) * rr, rp.y + Math.sin(t) * rr * 0.86]);
-      }
-      stroke(ctx, pts, { size: 1.5, fill: `rgb(${ink.join(',')})`, alpha: a * (m === 'colour' ? 0.7 : 1), press: 'swell', seed: 1700 + j, pool: 0, wobble: 0.4 });
-    }
-  }
-}
-
-// Now and then two or three birds cross the sky, slowly.
-function drawBirds(ctx, m) {
+function drawBirds(ctx, m, a) {
   const ink = inkOf(m);
   for (const b of st.birds) {
     const flap = Math.sin(st.t * 2.2 + b.ph) * 0.5 + 0.5;
-    const s = b.s;
-    const x = b.x, y = b.y;
-    stroke(ctx, [[x - s, y - s * 0.35 * flap], [x - s * 0.4, y - s * 0.12], [x, y]], { size: Math.max(1, s * 0.16), fill: `rgb(${ink.join(',')})`, alpha: 0.55, press: 'flick', seed: b.seed, pool: 0.3 });
-    stroke(ctx, [[x, y], [x + s * 0.45, y - s * 0.15], [x + s, y - s * 0.4 * flap]], { size: Math.max(1, s * 0.14), fill: `rgb(${ink.join(',')})`, alpha: 0.5, press: 'flick', seed: b.seed + 1, pool: 0 });
+    const s = b.s, x = b.x, y = b.y;
+    stroke(ctx, [[x - s, y - s * 0.35 * flap], [x - s * 0.4, y - s * 0.12], [x, y]], { size: Math.max(1, s * 0.16), fill: `rgb(${ink.join(',')})`, alpha: 0.5 * a, press: 'flick', seed: b.seed, pool: 0.3 });
+    stroke(ctx, [[x, y], [x + s * 0.45, y - s * 0.15], [x + s, y - s * 0.4 * flap]], { size: Math.max(1, s * 0.14), fill: `rgb(${ink.join(',')})`, alpha: 0.45 * a, press: 'flick', seed: b.seed + 1, pool: 0 });
+  }
+}
+
+function drawReeds(ctx, Lr) {
+  if (!reeds) reeds = reedSpots(L);
+  for (const rd of reeds) {
+    const sp = Lr.reeds[rd.k];
+    ctx.save();
+    ctx.translate(rd.x, rd.y);
+    ctx.rotate(wind.sway(rd.x, 0.1, rd.ph));
+    ctx.scale(rd.s, rd.s);
+    ctx.drawImage(sp.c, -sp.W / 2, -sp.H + 1, sp.W, sp.H);
+    ctx.restore();
   }
 }
 
 // ── The dial ──────────────────────────────────────────────────────────
 let prevMode = null;
-let reveal = null;              // { from, to, start }
-let front = 0;                  // which canvas shows the current step
+let reveal = null;
+let front = 0;
 function setDial(next, fromEl) {
   if (next === mode) return;
   store.set('study.dial', next);
@@ -419,18 +301,20 @@ function setDial(next, fromEl) {
   const was = mode;
   mode = next;
   updateDial();
+  st.dirty = true;
   if (was === 'paper' || next === 'paper') {
     root.classList.toggle('is-paper', next === 'paper');
     prevMode = null;
-    if (next !== 'paper') { const c = canvases[front]; c.style.maskImage = c.style.webkitMaskImage = ''; }
-    draw(true);
+    if (next !== 'paper') { const c = canvases[front]; c.style.maskImage = c.style.webkitMaskImage = ''; c.style.opacity = ''; }
+    draw();
     return;
   }
-  if (reduced) { draw(true); return; }
-  // The new step spreads out from the dial, like colour into wet paper.
+  if (reduced) { draw(); return; }
+  // Wetdial: the new step spreads out from the dial, like colour into
+  // wet paper. Off: a plain crossfade.
   prevMode = was;
   const r = fromEl.getBoundingClientRect();
-  reveal = { x: r.left + r.width / 2, y: r.top + r.height / 2, start: performance.now() };
+  reveal = { x: r.left + r.width / 2, y: r.top + r.height / 2, start: performance.now(), wet: on('wetdial') };
   front = 1 - front;
   canvases[front].style.zIndex = 2;
   canvases[1 - front].style.zIndex = 1;
@@ -448,93 +332,122 @@ dialEl.addEventListener('click', (e) => {
   if (b) setDial(b.dataset.step, b);
 });
 
-// ── Into the pond, and back ──────────────────────────────────────────
-function goPond(on) {
-  pondTo = on ? 1 : 0;
-  root.classList.toggle('in-pond', on);
-  const u = new URL(location.href);
-  if (on) u.searchParams.set('view', 'pond'); else u.searchParams.delete('view');
-  history.replaceState(null, '', u);
-  if (on) {
-    hintEl.classList.remove('show');
-    store.set('study.hinted', '1');
-    // In the pond, the koi have all of it: each picks somewhere new.
-    setTimeout(() => { for (const k of st.koi) if (k.fish.__band && !k.fish.isIdle) k.fish.pickWanderTarget(W, H); }, 900);
-  } else {
-    // Back on the scroll, the koi keep to the band they can be seen in.
-    const b = band();
-    for (const k of st.koi) if (k.fish.__band) k.fish.target.y = Math.max(b.y0, Math.min(b.y1, k.fish.target.y));
-  }
-  if (reduced) { pondU = pondTo; draw(true); }
+// ── Words in the garden ──────────────────────────────────────────────
+function say(text) {
+  clearTimeout(say.t);
+  howEl.textContent = text;
+  howEl.classList.toggle('show', Boolean(text));
+  if (text) say.t = setTimeout(() => howEl.classList.remove('show'), 6000);
 }
-backEl.addEventListener('click', () => goPond(false));
+function showPrompt(word, text) {
+  if (!word && !text) { promptEl.classList.remove('show'); return; }
+  promptEl.querySelector('.prompt-word').textContent = word;
+  promptEl.querySelector('.prompt-text').textContent = text;
+  promptEl.classList.add('show');
+}
+
+// ── Going in, and back ───────────────────────────────────────────────
+function go(where) {
+  if (where) place = where;
+  to = where ? 1 : 0;
+  root.classList.toggle('in-place', Boolean(where));
+  root.classList.toggle('in-garden', where === 'garden');
+  const u = new URL(location.href);
+  if (where) u.searchParams.set('view', where); else u.searchParams.delete('view');
+  history.replaceState(null, '', u);
+  hintEl.classList.remove('show');
+  if (where) store.set('study.hinted2', '1');
+  if (place === 'pond') setTimeout(() => pond.setInside(to === 1 && place === 'pond'), where ? 700 : 0);
+  if (where === 'garden') {
+    setTimeout(() => { if (to === 1 && garden.phase === 'clear') say('Clear the ground: lift the stones, pull up the thorn.'); }, reduced ? 0 : MOVE_S * 1000);
+  } else {
+    say('');
+    showPrompt('', '');
+  }
+  if (reduced) { U = to; st.dirty = true; draw(); }
+}
+backEl.addEventListener('click', () => go(null));
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && to === 1) go(null); });
+
+// The pond as it is at full view, for touches.
+const pondAt = (sx, sy) => pond.toPond(pond.view(1, { squash: on('squash') }), sx, sy);
+const inGarden = () => place === 'garden' && to === 1 && U > 0.98;
+const inPond = () => place === 'pond' && to === 1 && U > 0.98;
 
 let down = null;
 root.addEventListener('pointerdown', (e) => {
-  if (e.target.closest('button')) return;
-  down = { x: e.clientX, y: e.clientY, t: performance.now() };
+  if (e.target.closest('button') || mode === 'paper') return;
+  down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+  if (inGarden()) {
+    const p = garden.toLocal(garden.view(1), e.clientX, e.clientY);
+    if (garden.down(p, e.pointerId)) { root.setPointerCapture?.(e.pointerId); down.used = true; st.dirty = true; }
+  }
 });
+root.addEventListener('pointermove', (e) => {
+  if (inGarden()) { garden.move(garden.toLocal(garden.view(1), e.clientX, e.clientY), e.pointerId); st.dirty = true; }
+});
+const end = (e) => {
+  if (inGarden()) garden.up(garden.toLocal(garden.view(1), e.clientX, e.clientY), e.pointerId);
+  st.dirty = true;
+};
+root.addEventListener('pointercancel', end);
 root.addEventListener('pointerup', (e) => {
+  end(e);
   if (!down || e.target.closest('button')) return;
   const d = down;
   down = null;
-  if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 450 || mode === 'paper') return;
+  if (d.used || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 450 || mode === 'paper') return;
   const x = e.clientX, y = e.clientY;
-  if (pondTo === 1) {
-    // In the pond: the water rings, and the curious koi come to look.
-    st.ripples.push({ x, y, t: 0 });
-    st.cursor = { x, y }; st.cursorUntil = st.frame + 40;
-    if (reduced) draw(true);
+  if (inPond()) {
+    // The water rings; the curious come to look, the shy scatter.
+    const p = pondAt(x, y);
+    pond.touch(p.x, p.y, on('touch'));
+    if (reduced) draw();
     return;
   }
-  // While the vine is forward, a touch lets the garden settle back.
-  if (vineM.on) { vineM.stop(); if (reduced) { vineM.k = 0; draw(true); } return; }
-  // A plant grows one stage.
-  const spots = plantSpots(L);
-  const ph = Math.min(H * 0.12, W * 0.17);
-  for (let i = 0; i < spots.length; i++) {
-    if (Math.abs(x - spots[i]) < Math.max(26, ph * 0.35) && y < L.bedTop + 12 && y > L.bedTop - ph * 1.05) {
-      st.stages[i] = (st.stages[i] + 1) % 5;
-      st.pop[i] = 0.001;
-      if (reduced) draw(true);
-      return;
-    }
-  }
-  // The vine, along the trellis: it comes forward and writes our word.
-  if (y > L.trellisTop - 16 && y < L.wire2 + 10) {
-    vineM.start(L);
-    if (reduced) { vineM.t = 999; vineM.k = 1; draw(true); }
-    return;
-  }
-  if (y > L.bankY + 6) goPond(true);
+  if (to !== 0 || U > 0.02) return;
+  // On the landscape: the pond (inside its oval, with a little slack),
+  // or the garden.
+  const { cx, cy, rx, ry } = L.pond;
+  if (((x - cx) / (rx + 10)) ** 2 + ((y - cy) / (ry + 14)) ** 2 < 1) { go('pond'); return; }
+  if (on('garden') && garden.hitsGarden(garden.toLocal(garden.view(0), x, y))) go('garden');
 });
-root.addEventListener('pointermove', (e) => {
-  if (e.pointerType === 'mouse') { st.tx = (e.clientX / W) * 2 - 1; st.ty = (e.clientY / H) * 2 - 1; }
-});
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pondTo === 1) goPond(false); });
+
+// Feeding: double-tap (or press and hold) in the pond, as in Quiet Waters.
+if (on('touch')) {
+  feedGesture({
+    bowl,
+    canStart: () => inPond() && mode !== 'paper',
+    toLocal: (e) => (inPond() && !(e.target instanceof Element && e.target.closest('.dial, .back')) ? pondAt(e.clientX, e.clientY) : null),
+  });
+}
 
 // ── The loop ─────────────────────────────────────────────────────────
 let last = performance.now();
-let raf = 0;
 const times = [];
 let lite = false;
-function draw(once = false) {
+function draw() {
   root.classList.toggle('is-paper', mode === 'paper');
   nightEl.style.opacity = light === 'night' ? '1' : light === 'dusk' ? '0.25' : light === 'dawn' ? '0.15' : '0';
   root.dataset.light = light;
   if (mode === 'paper') return;
   if (reveal) {
-    const k = clamp01((performance.now() - reveal.start) / 1500);
-    const rad = easeInOut(k) * Math.hypot(W, H) * 1.15;
+    const k = clamp01((performance.now() - reveal.start) / (reveal.wet ? 1500 : 1100));
     const c = canvases[front];
-    const mask = `radial-gradient(circle at ${reveal.x}px ${reveal.y}px, #000 ${rad}px, transparent ${rad + 180}px)`;
-    c.style.maskImage = c.style.webkitMaskImage = mask;
+    if (reveal.wet) {
+      const rad = easeInOut(k) * Math.hypot(W, H) * 1.15;
+      const mask = `radial-gradient(circle at ${reveal.x}px ${reveal.y}px, #000 ${rad}px, transparent ${rad + 180}px)`;
+      c.style.maskImage = c.style.webkitMaskImage = mask;
+    } else {
+      c.style.transition = 'none';
+      c.style.opacity = String(easeInOut(k));
+    }
     render(canvases[1 - front].getContext('2d'), prevMode);
     render(c.getContext('2d'), mode);
-    if (k >= 1) { reveal = null; prevMode = null; c.style.maskImage = c.style.webkitMaskImage = ''; }
+    if (k >= 1) { reveal = null; prevMode = null; c.style.maskImage = c.style.webkitMaskImage = ''; c.style.opacity = ''; c.style.transition = ''; }
   } else if (compare) {
     // The same koi at the same moment, twice: today's colour, and the
-    // painted step. (Their fins and tail move once a frame, in the first.)
+    // painted step.
     const ctx = canvases[front].getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = 'rgb(46,44,40)';
@@ -560,43 +473,47 @@ function draw(once = false) {
     canvases[1 - front].style.zIndex = 1;
     render(canvases[front].getContext('2d'), mode);
   }
+  st.dirty = false;
 }
 
 function tick(now) {
-  raf = requestAnimationFrame(tick);
+  requestAnimationFrame(tick);
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (document.hidden) return;
-  // On a slow tablet, draw every other frame (the world is slow anyway).
-  if (!lite && dt > 0) {
+  if (!lite && dt > 0 && !reduced) {
     times.push(dt);
     if (times.length === 60) { const s = [...times].sort((a, b) => a - b); if (s[30] > 0.026) { lite = true; ShadowQuality.blur = false; } times.length = 0; }
   }
   st.frame++;
+  // The move into (or out of) a place.
+  if (U !== to) {
+    U += Math.sign(to - U) * dt / MOVE_S;
+    U = to > U ? Math.min(to, U) : Math.max(to, U);
+    st.dirty = true;
+  }
+  garden.step(dt);
+  if (reduced) {
+    // A still page: only what the hand moves, moves.
+    if (st.dirty || garden.grab || garden.busy) draw();
+    return;
+  }
   st.t += dt;
   wind.step(dt);
-  vineM.step(dt);
-  // Parallax eases after the hand (or the tilt).
-  st.px += (st.tx * 6 - st.px) * Math.min(1, dt * 1.5);
-  // The move into (or out of) the pond: about a second and a half.
-  if (pondU !== pondTo) {
-    pondU += Math.sign(pondTo - pondU) * dt / 1.5;
-    pondU = pondTo > pondU ? Math.min(pondTo, pondU) : Math.max(pondTo, pondU);
+  pond.step({ bowl: on('touch') && place === 'pond' && to === 1 ? bowl : null });
+  pond.tick(dt);
+  // Birds: rarely, two or three, small and slow, far off.
+  if (on('hills')) {
+    st.nextBirds -= dt;
+    if (st.nextBirds <= 0 && !st.birds.length && to === 0) {
+      const n = 2 + Math.floor(Math.random() * 2);
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      for (let i = 0; i < n; i++) st.birds.push({ x: dir > 0 ? -30 - i * 24 : W + 30 + i * 24, y: H * (0.1 + Math.random() * 0.07) + i * 5, v: dir * (12 + Math.random() * 4), s: Math.min(W, H) * 0.01 * (0.9 + Math.random() * 0.3), ph: Math.random() * 6, seed: 1900 + i });
+      st.nextBirds = 70 + Math.random() * 60;
+    }
+    for (const b of st.birds) b.x += b.v * dt;
+    st.birds = st.birds.filter((b) => b.x > -120 && b.x < W + 120);
   }
-  stepKoi();
-  for (const ln of st.lines) ln.x += ln.v * dt;
-  for (let i = st.ripples.length - 1; i >= 0; i--) { st.ripples[i].t += dt; if (st.ripples[i].t > 6) st.ripples.splice(i, 1); }
-  for (let i = 0; i < st.pop.length; i++) if (st.pop[i] > 0) st.pop[i] = st.pop[i] + dt / 0.8 > 1 ? 0 : st.pop[i] + dt / 0.8;
-  // Birds: at most one small flight every minute or so.
-  st.nextBirds -= dt;
-  if (st.nextBirds <= 0 && !st.birds.length && pondTo === 0) {
-    const n = 2 + Math.floor(Math.random() * 2);
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    for (let i = 0; i < n; i++) st.birds.push({ x: dir > 0 ? -30 - i * 26 : W + 30 + i * 26, y: H * (0.07 + Math.random() * 0.08) + i * 6, v: dir * (16 + Math.random() * 4), s: Math.min(W, H) * 0.012 * (0.9 + Math.random() * 0.3), ph: Math.random() * 6, seed: 1900 + i });
-    st.nextBirds = 60 + Math.random() * 60;
-  }
-  for (const b of st.birds) b.x += b.v * dt;
-  st.birds = st.birds.filter((b) => b.x > -120 && b.x < W + 120);
   if (lite && st.frame % 2) return;
   draw();
 }
@@ -605,22 +522,23 @@ function tick(now) {
 resize();
 updateDial();
 dialEl.classList.remove('show-name');
-root.classList.toggle('in-pond', inPond);
-if (!store.get('study.hinted') && !inPond) {
-  setTimeout(() => hintEl.classList.add('show'), 2500);
+root.classList.toggle('in-place', U === 1);
+root.classList.toggle('in-garden', U === 1 && place === 'garden');
+hintEl.textContent = on('garden') ? 'Touch the pond, or the garden' : 'Touch the pond to go in';
+if (!store.get('study.hinted2') && U === 0) {
+  setTimeout(() => { if (to === 0) hintEl.classList.add('show'); }, 2500);
   setTimeout(() => hintEl.classList.remove('show'), 10000);
 }
+if (U === 1 && place === 'garden') setTimeout(() => say('Clear the ground: lift the stones, pull up the thorn.'), 600);
 let rt = 0;
-window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); tufts = null; draw(true); }, 150); });
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); reeds = null; draw(); }, 150); });
 setInterval(() => {
-  const h = hourOf();
-  if (lightAt(h) !== light) { hour = h; light = lightAt(h); caches.clear(); draw(true); }
+  const l = lightAt(hourOf());
+  if (l !== light) { light = l; caches.clear(); pond.sheets.clear(); garden.sprites.clear(); st.dirty = true; draw(); }
 }, 60000);
-// ?vine=1 opens with the vine forward, writing the word.
-if (q.get('vine') === '1' && !inPond) { vineM.start(L); if (reduced) { vineM.t = 999; vineM.k = 1; } }
-if (reduced) {
-  draw(true);
-} else {
-  raf = requestAnimationFrame(tick);
-}
+// The words on the stones are set in Literata: repaint once it's in.
+document.fonts?.load('italic 500 16px "Literata Variable"').then(() => { garden.sprites.clear(); st.dirty = true; if (reduced) draw(); }).catch(() => {});
+draw();
+requestAnimationFrame(tick);
 document.body.dataset.ready = '1';
+if (q.get('debug') === '1') window.__study = { garden, pond, go };
