@@ -1,0 +1,12 @@
+{
+  "commit": "79d8326cec33973ad8bac4e0eb0ca7d4642c1d1c",
+  "sha256BeforeImportPathAdjustment": {
+    "main.js": "f6ab03bc0510f9b24bdfb43bb3b93b6109397b839fd1a3e24b8af0bea95dacfd",
+    "fish.js": "00113ae48614cefcd8fe0ae4c5b784a945202f2d52a10819103d8796258746ff",
+    "brush.js": "3c62da1566888989190b2a18721b46effc798005f8cd367c038d6d68a4b3dba5",
+    "landscape.js": "2bc407a34a69983d6f995c67806b6f4ae84cb2e02581386faf32e95b56064d16",
+    "wind.js": "8b1b98353769205a9116bb1cc0377fee3a60a4588d9de0bdfb7d581aa817fae3",
+    "study.css": "1e9a22bd0a47da3e9f168972061e943f9477bd525491671481d4c9bd9b23e0a0"
+  },
+  "adjustment": "Only ../app/ imports become ../../app/ in the nested frozen directory."
+}
