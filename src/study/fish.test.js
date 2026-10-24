@@ -174,27 +174,6 @@ test('disabled inputs and untouched interactive koi preserve frozen V1 motion ex
   } finally { globalThis.document = previousDocument; Math.random = random; }
 });
 
-test('sizeScale configures native constructor mass and radius while retaining the original update/draw pair', () => {
-  const previousDocument = globalThis.document, random = Math.random;
-  globalThis.document = { createElement: () => canvas() };
-  try {
-    Math.random = seededRandom(93); const original = createPond(1180, 820);
-    Math.random = seededRandom(93); const full = createPond(1180, 820, { sizeScale: 1.05 });
-    full.fish.forEach((f, i) => {
-      assert.ok(Math.abs(f.mass / original.fish[i].mass - (1.05 / .6) ** 2) < 1e-10);
-      assert.ok(f.head.radius > original.fish[i].head.radius);
-      let updates = 0, draws = 0;
-      const update = f.update, draw = f.draw;
-      f.update = function (...args) { updates++; return update.apply(this, args); };
-      f.draw = function (...args) { draws++; return draw.apply(this, args); };
-      full.step({ paintColour: false });
-      assert.equal(updates, 1);
-      assert.equal(draws, 1);
-      f.update = update; f.draw = draw;
-    });
-  } finally { globalThis.document = previousDocument; Math.random = random; }
-});
-
 test('touch uses the original curiosity and flee responses; clearing touch restores inactive input', () => {
   const previousDocument = globalThis.document;
   globalThis.document = { createElement: () => canvas() };

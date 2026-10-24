@@ -231,7 +231,7 @@ function drawFood(ctx, bowl, { ink = 0, wash: pigment = 0, colour = 0, night = f
 }
 
 /** A persistent simulation; sizeScale configures the original constructor only. */
-export function createPond(width, height, { reduced = false, interactive = false, pigment: enriched = false, sizeScale = .6 } = {}) {
+export function createPond(width, height, { reduced = false, interactive = false, pigment: enriched = false } = {}) {
   const W = Math.max(1, width), H = Math.max(1, height);
   const density = Math.min(1.5, globalThis.devicePixelRatio || 1);
   // The scroll camera sees beyond the simulation rectangle. Retain complete
@@ -242,7 +242,7 @@ export function createPond(width, height, { reduced = false, interactive = false
   const ink = surface(W, H, density, padding);
   const pigment = surface(W, H, density, padding);
   const paintNativeFish = createNativeFishPainter(colour.context, { density, padding });
-  const fish = buildPondMix(3).map((variety) => new SpineFish(W, H, { ...variety, sizeScale: variety.sizeScale * sizeScale }));
+  const fish = buildPondMix(3).map((variety) => new SpineFish(W, H, { ...variety, sizeScale: variety.sizeScale * .6 }));
   const bowl = interactive ? new FoodBowl({ scale: .78 }) : null;
   let pointer = null;
   const validPoint = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= W && p.y >= 0 && p.y <= H;

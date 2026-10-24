@@ -7,7 +7,7 @@ import { createPond } from './fish.js';
 import { createGarden } from './garden.js';
 import { Wind } from './wind.js';
 import { lightAt, now } from '../app/calendar.js';
-import { readSwitches, scrollPond, pondView, gardenView, fishSize } from './composition.js';
+import { readSwitches, scrollPond, pondView, gardenView } from './composition.js';
 
 const params=new URLSearchParams(location.search),choices=['paper','ink','wash','colour'];
 const switches=readSwitches(location.search);
@@ -197,7 +197,7 @@ function resize(){
  canvas.width=layer.width=Math.round(W*DPR);canvas.height=layer.height=Math.round(H*DPR);
  land=makeLandscape(W,H,light,{pigment:switches.pigment,atmosphere:switches.birds,pondRect:switches.squash?scrollPond(W,H):null});
  entry.style.left=land.rect.x+'px';entry.style.top=land.rect.y+'px';entry.style.width=land.rect.w+'px';entry.style.height=land.rect.h+'px';
- if(!pond||pond.width!==W||pond.height!==H)pond=createPond(W,H,{interactive:switches.touch,pigment:switches.pigment,sizeScale:fishSize(W,H,switches.fullsize)});
+ if(!pond||pond.width!==W||pond.height!==H)pond=createPond(W,H,{interactive:switches.touch,pigment:switches.pigment});
  if(switches.garden){
   if(!garden)garden=createGarden(W,H,{light,reduced,onChange:syncGarden,onPrompt:showPrompt});else garden.resize(W,H);
  }
