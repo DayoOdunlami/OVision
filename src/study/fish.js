@@ -32,10 +32,16 @@ export function createMotionContext() {
 // at its original device-pixel phase, on a tightly bounded reusable surface.
 // Native blur therefore processes one fish instead of the full padded pond.
 export function createNativeFishPainter(target, { density = 1, padding = 0 } = {}) {
-  const buffer = document.createElement('canvas');
-  buffer.width = buffer.height = 1;
-  const ctx = buffer.getContext('2d');
+  const surfaces = new WeakMap();
   return (fish) => {
+    let surface = surfaces.get(fish);
+    if (!surface) {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 1;
+      surface = { canvas, ctx: canvas.getContext('2d') };
+      surfaces.set(fish, surface);
+    }
+    const { canvas: buffer, ctx } = surface;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const take = (p) => {
       if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
@@ -50,8 +56,10 @@ export function createNativeFishPainter(target, { density = 1, padding = 0 } = {
     const width = Math.ceil((maxX + margin) * density) - x;
     const height = Math.ceil((maxY + margin) * density) - y;
     const roundedW = Math.ceil(width / 32) * 32, roundedH = Math.ceil(height / 32) * 32;
-    if (buffer.width < roundedW) buffer.width = roundedW;
-    if (buffer.height < roundedH) buffer.height = roundedH;
+    // Each koi keeps its own bounds. Release a formerly broad orientation
+    // once it becomes substantially narrower; small changes reuse the bucket.
+    if (buffer.width < roundedW || roundedW < buffer.width * .6) buffer.width = roundedW;
+    if (buffer.height < roundedH || roundedH < buffer.height * .6) buffer.height = roundedH;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, buffer.width, buffer.height);
     ctx.setTransform(density, 0, 0, density, -x, -y);

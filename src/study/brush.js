@@ -68,13 +68,57 @@ function markSurface(points, padding = 8) {
   } else { markSurfaces.delete(key); markSurfaces.set(key, canvas); }
   const ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-  ctx.clearRect(0, 0, bw, bh); ctx.setTransform(1, 0, 0, 1, -minX, -minY);
+  // Only this crop is copied out. Clear its sampling border as well, so a
+  // smaller reused mark cannot pick up old ink at a bilinear source edge.
+  ctx.clearRect(0, 0, Math.min(bw, w + 2), Math.min(bh, h + 2)); ctx.setTransform(1, 0, 0, 1, -minX, -minY);
   return { canvas, ctx, x: minX, y: minY, w: Math.min(w, bw), h: Math.min(h, bh) };
 }
 function putMark(target, mark, alpha = 1) {
   target.save(); target.globalAlpha *= alpha;
   target.drawImage(mark.canvas, 0, 0, mark.w, mark.h, mark.x, mark.y, mark.w, mark.h);
   target.restore();
+}
+
+// Absorption belongs to a wet mark, never a completed frame. Rasterise the
+// same seeded soft circles once in local space, then stretch that quiet tooth
+// with its mark. Small aspect/radius buckets preserve the circles' proportions
+// while allowing a swimming contour to reuse them instead of rebuilding
+// eighteen to forty-five native radial gradients every frame.
+const absorptionMasks = new Map();
+let absorptionPixels = 0;
+function absorptionMask(mark, breadth, random, seed, layers, pointCount) {
+  const count = Math.round(clamp(mark.w * mark.h / 3000, 18, 45));
+  const aspectStep = Math.round(Math.log2(mark.w / mark.h) * 8);
+  const aspect = 2 ** (clamp(aspectStep, -32, 32) / 8);
+  const radiusStep = Math.round(breadth / Math.min(mark.w, mark.h) * 32);
+  const minimumStep = Math.round(1.2 / Math.min(mark.w, mark.h) * 128);
+  const key = `${seedNumber(seed)}:${layers}:${pointCount}:${count}:${aspectStep}:${radiusStep}:${minimumStep}`;
+  let mask = absorptionMasks.get(key);
+  if (mask) {
+    absorptionMasks.delete(key); absorptionMasks.set(key, mask);
+    return mask;
+  }
+  const width = Math.max(12, Math.round(aspect >= 1 ? 192 : 192 * aspect));
+  const height = Math.max(12, Math.round(aspect >= 1 ? 192 / aspect : 192));
+  mask = document.createElement('canvas'); mask.width = width; mask.height = height;
+  const ctx = mask.getContext('2d');
+  const unit = Math.min(width, height);
+  const relativeBreadth = radiusStep / 32;
+  for (let i = 0; i < count; i++) {
+    const x = random() * width, y = random() * height;
+    const radius = Math.max(minimumStep / 128 * unit, unit * relativeBreadth * (.12 + random() * .16));
+    const loss = .045 + random() * .14;
+    const tooth = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    tooth.addColorStop(0, `rgba(0,0,0,${loss})`); tooth.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tooth; ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+  const pixels = width * height;
+  while (absorptionMasks.size && (absorptionMasks.size >= 192 || absorptionPixels + pixels > 4e6)) {
+    const oldest = absorptionMasks.keys().next().value, previous = absorptionMasks.get(oldest);
+    absorptionPixels -= previous.width * previous.height; absorptionMasks.delete(oldest);
+  }
+  absorptionMasks.set(key, mask); absorptionPixels += pixels;
+  return mask;
 }
 
 function smoothPath(ctx, points, closed = false) {
@@ -254,15 +298,8 @@ export function wash(ctx, polygon, { colour = '#6f8b7c', seed = 1, alpha = 0.22,
   // mark's own bounds hold these patches still as a fish changes shape.
   ctx.globalCompositeOperation = 'destination-out';
   ctx.globalAlpha = 1;
-  const absorption = Math.round(clamp(mark.w * mark.h / 3000, 18, 45));
-  for (let i = 0; i < absorption; i++) {
-    const x = mark.x + random() * mark.w, y = mark.y + random() * mark.h;
-    const radius = Math.max(1.2, breadth * (0.12 + random() * 0.16));
-    const loss = 0.045 + random() * 0.14;
-    const tooth = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    tooth.addColorStop(0, `rgba(0,0,0,${loss})`); tooth.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = tooth; ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-  }
+  const absorption = absorptionMask(mark, breadth, random, seed, n, points.length);
+  ctx.drawImage(absorption, mark.x, mark.y, mark.w, mark.h);
   // Tint this one paint mark, never the fish or the finished frame.
   ctx.globalCompositeOperation = 'source-in'; ctx.globalAlpha = 1;
   ctx.fillStyle = colour; ctx.fillRect(mark.x, mark.y, mark.w, mark.h);

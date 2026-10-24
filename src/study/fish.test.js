@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import SpineFish, { buildPondMixFromCounts } from '../app/pond/SpineFish.js';
-import { createPond, createMotionContext } from './fish.js';
+import { createPond, createMotionContext, createNativeFishPainter } from './fish.js';
 import { createPond as createV1Pond } from './v1/fish.js';
 
 // These invariants concern simulation ownership, rather than browser pixels.
@@ -43,6 +43,31 @@ function seededRandom(seed) {
   let state = seed;
   return () => { state = Math.imul(state, 1664525) + 1013904223 | 0; return (state >>> 0) / 4294967296; };
 }
+
+test('native scratch surfaces belong to each fish and release substantially oversized bounds', () => {
+  const previousDocument = globalThis.document;
+  const surfaces = [];
+  globalThis.document = { createElement: () => { const c = canvas(); surfaces.push(c); return c; } };
+  try {
+    const paint = createNativeFishPainter(canvas().getContext('2d'));
+    const makeFish = (extent) => ({
+      head: { x: 0, y: 0, radius: 2 }, mouth: { x: extent, y: 0 }, parts: [],
+      tail: { pieces: [] }, fins: { fins: [] }, draws: 0,
+      draw() { this.draws++; },
+    });
+    const large = makeFish(1000), small = makeFish(20);
+    paint(large); paint(small);
+    assert.equal(surfaces.length, 2);
+    assert.ok(surfaces[0].width > surfaces[1].width * 3, 'a small koi must not inherit the large koi blur allocation');
+    const initialWidth = surfaces[0].width;
+    large.mouth.x = 15;
+    paint(large);
+    assert.ok(surfaces[0].width < initialWidth * .6, 'a narrow pose releases the former orientation allocation');
+    assert.equal(surfaces.length, 2, 'surface identity is reused');
+    assert.equal(large.draws, 2);
+    assert.equal(small.draws, 1);
+  } finally { globalThis.document = previousDocument; }
+});
 
 test('each tick calls the original update and original draw once; all media reuse that pose', () => {
   const previousDocument = globalThis.document;
