@@ -61,6 +61,7 @@ root.innerHTML = `
   <p class="hint" aria-hidden="true"></p>
   <div class="prompt" aria-live="polite"><p class="prompt-word"></p><p class="prompt-text"></p></div>
   <p class="how" aria-live="polite"></p>
+  <button class="skip" type="button">Clear it for me</button>
   <div class="dial" role="radiogroup" aria-label="How much colour">
     <span class="dial-name"></span>
     ${STEPS.map((s) => `<button type="button" role="radio" class="dial-step s-${s}" data-step="${s}" aria-label="${NAMES[s]}"><i></i></button>`).join('')}
@@ -75,6 +76,7 @@ const promptEl = root.querySelector('.prompt');
 const howEl = root.querySelector('.how');
 const dialEl = root.querySelector('.dial');
 const dialName = root.querySelector('.dial-name');
+const skipEl = root.querySelector('.skip');
 
 const grain = grainTile(384, 7);
 grainEl.style.backgroundImage = `url(${grain.toDataURL()})`;
@@ -98,6 +100,13 @@ const garden = new Garden({
   onNote: (t) => { if (place === 'garden' && to === 1) say(t); },
   onPrompt: (w, t) => { if (place === 'garden' && to === 1) showPrompt(w, t); },
 });
+// A garden finished this week stays finished (?fresh=1 starts again).
+const GKEY = 'study.garden';
+garden.onDone = () => store.set(GKEY, String(week));
+if (store.get(GKEY) === String(week) && q.get('fresh') !== '1') garden.restoreDone();
+// Nobody gets stuck: after a while in the garden, a quiet way through.
+let fieldT = { t: 0, done: 0 };
+skipEl.addEventListener('click', () => { garden.clearAll(); skipEl.classList.remove('show'); st.dirty = true; });
 const bowl = new FoodBowl();
 // Which place, and how far in (0 the landscape, 1 there).
 const start = q.get('view');
@@ -493,6 +502,11 @@ function tick(now) {
     st.dirty = true;
   }
   garden.step(dt);
+  // (Its clock restarts with each thing cleared: it's for the stuck.)
+  const done = garden.stones.filter((s) => s.state === 'set').length + (garden.thorn.state === 'gone' ? 1 : 0);
+  if (done !== fieldT.done) fieldT = { t: 0, done };
+  if (inGarden() && garden.phase === 'clear') fieldT.t += dt;
+  skipEl.classList.toggle('show', inGarden() && garden.phase === 'clear' && fieldT.t > 40);
   if (reduced) {
     // A still page: only what the hand moves, moves.
     if (st.dirty || garden.grab || garden.busy) draw();

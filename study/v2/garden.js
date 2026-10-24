@@ -68,10 +68,35 @@ export class Garden {
     this.stones = STONES.map((d) => ({ ...d, ...stoneSize(d.s, d.seed), y: 0.006, home: d.x, state: 'ground', vx: 0, vy: 0, damp: 0, slot: -1 }));
     this.thorn = { x: THORN.x, home: THORN.x, y: 0, state: 'in', loose: 0, pull: 0, lean: 0, quiver: 0, rise: 0, k: 1, vy: 0 };
     this.grab = null;
-    this.phase = 'clear';      // clear → sow → grow → done
+    this.phase = 'clear';      // clear → still (a beat) → sow → grow → done
     this.seedT = 0;
     this.growT = 0;
     this.slots = 0;
+  }
+
+  // Clear the lot for anyone who's stuck: the stones go to the wall and
+  // the thorn to the basket, and the seed comes as usual.
+  clearAll() {
+    if (this.phase !== 'clear') return;
+    this.grab = null;
+    for (const st of this.stones) if (st.state !== 'set' && st.state !== 'toWall') this.toWall(st);
+    const th = this.thorn;
+    if (th.state !== 'gone' && th.state !== 'compost') { th.from = { x: th.x, y: th.y }; th.state = 'compost'; th.t = 0; }
+    this.onPrompt('', '');
+    this.onNote('');
+  }
+
+  // Done this week already: as it was left.
+  restoreDone() {
+    this.stones.forEach((st, i) => {
+      const pos = [[0.32, -0.093], [0.4, -0.093], [0.36, -0.093 - 0.05]][i];
+      st.state = 'set'; st.x = pos[0]; st.y = pos[1];
+    });
+    this.slots = 3;
+    this.thorn.state = 'gone';
+    this.phase = 'done';
+    this.growT = 999;
+    this.said.heavy = this.said.wall = this.said.out = true;
   }
 
   // ── Where it is ───────────────────────────────────────────────────
@@ -96,7 +121,7 @@ export class Garden {
 
   // Whether anything is moving on its own (for a still page).
   get busy() {
-    return this.stones.some((s) => s.state === 'falling' || s.state === 'toWall') || ['fallen', 'compost'].includes(this.thorn.state) || this.phase === 'grow';
+    return this.stones.some((s) => s.state === 'falling' || s.state === 'toWall') || ['fallen', 'compost'].includes(this.thorn.state) || this.phase === 'grow' || this.phase === 'still';
   }
 
   get cleared() { return this.stones.every((s) => s.state === 'set') && this.thorn.state === 'gone'; }
@@ -305,10 +330,18 @@ export class Garden {
         this.onNote('');
       }
     }
-    if (this.phase === 'clear' && this.cleared && !this.grab && this.stones.every((s) => s.state === 'set')) {
-      this.phase = 'sow';
-      this.seedT = 0;
-      this.onPrompt(this.word, 'Sow this week’s word. Touch the soil.');
+    if (this.phase === 'clear' && this.cleared && !this.grab) {
+      // The ground is clear: a held beat, then the seed.
+      this.phase = 'still';
+      this.holdT = 0;
+    }
+    if (this.phase === 'still') {
+      this.holdT += dt;
+      if (this.holdT > (this.reduced ? 0 : 1.4)) {
+        this.phase = 'sow';
+        this.seedT = 0;
+        this.onPrompt(this.word, 'Sow this week’s word. Touch the soil.');
+      }
     }
     if (this.phase === 'sow') this.seedT += dt;
     if (this.phase === 'grow' || this.phase === 'done') {
@@ -316,6 +349,7 @@ export class Garden {
       if (this.phase === 'grow' && this.vine && (this.reduced || this.growT > 1.6 + (this.vine.doneAt || 10))) {
         this.phase = 'done';
         this.onPrompt(this.ref, '');
+        this.onDone?.();
       }
     }
   }

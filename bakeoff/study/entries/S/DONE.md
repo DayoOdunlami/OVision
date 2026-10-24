@@ -1,30 +1,44 @@
-# Style study S: done
+# Style study S: done (sprint 2)
 
 - **Branch:** bakeoff/study-s
 - **Preview:** https://o-vision-git-bakeoff-study-s-dayoodunlamis-projects.vercel.app/study/
   - This is Vercel's branch address, behind the client's sign-in.
-  - The last build checked before this file was READY at
-    https://o-vision-2od5v1xyo-dayoodunlamis-projects.vercel.app/study/.
   - Locally: `npm install && npm run dev`, then open `/study/`.
+- **Sprint 2 is the default** (`/study/` or `/study/?v=2`).
+- **Sprint 1, exactly as handed in:** `/study/?v=1`. It runs from a frozen copy of its
+  code.
+- **What changed and how to see each change on its own:** `SPRINT-NOTES.md`. It has one
+  row per item, each with a switch and a link with it on and off (`?off=…`).
 
-## Open these first
-1. **The scroll by day, in ink:** `/study/?dial=ink&h=12`
-2. **The scroll at night, in ink and wash:** `/study/?dial=wash&h=22`
-3. **The scroll in colour:** `/study/?dial=colour&h=12`
-4. **Paper:** `/study/?dial=paper&h=12`
-5. **Into the pond, in ink:** `/study/?dial=ink&h=12`, then touch the water. To open
-   straight in the pond: `/study/?dial=ink&h=12&view=pond`.
+## Open these first (sprint 2)
+1. **The landscape, by day, in Ink and wash:** `/study/?dial=wash&h=12`. Compare
+   `/study/?v=1&dial=wash&h=12`.
+2. **Into the pond:** on that page, touch the pond. The oval un-squashes and grows into
+   the pond, and the koi grow with it. Touch the water: the curious koi comes, the shy one
+   scatters. Double-tap to feed. ← goes back the same way.
+3. **Walk into the garden:** on the landscape, touch the garden.
+   - Lift the three stones to the wall and read what each asks.
+   - Pull up the thorn slowly and lay it in the basket.
+   - Touch the soil to sow the week's word, and watch the vine write it.
+   - Straight in, starting fresh: `/study/?dial=wash&h=12&view=garden&fresh=1`.
+4. **At night, in Ink:** `/study/?dial=ink&h=22`.
+5. **Each change off on its own:** for example `/study/?dial=wash&h=12&off=squash`, or
+   everything off at once: `&off=all`.
 
 ## Also worth opening
-- **Colour koi beside ink koi:** `/study/?dial=ink&h=12&view=pond&compare=1`. It shows
-  the same fish at the same instant.
-- **The vine writes the family's word:** `/study/?dial=wash&h=12&vine=1`, or touch the
-  trellis.
-- **The 06:45 prayer:** `/study/?dial=ink&h=6.75`.
-- **A still page (reduced motion):** `/study/?dial=wash&h=12&rm=1`.
+- **The landscape in Colour:** `/study/?dial=colour&h=12`.
+- **The garden in Ink on a tablet:** `/study/?dial=ink&h=12&view=garden&fresh=1`.
+- **Colour koi beside ink koi,** the same fish at the same instant:
+  `/study/?dial=ink&h=12&view=pond&compare=1`.
+- **A still page (reduced motion):** `/study/?dial=wash&h=12&rm=1`. The garden still works
+  by hand.
 
-**On the scroll:**
-- Touch a plant to see it grow one stage.
-- The dial is the four small marks at the top right.
+**Things to know:**
+- A finished garden is remembered on the device for the week. `&fresh=1` starts it again.
+- "Clear it for me" appears in the garden after 40 s without progress.
 
-The hand-in: `STUDY.md`, and the screenshots and recordings in `screens/`.
+## The hand-in
+- `SPRINT-NOTES.md`: the table, what we took from study T, and the calls we made.
+- `screens/sprint2/`: before and after, each switch off, the garden step by step, frames
+  from both moves, and two recordings. See its README.
+- `STUDY.md` and `screens/` are sprint 1's, unchanged.
