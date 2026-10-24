@@ -1,0 +1,297 @@
+{
+  "plates": [
+    {
+      "state": "scroll-paper-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-ink-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-wash-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-colour-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-paper-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-ink-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-wash-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-colour-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-paper-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-ink-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-wash-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-colour-phone-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-paper-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-ink-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-wash-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-colour-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-paper-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-ink-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-wash-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-colour-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-paper-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-ink-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-wash-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-colour-phone-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-paper-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-ink-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-wash-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-colour-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-paper-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-ink-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-wash-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-colour-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-paper-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-ink-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-wash-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-colour-tablet-day",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-paper-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-ink-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-wash-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "scroll-colour-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-paper-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-ink-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-wash-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "pond-colour-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-paper-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-ink-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-wash-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    },
+    {
+      "state": "garden-colour-tablet-night",
+      "sameHeldHeads": true,
+      "pageErrors": 0,
+      "undersizedTargets": 0
+    }
+  ],
+  "switches": 8,
+  "touchClearing": true,
+  "doubleTapFeed": true,
+  "keyboardClearing": true,
+  "legacyApp": true
+}

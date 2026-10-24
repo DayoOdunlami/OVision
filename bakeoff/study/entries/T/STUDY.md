@@ -1,5 +1,7 @@
 # A place held in reserve
 
+*Sprint 1 record. For the current refinement, see [SPRINT-NOTES.md](SPRINT-NOTES.md).*
+
 One landscape, with room to breathe. The eye travels from distant hills through a tended garden to water seen from above. The dial changes the medium, not the place or the life within it. Ink is the default; Paper withdraws the world entirely.
 
 ## Decisions

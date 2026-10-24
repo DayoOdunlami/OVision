@@ -1,0 +1,16 @@
+{
+  "deterministic": true,
+  "callerAlpha": true,
+  "meanRGBError": 0.008202080749621055,
+  "maxChannelError": 2,
+  "changedFraction": 0.015215998346424143,
+  "over3Fraction": 0,
+  "beforePerf": {
+    "ms": 474,
+    "gradients": 4860
+  },
+  "afterPerf": {
+    "ms": 360.5,
+    "gradients": 0
+  }
+}
